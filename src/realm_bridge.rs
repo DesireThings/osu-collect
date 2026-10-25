@@ -1,20 +1,20 @@
 #[cxx::bridge(namespace = "osu_realm")]
 pub mod ffi {
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct LocalBeatmap {
         pub id: u32,
         pub checksum: String,
         pub beatmapset_id: u32,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct LocalBeatmapset {
         pub id: u32,
         pub beatmaps: Vec<LocalBeatmap>,
         pub folder_name: String,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct LocalCollection {
         pub name: String,
         pub beatmap_checksums: Vec<String>,
