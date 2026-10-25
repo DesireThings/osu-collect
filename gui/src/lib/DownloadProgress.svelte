@@ -14,6 +14,28 @@
     return `${Math.round(bytes / 1e3)} KB`;
   }
 
+  // The engine says how long until a waiting set retries as of each update;
+  // count down from there so the number moves between updates.
+  const receivedAt = $derived.by(() => {
+    void status;
+    return Date.now();
+  });
+  let now = $state(Date.now());
+  $effect(() => {
+    if (status.waiting === 0) return;
+    const timer = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(timer);
+  });
+  const retryIn = $derived(
+    status.retry_in_secs === null
+      ? null
+      : Math.max(0, status.retry_in_secs - Math.max(0, Math.floor((now - receivedAt) / 1000))),
+  );
+
+  function wait(secs: number): string {
+    return secs < 90 ? `in ${secs} s` : `in about ${Math.ceil(secs / 60)} min`;
+  }
+
   const summary = $derived.by(() => {
     const parts = [`${status.downloaded} new`];
     if (status.skipped > 0) parts.push(`${status.skipped} you already had`);
@@ -33,13 +55,21 @@
     <p class="small">
       {settled} of {status.total} map sets
       {#if status.active > 0}· {status.active} downloading now{/if}
+      {#if status.waiting > 0}· {status.waiting} waiting for a free mirror{/if}
       {#if status.bytes_done > 0}· {size(status.bytes_done)}{/if}
     </p>
+    {#if status.waiting > 0}
+      <p class="muted small">
+        The mirrors that have {status.waiting === 1 ? "this map set" : "these map sets"} are busy right
+        now, so {status.waiting === 1 ? "it's" : "they're"} tried again
+        {retryIn ? wait(retryIn) : "in a moment"}. Nothing to do on your side.
+      </p>
+    {/if}
   {:else if status.phase === "done"}
     <div class="bar done"><span style:width="100%"></span></div>
     <p class="small {status.failed > 0 ? 'warn-text' : 'ok'}">Done: {summary}</p>
   {:else if status.phase === "cancelled"}
-    <p class="muted small">Cancelled. {status.downloaded} map sets were downloaded before stopping.</p>
+    <p class="muted small">Cancelled. {status.downloaded} new map sets were downloaded before stopping.</p>
   {:else}
     <p class="error-text small">The download failed: {status.error ?? "unknown error"}</p>
   {/if}

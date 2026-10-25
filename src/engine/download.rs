@@ -81,6 +81,11 @@ pub struct DownloadStatus {
     pub bytes_total: Option<u64>,
     /// Sets downloading right now.
     pub active: usize,
+    /// Sets put back in the queue because every mirror that has them is
+    /// rate-limiting; they retry on their own.
+    pub waiting: usize,
+    /// Seconds until the first waiting set retries, as of this update.
+    pub retry_in_secs: Option<u64>,
     pub failures: Vec<Failure>,
     pub error: Option<String>,
     pub warning: Option<String>,
@@ -92,6 +97,9 @@ pub struct DownloadStatus {
     in_flight: HashMap<u32, (u64, u64)>,
     #[serde(skip)]
     active_sets: HashSet<u32>,
+    /// Waiting sets and when each one retries.
+    #[serde(skip)]
+    deferred: HashMap<u32, Instant>,
 }
 
 impl DownloadStatus {
@@ -109,6 +117,8 @@ impl DownloadStatus {
             bytes_done: 0,
             bytes_total: None,
             active: 0,
+            waiting: 0,
+            retry_in_secs: None,
             failures: Vec::new(),
             error: None,
             warning: None,
@@ -116,6 +126,7 @@ impl DownloadStatus {
             finished_bytes: 0,
             in_flight: HashMap::new(),
             active_sets: HashSet::new(),
+            deferred: HashMap::new(),
         }
     }
 
@@ -165,12 +176,14 @@ impl DownloadStatus {
                 match stage {
                     BeatmapStage::Downloading | BeatmapStage::Verifying => {
                         self.active_sets.insert(*beatmapset_id);
+                        self.deferred.remove(beatmapset_id);
                     }
                     BeatmapStage::Pending => {
                         self.active_sets.remove(beatmapset_id);
                     }
                     terminal => {
                         self.active_sets.remove(beatmapset_id);
+                        self.deferred.remove(beatmapset_id);
                         if let Some((done, size)) = self.in_flight.remove(beatmapset_id)
                             && *terminal == BeatmapStage::Success
                         {
@@ -180,13 +193,21 @@ impl DownloadStatus {
                 }
                 self.active = self.active_sets.len();
                 self.refresh_bytes();
+                self.refresh_waiting();
                 false
             }
-            DownloadEvent::BeatmapDeferred { beatmapset_id, .. } => {
+            DownloadEvent::BeatmapDeferred {
+                beatmapset_id,
+                retry_in,
+                ..
+            } => {
                 self.active_sets.remove(beatmapset_id);
                 self.in_flight.remove(beatmapset_id);
+                self.deferred
+                    .insert(*beatmapset_id, Instant::now() + *retry_in);
                 self.active = self.active_sets.len();
                 self.refresh_bytes();
+                self.refresh_waiting();
                 false
             }
             DownloadEvent::OverallProgress {
@@ -258,11 +279,23 @@ impl DownloadStatus {
             self.finished_bytes + self.in_flight.values().map(|(done, _)| done).sum::<u64>();
     }
 
+    fn refresh_waiting(&mut self) {
+        let now = Instant::now();
+        self.waiting = self.deferred.len();
+        self.retry_in_secs = self
+            .deferred
+            .values()
+            .min()
+            .map(|at| at.saturating_duration_since(now).as_secs_f64().ceil() as u64);
+    }
+
     fn clear_in_flight(&mut self) {
         self.in_flight.clear();
         self.active_sets.clear();
+        self.deferred.clear();
         self.active = 0;
         self.refresh_bytes();
+        self.refresh_waiting();
     }
 }
 
@@ -355,7 +388,6 @@ struct Run {
     /// Built at queue time; taken when the run starts.
     request: Option<DownloadRequest>,
     handle: Option<DownloadHandle>,
-    last_push: Option<Instant>,
 }
 
 struct Inner {
@@ -405,7 +437,6 @@ impl Downloads {
                     status: status.clone(),
                     request: Some(request),
                     handle: None,
-                    last_push: None,
                 },
             );
             status
@@ -473,24 +504,57 @@ impl Downloads {
         tokio::spawn(async move { this.pump(id, rx).await });
     }
 
+    fn status(&self, id: DownloadId) -> Option<DownloadStatus> {
+        let inner = self.inner.lock().expect("downloads lock");
+        inner.runs.get(&id).map(|run| run.status.clone())
+    }
+
     /// Fold one run's events into its status until the pipeline drops its
-    /// sender, then start the next queued run.
+    /// sender, then start the next queued run. An update the throttle holds
+    /// back goes out once the interval is up, even if no event follows it:
+    /// a run that goes quiet (every mirror rate-limiting, say) must not leave
+    /// the window showing old numbers.
     async fn pump(self, id: DownloadId, mut rx: mpsc::UnboundedReceiver<DownloadEvent>) {
-        while let Some(event) = rx.recv().await {
+        let mut last_push: Option<Instant> = None;
+        let mut held_back = false;
+        loop {
+            let event = match last_push.filter(|_| held_back) {
+                Some(at) => {
+                    let flush_at = tokio::time::Instant::from_std(at + PUSH_INTERVAL);
+                    tokio::select! {
+                        event = rx.recv() => event,
+                        () = tokio::time::sleep_until(flush_at) => {
+                            held_back = false;
+                            last_push = Some(Instant::now());
+                            if let Some(status) = self.status(id) {
+                                (self.on_update)(&status);
+                            }
+                            continue;
+                        }
+                    }
+                }
+                None => rx.recv().await,
+            };
+            let Some(event) = event else {
+                break;
+            };
+
             let push = {
                 let mut inner = self.inner.lock().expect("downloads lock");
                 let Some(run) = inner.runs.get_mut(&id) else {
                     continue;
                 };
                 let urgent = run.status.apply(&event);
-                let due = run.last_push.is_none_or(|at| at.elapsed() >= PUSH_INTERVAL);
-                (urgent || due).then(|| {
-                    run.last_push = Some(Instant::now());
-                    run.status.clone()
-                })
+                let due = last_push.is_none_or(|at| at.elapsed() >= PUSH_INTERVAL);
+                (urgent || due).then(|| run.status.clone())
             };
-            if let Some(status) = push {
-                (self.on_update)(&status);
+            match push {
+                Some(status) => {
+                    last_push = Some(Instant::now());
+                    held_back = false;
+                    (self.on_update)(&status);
+                }
+                None => held_back = true,
             }
         }
 

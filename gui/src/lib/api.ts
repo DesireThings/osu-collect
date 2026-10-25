@@ -68,6 +68,10 @@ export interface DownloadStatus {
   bytes_done: number;
   bytes_total: number | null;
   active: number;
+  /** Sets waiting because every mirror that has them is rate-limiting. */
+  waiting: number;
+  /** Seconds until the first waiting set retries, as of this update. */
+  retry_in_secs: number | null;
   failures: Failure[];
   error: string | null;
   warning: string | null;

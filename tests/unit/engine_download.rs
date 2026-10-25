@@ -1,8 +1,10 @@
-use super::{ABORTED, DownloadStatus, Downloads, Phase, mirrors_from_config};
+use super::{ABORTED, DownloadStatus, Downloads, PUSH_INTERVAL, Phase, Run, mirrors_from_config};
 use crate::app::{HomeTab, collection::FailureReason};
 use crate::config::Config;
 use crate::download::{BeatmapStage, DownloadEvent, DownloadStage, DownloadSummary, FailedMap};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tokio::sync::mpsc;
 
 fn mirror_names(mirrors: &[crate::mirrors::Mirror]) -> Vec<String> {
     mirrors.iter().map(|m| format!("{m:?}")).collect()
@@ -91,6 +93,69 @@ fn a_run_reports_name_progress_and_bytes() {
     assert_eq!(s.active, 0);
     assert_eq!(s.bytes_done, 1000, "a finished set counts at its full size");
     assert_eq!((s.downloaded, s.skipped), (1, 5));
+}
+
+fn deferred(set: u32, retry_in_secs: u64) -> DownloadEvent {
+    DownloadEvent::BeatmapDeferred {
+        id: 1,
+        beatmapset_id: set,
+        pass: 1,
+        retry_in: Duration::from_secs(retry_in_secs),
+    }
+}
+
+#[test]
+fn a_deferred_set_waits_instead_of_downloading() {
+    let mut s = status();
+    s.apply(&beatmap(BeatmapStage::Downloading, 10));
+    s.apply(&beatmap(BeatmapStage::Downloading, 11));
+
+    s.apply(&deferred(10, 30));
+
+    assert_eq!((s.active, s.waiting), (1, 1));
+    assert_eq!(s.retry_in_secs, Some(30));
+
+    s.apply(&deferred(11, 90));
+
+    assert_eq!((s.active, s.waiting), (0, 2));
+    assert_eq!(s.retry_in_secs, Some(30), "the soonest retry");
+
+    s.apply(&beatmap(BeatmapStage::Downloading, 10));
+    s.apply(&beatmap(BeatmapStage::Failed, 11));
+
+    assert_eq!((s.active, s.waiting), (1, 0));
+    assert_eq!(s.retry_in_secs, None);
+}
+
+#[tokio::test]
+async fn an_update_held_back_by_the_throttle_still_goes_out() {
+    let pushed: Arc<Mutex<Vec<DownloadStatus>>> = Arc::default();
+    let downloads = Downloads::new({
+        let pushed = pushed.clone();
+        Arc::new(move |s: &DownloadStatus| pushed.lock().unwrap().push(s.clone()))
+    });
+    downloads.inner.lock().unwrap().runs.insert(
+        1,
+        Run {
+            status: status(),
+            request: None,
+            handle: None,
+        },
+    );
+    let (tx, rx) = mpsc::unbounded_channel();
+    let pump = tokio::spawn(downloads.clone().pump(1, rx));
+
+    // The second event lands inside the throttle window, then the pipeline
+    // goes quiet without closing: every mirror is rate-limiting.
+    tx.send(beatmap(BeatmapStage::Downloading, 10)).unwrap();
+    tx.send(deferred(10, 60)).unwrap();
+    tokio::time::sleep(PUSH_INTERVAL * 3).await;
+
+    let last = pushed.lock().unwrap().last().cloned().expect("a push");
+    assert_eq!((last.active, last.waiting), (0, 1));
+
+    drop(tx);
+    pump.await.unwrap();
 }
 
 #[test]
