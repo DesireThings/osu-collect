@@ -137,6 +137,10 @@ code {
   font-size: 0.82rem;
   color: var(--muted);
 }
+.hint.live {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
 
 .content {
   padding: 32px 40px;
@@ -269,12 +273,76 @@ button:focus-visible,
   margin: 0;
   padding: 0;
 }
+.entry-card {
+  padding: 14px 20px;
+}
 .entry {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px;
+}
+.entry-buttons {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.list-actions {
+  margin: 0 0 12px;
+}
+
+.progress {
+  margin-top: 10px;
+}
+.bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.bar.done span {
+  background: var(--ok);
+}
+.bar.indeterminate span {
+  width: 30%;
+  animation: slide 1.2s ease-in-out infinite;
+}
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar.indeterminate span {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+.progress p {
+  margin: 6px 0 0;
+}
+button.link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.86rem;
+}
+.failures {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
 }
 .entry-main {
   display: grid;

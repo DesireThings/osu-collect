@@ -4,6 +4,7 @@
   import Collections from "./lib/Collections.svelte";
   import Import from "./lib/Import.svelte";
   import { detectInstalls, loadSettings, type Installs, type Settings } from "./lib/api";
+  import { initDownloads, store } from "./lib/store.svelte";
 
   type Page = "setup" | "collections" | "import";
 
@@ -18,9 +19,24 @@
   let installs = $state<Installs | null>(null);
   let loadError = $state<string | null>(null);
 
+  /** Sidebar hint for step 2 while something downloads, so it shows from any step. */
+  const downloadingHint = $derived.by(() => {
+    const running = Object.values(store.downloads).find(
+      (s) => s.phase === "downloading" || s.phase === "preparing",
+    );
+    if (!running) return null;
+    if (running.phase === "preparing") return `Getting ready: ${running.name}`;
+    const settled = running.downloaded + running.skipped + running.failed;
+    return `Downloading ${settled}/${running.total}: ${running.name}`;
+  });
+
   onMount(async () => {
     try {
-      [settings, installs] = await Promise.all([loadSettings(), detectInstalls()]);
+      [settings, installs] = await Promise.all([
+        loadSettings(),
+        detectInstalls(),
+        initDownloads(),
+      ]);
     } catch (e) {
       loadError = String(e);
     }
@@ -41,7 +57,11 @@
             <span class="num">{i + 1}</span>
             <span class="text">
               <span class="label">{step.label}</span>
-              <span class="hint">{step.hint}</span>
+              {#if step.id === "collections" && downloadingHint}
+                <span class="hint live">{downloadingHint}</span>
+              {:else}
+                <span class="hint">{step.hint}</span>
+              {/if}
             </span>
           </button>
         </li>

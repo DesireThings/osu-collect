@@ -15,9 +15,12 @@ use osu_downloader::collection::CollectionClient;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+pub mod download;
+
 pub use crate::download::lazer_import::{
     IMPORT_FOLDER_NAME, ImportFolderReport, build_import_folder,
 };
+pub use download::{DownloadStatus, Downloads, Failure, OnUpdate, Phase};
 
 /// osu! installs found in their default locations.
 #[derive(Debug, Clone, Serialize)]

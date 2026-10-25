@@ -9,7 +9,8 @@ Screens so far:
 1. **Set up**: pick osu!lazer or stable (install folder found automatically, or
    chosen), and the download folder.
 2. **Add collections**: paste osu!collector links to see each collection's name,
-   uploader and size. Downloading from here is not built yet.
+   uploader and size, then download them (one at a time, queued) with live
+   progress, cancel, and a list of any map sets that couldn't be downloaded.
 3. **Import into osu!**: builds the one-pass lazer import folder from every
    download, with the wizard steps, a copy button and "Show folder".
 

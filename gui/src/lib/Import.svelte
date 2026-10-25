@@ -1,6 +1,7 @@
 <script lang="ts">
   import { revealItemInDir } from "@tauri-apps/plugin-opener";
   import { buildLazerImport, type LazerImportResult, type Settings } from "./api";
+  import { isActive, store } from "./store.svelte";
 
   let { settings }: { settings: Settings } = $props();
 
@@ -28,6 +29,7 @@
     setTimeout(() => (copied = false), 1500);
   }
 
+  const downloading = $derived(Object.values(store.downloads).some(isActive));
   const sets = $derived(result ? result.report.unpacked + result.report.already_unpacked : 0);
 </script>
 
@@ -54,6 +56,12 @@
     <p class="muted small">
       Looks in <code>{settings.download_dir}</code>. Running it again later only adds what's new.
     </p>
+    {#if downloading}
+      <p class="warn-text small">
+        Some collections are still downloading. Wait for them to finish, or run this again
+        afterwards to add the rest.
+      </p>
+    {/if}
     <div class="actions left">
       <button class="primary" onclick={build} disabled={building}>
         {building ? "Preparing… (big downloads take a while)" : "Prepare import folder"}

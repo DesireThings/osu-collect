@@ -1,6 +1,7 @@
 // Typed wrappers over the Tauri commands in src-tauri/src/lib.rs. Errors come
 // back as plain sentences, ready to show.
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export type OsuClient = "lazer" | "stable";
 
@@ -45,3 +46,36 @@ export const previewCollection = (input: string) =>
   invoke<CollectionPreview>("preview_collection", { input });
 export const buildLazerImport = (downloadDir: string) =>
   invoke<LazerImportResult>("build_lazer_import", { downloadDir });
+
+export type Phase = "queued" | "preparing" | "downloading" | "done" | "failed" | "cancelled";
+
+export interface Failure {
+  beatmapset_id: number;
+  title: string | null;
+  reason: string;
+}
+
+export interface DownloadStatus {
+  id: number;
+  collection_id: number;
+  name: string;
+  phase: Phase;
+  total: number;
+  downloaded: number;
+  skipped: number;
+  failed: number;
+  already_in_osu: number;
+  bytes_done: number;
+  bytes_total: number | null;
+  active: number;
+  failures: Failure[];
+  error: string | null;
+  warning: string | null;
+  folder: string | null;
+}
+
+export const startDownload = (input: string) => invoke<number>("start_download", { input });
+export const cancelDownload = (id: number) => invoke<void>("cancel_download", { id });
+export const listDownloads = () => invoke<DownloadStatus[]>("list_downloads");
+export const onDownloadStatus = (handler: (status: DownloadStatus) => void) =>
+  listen<DownloadStatus>("download-status", (event) => handler(event.payload));

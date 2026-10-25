@@ -1,46 +1,49 @@
 <script lang="ts">
-  import { previewCollection, type CollectionPreview } from "./api";
+  import DownloadProgress from "./DownloadProgress.svelte";
+  import {
+    addCollection,
+    cancel,
+    download,
+    downloadFor,
+    isActive,
+    removeEntry,
+    store,
+  } from "./store.svelte";
 
   let { onNext }: { onNext: () => void } = $props();
 
-  type Entry =
-    | { key: number; input: string; state: "loading" }
-    | { key: number; input: string; state: "ready"; preview: CollectionPreview }
-    | { key: number; input: string; state: "error"; message: string };
-
   let link = $state("");
-  let entries = $state<Entry[]>([]);
-  let nextKey = 0;
 
-  async function add() {
+  function add() {
     const input = link.trim();
     if (!input) return;
     link = "";
-    const key = nextKey++;
-    entries.push({ key, input, state: "loading" });
-    let updated: Entry;
-    try {
-      const preview = await previewCollection(input);
-      const duplicate = entries.some((e) => e.state === "ready" && e.preview.id === preview.id);
-      updated = duplicate
-        ? { key, input, state: "error", message: `"${preview.name}" is already in the list.` }
-        : { key, input, state: "ready", preview };
-    } catch (e) {
-      updated = { key, input, state: "error", message: String(e) };
-    }
-    const index = entries.findIndex((e) => e.key === key);
-    if (index !== -1) entries[index] = updated;
+    addCollection(input);
   }
 
-  function remove(key: number) {
-    entries = entries.filter((e) => e.key !== key);
+  const ready = $derived(store.entries.filter((e) => e.state === "ready"));
+  /** Ready collections not downloaded yet (or whose last try didn't finish). */
+  const notStarted = $derived(
+    ready.filter((e) => {
+      const status = downloadFor(e.preview.id);
+      return !status || status.phase === "cancelled" || status.phase === "failed";
+    }),
+  );
+  const anyActive = $derived(ready.some((e) => isActive(downloadFor(e.preview.id))));
+  const allDone = $derived(
+    ready.length > 0 && ready.every((e) => downloadFor(e.preview.id)?.phase === "done"),
+  );
+
+  function downloadAll() {
+    for (const entry of notStarted) download(entry);
   }
 </script>
 
 <header class="page-head">
   <h1>Add collections</h1>
   <p class="muted">
-    Copy a collection's link from osucollector.com and paste it below. Add as many as you like.
+    Copy a collection's link from osucollector.com and paste it below. Add as many as you like,
+    then download them all.
   </p>
 </header>
 
@@ -60,41 +63,80 @@
   <button class="primary" type="submit" disabled={!link.trim()}>Add</button>
 </form>
 
-{#if entries.length === 0}
+{#if store.entries.length === 0}
   <p class="muted empty">No collections yet. Paste a link above to start.</p>
 {:else}
+  {#if notStarted.length > 1}
+    <div class="actions left list-actions">
+      <button class="primary" onclick={downloadAll}>Download all {notStarted.length}</button>
+    </div>
+  {/if}
+
   <ul class="entry-list">
-    {#each entries as entry (entry.key)}
-      <li class="card entry" class:entry-error={entry.state === "error"}>
-        {#if entry.state === "loading"}
-          <div class="entry-main">
-            <span class="entry-title muted">Looking up {entry.input}…</span>
+    {#each store.entries as entry (entry.key)}
+      {@const status = entry.state === "ready" ? downloadFor(entry.preview.id) : undefined}
+      <li class="card entry-card" class:entry-error={entry.state === "error"}>
+        <div class="entry">
+          {#if entry.state === "loading"}
+            <div class="entry-main">
+              <span class="entry-title muted">Looking up {entry.input}…</span>
+            </div>
+          {:else if entry.state === "ready"}
+            <div class="entry-main">
+              <span class="entry-title">{entry.preview.name}</span>
+              <span class="muted small">
+                by {entry.preview.uploader} · {entry.preview.beatmapsets} map sets ·
+                {entry.preview.beatmaps} difficulties
+              </span>
+            </div>
+          {:else}
+            <div class="entry-main">
+              <span class="entry-title">Couldn't add {entry.input}</span>
+              <span class="error-text small">{entry.message}</span>
+            </div>
+          {/if}
+
+          <div class="entry-buttons">
+            {#if entry.state === "ready"}
+              {#if isActive(status)}
+                <button class="secondary" onclick={() => cancel(status!)}>Cancel</button>
+              {:else if status?.phase === "done"}
+                <button class="secondary" onclick={() => download(entry)}>Check again</button>
+              {:else}
+                <button class="primary" onclick={() => download(entry)}>
+                  {status ? "Try again" : "Download"}
+                </button>
+              {/if}
+            {/if}
+            {#if !isActive(status)}
+              <button class="secondary" onclick={() => removeEntry(entry.key)}>Remove</button>
+            {/if}
           </div>
-        {:else if entry.state === "ready"}
-          <div class="entry-main">
-            <span class="entry-title">{entry.preview.name}</span>
-            <span class="muted small">
-              by {entry.preview.uploader} · {entry.preview.beatmapsets} map sets ·
-              {entry.preview.beatmaps} difficulties
-            </span>
-          </div>
-        {:else}
-          <div class="entry-main">
-            <span class="entry-title">Couldn't add {entry.input}</span>
-            <span class="error-text small">{entry.message}</span>
-          </div>
+        </div>
+
+        {#if store.startErrors[entry.key]}
+          <p class="error-text small">{store.startErrors[entry.key]}</p>
         {/if}
-        <button class="secondary" onclick={() => remove(entry.key)}>Remove</button>
+        {#if status}
+          <DownloadProgress {status} />
+        {/if}
       </li>
     {/each}
   </ul>
 {/if}
 
-<p class="note">
-  Downloading from this window is the next thing being built. Until then, download with the
-  terminal version, then use step 3 to import everything at once.
-</p>
-
-<div class="actions">
-  <button class="primary" onclick={onNext}>Continue to import</button>
-</div>
+{#if allDone}
+  <section class="card success">
+    <h2>All downloads finished</h2>
+    <p>Next, get them into osu!: one step for every collection at once.</p>
+    <div class="actions left">
+      <button class="primary" onclick={onNext}>Continue to import</button>
+    </div>
+  </section>
+{:else}
+  <div class="actions">
+    <button class="secondary" onclick={onNext}>
+      {anyActive ? "Go to import (downloads keep running)" : "Continue to import"}
+    </button>
+  </div>
+{/if}
