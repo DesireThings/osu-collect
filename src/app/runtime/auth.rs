@@ -177,8 +177,7 @@ pub(super) fn spawn_logout_task(tx: mpsc::UnboundedSender<AuthEvent>) {
 /// success, re-probes `/me` for supporter status — unknown until now, since
 /// the original login's probe 401'd — and returns the confirmed value.
 async fn submit_verification(code: &str) -> crate::utils::Result<bool> {
-    let mut stored =
-        auth::load().ok_or_else(|| AppError::other_dynamic(Box::from("not logged in")))?;
+    let mut stored = auth::load().ok_or_else(|| AppError::other_dynamic("not logged in"))?;
     let client = reqwest::Client::new();
     auth::submit_session_verification(&client, stored.bearer_token(), code).await?;
     // An unanswered probe leaves the cached value standing rather than claiming
@@ -190,7 +189,7 @@ async fn submit_verification(code: &str) -> crate::utils::Result<bool> {
 
 /// Load the stored token and ask osu! to re-send the verification code.
 async fn reissue_verification() -> crate::utils::Result<()> {
-    let stored = auth::load().ok_or_else(|| AppError::other_dynamic(Box::from("not logged in")))?;
+    let stored = auth::load().ok_or_else(|| AppError::other_dynamic("not logged in"))?;
     let client = reqwest::Client::new();
     auth::reissue_session_verification(&client, stored.bearer_token()).await
 }

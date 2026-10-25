@@ -26,7 +26,7 @@ const COLLECTION_DB_FILENAME: &str = "collection.db";
 const PARTIAL_DIR: &str = ".partial";
 
 /// What one [`build_import_folder`] call did.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize)]
 pub struct ImportFolderReport {
     /// Run folders that held at least one `.osz` or a `collection.db`.
     pub runs: usize,

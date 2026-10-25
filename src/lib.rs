@@ -5,6 +5,7 @@ pub mod cli;
 pub mod config;
 pub mod core;
 pub mod download;
+pub mod engine;
 pub mod mirrors;
 pub mod osu_db;
 pub mod realm_bridge;
