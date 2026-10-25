@@ -43,6 +43,7 @@ Press <kbd>?</kbd> anywhere in the app for the in-app overlay. It carries the ke
 |---|---|
 | <kbd>↵</kbd> | Open the highlighted run / expand its failures |
 | <kbd>d</kbd> | Delete the highlighted entry (a finished run or a past history record; asks to confirm) |
+| <kbd>l</kbd> | Build one lazer import folder from every download (lazer client; see [Importing into osu!](Importing-into-osu)) |
 | <kbd>r</kbd> | Retry failed maps (open run) |
 | <kbd>s</kbd> / <kbd>S</kbd> | Defer / drop maps stuck on a rate-limit cooldown |
 | <kbd>q</kbd> | Cancel the open run while it's downloading |

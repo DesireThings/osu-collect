@@ -3,6 +3,7 @@ mod cover;
 mod details;
 mod enrich;
 mod filter;
+mod lazer_import;
 mod mirror_probe;
 mod resolve;
 pub(crate) mod scan;
@@ -45,6 +46,7 @@ use cover::schedule_cover_fetch;
 use details::{HomeDetailsEvent, handle_home_details_event, schedule_details};
 use enrich::{enrich_sink_mut, schedule_enrichment};
 use filter::schedule_filter;
+use lazer_import::{LazerImportEvent, handle_lazer_import_event, schedule_lazer_import};
 use mirror_probe::{handle_mirror_probe_event, schedule_probe};
 use resolve::{cancel_resolve, schedule_resolve};
 use scan::{handle_updates_event, spawn_failed_map_recheck_task, spawn_scan_task};
@@ -247,6 +249,7 @@ enum LoopEvent {
     HomeSize(HomeSizeEvent),
     HomeCover(HomeCoverEvent),
     MirrorProbe(MirrorProbeEvent),
+    LazerImport(LazerImportEvent),
     Update(UpdateEvent),
 }
 
@@ -318,6 +321,7 @@ pub async fn run(
     let (home_size_tx, mut home_size_rx) = mpsc::unbounded_channel::<HomeSizeEvent>();
     let (home_cover_tx, mut home_cover_rx) = mpsc::unbounded_channel::<HomeCoverEvent>();
     let (mirror_probe_tx, mut mirror_probe_rx) = mpsc::unbounded_channel::<MirrorProbeEvent>();
+    let (lazer_import_tx, mut lazer_import_rx) = mpsc::unbounded_channel::<LazerImportEvent>();
     let (update_tx, mut update_rx) = mpsc::unbounded_channel::<UpdateEvent>();
     let input_handle = spawn_input_thread(input_tx.clone());
 
@@ -344,6 +348,8 @@ pub async fn run(
         mirror_probe: None,
         mirror_probe_cancel: None,
         mirror_probe_tx: mirror_probe_tx.clone(),
+        lazer_import: None,
+        lazer_import_tx,
         update_apply: None,
     };
 
@@ -398,6 +404,7 @@ pub async fn run(
             Some(event) = home_size_rx.recv() => LoopEvent::HomeSize(event),
             Some(event) = home_cover_rx.recv() => LoopEvent::HomeCover(event),
             Some(event) = mirror_probe_rx.recv() => LoopEvent::MirrorProbe(event),
+            Some(event) = lazer_import_rx.recv() => LoopEvent::LazerImport(event),
             Some(event) = update_rx.recv() => LoopEvent::Update(event),
             else => break,
         };
@@ -431,6 +438,7 @@ pub async fn run(
                 home_size_rx => HomeSize,
                 home_cover_rx => HomeCover,
                 mirror_probe_rx => MirrorProbe,
+                lazer_import_rx => LazerImport,
                 update_rx => Update,
             ) else {
                 break;
@@ -645,6 +653,10 @@ fn apply_event(
         LoopEvent::MirrorProbe(event) => {
             trace!(?event, "Received mirror probe event");
             handle_mirror_probe_event(event, &mut app.home);
+        }
+        LoopEvent::LazerImport(event) => {
+            trace!(?event, "Received lazer import event");
+            handle_lazer_import_event(event, app);
         }
         LoopEvent::Update(event) => {
             trace!(?event, "Received update event");
@@ -954,6 +966,15 @@ fn dispatch_command(
         Some(AppCommand::RecheckFailedMaps) => {
             spawn_failed_map_recheck_task(app, updates_tx.clone());
         }
+        Some(AppCommand::BuildLazerImport { download_dir }) => {
+            if !schedule_lazer_import(
+                &mut tasks.lazer_import,
+                download_dir,
+                &tasks.lazer_import_tx,
+            ) {
+                app.toast_info("lazer import folder is still building");
+            }
+        }
         Some(AppCommand::RetryAllFailed { download_id }) => {
             let retryable_ids = app
                 .downloads
@@ -1094,6 +1115,10 @@ struct BackgroundTasks {
     mirror_probe: Option<tokio::task::JoinHandle<()>>,
     mirror_probe_cancel: Option<tokio::sync::watch::Sender<bool>>,
     mirror_probe_tx: mpsc::UnboundedSender<MirrorProbeEvent>,
+    /// In-flight lazer import folder build; a second `l` while it runs is
+    /// refused rather than racing it over the same `Songs/`.
+    lazer_import: Option<tokio::task::JoinHandle<()>>,
+    lazer_import_tx: mpsc::UnboundedSender<LazerImportEvent>,
     /// Handle for the apply-update task spawned by [`AppCommand::StartUpdate`].
     /// Fire-and-forget in practice, but stored so the dispatch-arm test can
     /// assert the spawn happened.

@@ -32,6 +32,7 @@ use crate::{
         DownloadConfig, DownloadEvent, DownloadId, DownloadRequest, DownloadStage,
         IdsDownloadRequest, IdsRunSource, SelectiveDownloadCollection, SelectiveDownloadRequest,
     },
+    osu_db::OsuClient,
     utils,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -220,6 +221,10 @@ pub enum AppCommand {
     /// Retry all retryable failed maps for a download page (excludes NotFound).
     RetryAllFailed {
         download_id: DownloadId,
+    },
+    /// Build `<download_dir>/lazer-import` from every run folder in it (`l`).
+    BuildLazerImport {
+        download_dir: PathBuf,
     },
     /// Collection URL field changed and the form already holds that collection's
     /// snapshot, so kill the in-flight resolve without starting one.
@@ -3397,6 +3402,29 @@ impl App {
         }
     }
 
+    /// `l` on the Downloads tab: build the lazer import folder from every run in
+    /// the current download directory, off the UI thread. Lazer only: stable
+    /// takes the `.osz` files and `collection.db` directly.
+    fn request_lazer_import(&mut self) -> Option<AppCommand> {
+        if self.library.client_type != OsuClient::Lazer {
+            self.push_toast(
+                Toast::info("lazer import is for osu!lazer")
+                    .with_detail("press c to switch the client to lazer"),
+            );
+            return None;
+        }
+        let download_dir = PathBuf::from(self.home.resolved_directory());
+        if !download_dir.is_dir() {
+            self.push_toast(
+                Toast::warning("download directory not found")
+                    .with_detail(download_dir.display().to_string()),
+            );
+            return None;
+        }
+        self.toast_info("building lazer import folder");
+        Some(AppCommand::BuildLazerImport { download_dir })
+    }
+
     /// `d` on the Downloads tab: capture the entry under the cursor, then either
     /// open the confirm modal or delete straight away when the user disabled it.
     /// Inert on an in-flight run (cancel with `q` first) or an empty list.
@@ -3562,6 +3590,9 @@ impl App {
             // cancel it with `q` first). Routes through the confirm modal unless
             // the user disabled it. Works at the list or preview level.
             'd' | 'D' => self.request_delete_download(),
+            // `l`/`L` builds the lazer import folder from every run in the
+            // download directory. Works at the list or preview level.
+            'l' | 'L' => self.request_lazer_import(),
             // Case-insensitive retry (hotkeys are case-insensitive):
             // `r`/`R` retry ALL retryable failed maps (NotFound skipped); >50
             // routes through the confirm modal.

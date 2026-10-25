@@ -595,3 +595,57 @@ fn x_dismisses_toast_and_never_touches_runs() {
     app.handle_key(press(KeyCode::Char('x')));
     assert_eq!(app.downloads.len(), 1, "x must never remove a run");
 }
+
+// ── l: lazer import folder ─────────────────────────────────────────────────────
+
+#[test]
+fn l_builds_lazer_import_from_the_download_directory() {
+    let mut app = make_app();
+    app.active_tab = Tab::Downloads;
+    app.library.client_type = crate::osu_db::OsuClient::Lazer;
+    let dir = tempfile::tempdir().unwrap();
+    app.home.directory.value = dir.path().display().to_string();
+
+    let cmd = app.handle_key(press(KeyCode::Char('l')));
+
+    match cmd {
+        Some(AppCommand::BuildLazerImport { download_dir }) => {
+            assert_eq!(download_dir, dir.path());
+        }
+        other => panic!("expected BuildLazerImport, got {other:?}"),
+    }
+}
+
+#[test]
+fn l_on_stable_explains_instead_of_building() {
+    let mut app = make_app();
+    app.active_tab = Tab::Downloads;
+    app.library.client_type = crate::osu_db::OsuClient::Stable;
+
+    let cmd = app.handle_key(press(KeyCode::Char('l')));
+
+    assert!(cmd.is_none());
+    assert!(
+        app.toasts
+            .iter()
+            .any(|t| t.title() == "lazer import is for osu!lazer")
+    );
+}
+
+#[test]
+fn l_with_a_missing_download_directory_warns() {
+    let mut app = make_app();
+    app.active_tab = Tab::Downloads;
+    app.library.client_type = crate::osu_db::OsuClient::Lazer;
+    let dir = tempfile::tempdir().unwrap();
+    app.home.directory.value = dir.path().join("gone").display().to_string();
+
+    let cmd = app.handle_key(press(KeyCode::Char('l')));
+
+    assert!(cmd.is_none());
+    assert!(
+        app.toasts
+            .iter()
+            .any(|t| t.title() == "download directory not found")
+    );
+}

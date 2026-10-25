@@ -3,6 +3,7 @@ use crate::{
         collection_state, failed_maps, ignored_maps, runtime, snapshots,
         update_source::{MissingBeatmapset, extract_collection_id},
     },
+    download::lazer_import::{IMPORT_FOLDER_NAME, build_import_folder},
     osu_db::{BeatmapReader, LazerReader, LocalBeatmapset, Md5, OsuClient, StableReader},
 };
 use std::{
@@ -21,8 +22,18 @@ pub struct UpdateCollectionsArgs {
 }
 
 #[derive(Debug)]
+pub struct LazerImportArgs {
+    /// Download directory holding the run folders; `None` uses the last one
+    /// typed into the home form.
+    pub dir: Option<PathBuf>,
+    /// Import folder to build; `None` puts it inside the download directory.
+    pub out: Option<PathBuf>,
+}
+
+#[derive(Debug)]
 pub enum CliCommand {
     UpdateCollections(UpdateCollectionsArgs),
+    LazerImport(LazerImportArgs),
 }
 
 /// Parse CLI arguments. Returns `None` when no subcommand is given (TUI mode).
@@ -37,6 +48,10 @@ pub fn parse_args() -> Result<Option<CliCommand>, String> {
         "update-collections" => {
             let cmd = parse_update_collections(&args[1..])?;
             Ok(Some(CliCommand::UpdateCollections(cmd)))
+        }
+        "lazer-import" => {
+            let cmd = parse_lazer_import(&args[1..])?;
+            Ok(Some(CliCommand::LazerImport(cmd)))
         }
         "--help" | "-h" => {
             print_help();
@@ -81,6 +96,31 @@ fn parse_update_collections(args: &[String]) -> Result<UpdateCollectionsArgs, St
     })
 }
 
+fn parse_lazer_import(args: &[String]) -> Result<LazerImportArgs, String> {
+    let mut dir: Option<PathBuf> = None;
+    let mut out: Option<PathBuf> = None;
+    let mut i = 0;
+
+    while i < args.len() {
+        match args[i].as_str() {
+            "--dir" => {
+                i += 1;
+                let path = args.get(i).ok_or("--dir requires a path argument")?;
+                dir = Some(PathBuf::from(path));
+            }
+            "--out" => {
+                i += 1;
+                let path = args.get(i).ok_or("--out requires a path argument")?;
+                out = Some(PathBuf::from(path));
+            }
+            other => return Err(format!("unknown argument: {other}")),
+        }
+        i += 1;
+    }
+
+    Ok(LazerImportArgs { dir, out })
+}
+
 fn print_help() {
     println!(concat!(
         "osu-collect ",
@@ -88,14 +128,60 @@ fn print_help() {
         "\n\n",
         "usage:\n",
         "  osu-collect                          launch TUI\n",
-        "  osu-collect update-collections [opts] check and report missing beatmaps\n\n",
+        "  osu-collect update-collections [opts] check and report missing beatmaps\n",
+        "  osu-collect lazer-import [opts]       build one folder lazer imports all downloads from\n\n",
         "update-collections options:\n",
         "  --db <path>    override osu! database path\n",
         "  --stable       use osu! stable database (default)\n",
         "  --lazer        use osu! lazer database\n",
         "  --dry-run      run without writing state\n",
-        "  --verbose      raise log level to debug",
+        "  --verbose      raise log level to debug\n\n",
+        "lazer-import options:\n",
+        "  --dir <path>   download directory (default: the last one used)\n",
+        "  --out <path>   folder to build (default: <dir>/lazer-import)",
     ));
+}
+
+/// Build the lazer import folder from every run in the download directory and
+/// print what to do with it.
+pub async fn run_lazer_import(
+    args: LazerImportArgs,
+    last_directory: Option<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let dir = args
+        .dir
+        .or_else(|| last_directory.map(PathBuf::from))
+        .ok_or("no download directory known yet; use --dir")?;
+    if !dir.is_dir() {
+        return Err(format!("download directory not found: {}", dir.display()).into());
+    }
+    let out = args.out.unwrap_or_else(|| dir.join(IMPORT_FOLDER_NAME));
+
+    let report = tokio::task::spawn_blocking({
+        let (dir, out) = (dir.clone(), out.clone());
+        move || build_import_folder(&dir, &out)
+    })
+    .await
+    .map_err(|e| format!("task panicked: {e}"))??;
+
+    println!(
+        "{} run folder(s): {} set(s) unpacked, {} already there, {} collection(s) with {} map(s).",
+        report.runs,
+        report.unpacked,
+        report.already_unpacked,
+        report.collections,
+        report.beatmap_hashes,
+    );
+    for (archive, reason) in &report.failed {
+        println!("  could not unpack {}: {reason}", archive.display());
+    }
+    println!();
+    println!("Import into osu!lazer (one pass for everything):");
+    println!("  1. Settings -> General -> Run setup wizard, then Next until the import screen.");
+    println!("  2. Set \"previous osu! install\" to: {}", out.display());
+    println!("  3. Leave only Beatmaps and Collections ticked (untick Scores and Skins),");
+    println!("     then click \"Import content from previous version\".");
+    Ok(())
 }
 
 /// Run the update-collections flow without the TUI.

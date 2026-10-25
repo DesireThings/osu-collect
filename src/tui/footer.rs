@@ -3,6 +3,7 @@ use crate::app::{
     LoginField, Tab, messages::AppMessage,
 };
 use crate::download::DownloadStage;
+use crate::osu_db::OsuClient;
 use ratatui::{
     Frame,
     layout::Rect,
@@ -35,6 +36,8 @@ const HINT_CLOSE: &str = "esc / q close";
 const HINT_RETRY: &str = "r retry failed";
 /// `d` deletes the highlighted Downloads entry (history record or settled run).
 const HINT_DELETE: &str = "d delete";
+/// `l` builds the lazer import folder from every run in the download directory.
+const HINT_LAZER_IMPORT: &str = "l lazer import";
 const HINT_DEFER_DROP: &str = "s defer · S drop";
 /// Drop-only variant: shown when maps are queue-deferred but none are parked
 /// inline, so `s defer` cannot act but `S drop` still drains the queue.
@@ -387,6 +390,11 @@ fn downloads_hints(app: &App) -> (Vec<&'static str>, Option<&'static str>) {
             if app.selected_row_deletable() {
                 segments.push(HINT_DELETE);
             }
+        }
+        // Advertised only for lazer (stable has nothing to build); it reads the
+        // download directory, not the list, so it shows on an empty list too.
+        if app.library.client_type == OsuClient::Lazer {
+            segments.push(HINT_LAZER_IMPORT);
         }
         return (segments, Some(HINT_QUIT));
     }

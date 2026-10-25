@@ -94,6 +94,33 @@ fn footer_hint_downloads_list_advertises_delete_on_a_settled_run() {
 }
 
 #[test]
+fn footer_hint_downloads_list_advertises_lazer_import_for_lazer() {
+    let mut app = App::new(Config::default());
+    app.library.client_type = crate::osu_db::OsuClient::Lazer;
+    push_focused_page(&mut app, 1, DownloadStage::Completed);
+    app.downloads_tab.preview_focused = false;
+
+    let hint = hint_for(&app);
+    assert!(
+        hint.contains("l lazer import") && hint.contains("d delete"),
+        "lazer list must advertise `l lazer import` next to delete, got: {hint}"
+    );
+}
+
+#[test]
+fn footer_hint_downloads_list_omits_lazer_import_for_stable() {
+    let mut app = App::new(Config::default());
+    app.library.client_type = crate::osu_db::OsuClient::Stable;
+    app.active_tab = Tab::Downloads;
+
+    let hint = hint_for(&app);
+    assert!(
+        !hint.contains("lazer import"),
+        "stable has no import folder to build, got: {hint}"
+    );
+}
+
+#[test]
 fn footer_hint_downloads_list_omits_delete_on_an_active_run() {
     let mut app = App::new(Config::default());
     push_focused_page(&mut app, 1, DownloadStage::Downloading);
