@@ -1,6 +1,7 @@
 pub mod collection_db;
 pub mod error;
 pub mod events;
+pub mod lazer_import;
 pub mod lock;
 mod pipeline;
 mod precheck;

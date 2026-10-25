@@ -16,6 +16,22 @@ Everything goes into the download directory you picked on the get maps tab, in a
 
 Already past first-time setup? **Settings → General → `Run setup wizard`** brings the import screen back.
 
+### Several collections at once
+
+Instead of repeating the steps above per collection, build one import folder from every download:
+
+```bash
+osu-collect lazer-import
+```
+
+It reads every run folder in your last download directory (`--dir <path>` for another one), unpacks the maps into `<dir>/lazer-import/Songs` and merges every `collection.db` into one (`--out <path>` puts the folder elsewhere). Then, once:
+
+1. **Settings → General → `Run setup wizard`**, `Next` until the **Import screen**.
+2. Set `previous osu! install` to the `lazer-import` folder.
+3. Leave only **Beatmaps** and **Collections** ticked, then click `Import content from previous version`.
+
+All maps and all collections are imported in one pass; no need to import the `.osz` files first. Re-running `lazer-import` after more downloads only adds the new ones, and importing the folder again is harmless (lazer skips maps it has and merges collections by name). Your run folders are left as they are; delete `lazer-import` once the import is done.
+
 ## osu! stable
 
 Drag the downloaded `.osz` files into osu!, then merge the generated `collection.db` with a tool like [Collection Manager](https://github.com/Piotrekol/CollectionManager). If you have no existing collections, you can just replace your `collection.db` with the generated one.

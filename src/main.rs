@@ -52,6 +52,17 @@ async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
                 std::process::exit(1);
             }
         }
+        Some(cli::CliCommand::LazerImport(args)) => {
+            init_stderr_logging(&LoggingConfig {
+                enabled: true,
+                level: LogLevel::Error,
+                ..Default::default()
+            });
+            if let Err(e) = cli::run_lazer_import(args, config.recent.directory.clone()).await {
+                eprintln!("error: {e}");
+                std::process::exit(1);
+            }
+        }
         None => {
             // TUI mode — original behavior
             let realm_debug = config.logging.enabled
