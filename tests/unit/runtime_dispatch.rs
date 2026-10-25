@@ -127,6 +127,7 @@ impl Fixture {
         let (home_size_tx, home_size_rx) = mpsc::unbounded_channel::<HomeSizeEvent>();
         let (home_cover_tx, home_cover_rx) = mpsc::unbounded_channel::<HomeCoverEvent>();
         let (mirror_probe_tx, mirror_probe_rx) = mpsc::unbounded_channel::<MirrorProbeEvent>();
+        let (lazer_import_tx, _lazer_import_rx) = mpsc::unbounded_channel::<LazerImportEvent>();
 
         let tasks = BackgroundTasks {
             login: None,
@@ -149,6 +150,8 @@ impl Fixture {
             mirror_probe: None,
             mirror_probe_cancel: None,
             mirror_probe_tx,
+            lazer_import: None,
+            lazer_import_tx,
             update_apply: None,
         };
 

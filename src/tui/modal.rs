@@ -141,6 +141,7 @@ const DOWNLOADS_TAB: &[HelpRow] = &[
     HelpRow::new("↑ ↓", "select run / scroll"),
     HelpRow::new("←", "back to the run list"),
     HelpRow::new("d", "delete entry (history / settled run)"),
+    HelpRow::new("l", "build the lazer import folder (lazer)"),
     HelpRow::new("r", "retry failed mapsets (preview)"),
     HelpRow::new("s / S", "defer / drop rate-limited"),
     HelpRow::new("q", "cancel run (preview)"),

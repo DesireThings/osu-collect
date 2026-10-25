@@ -18,7 +18,7 @@ Already past first-time setup? **Settings → General → `Run setup wizard`** b
 
 ### Several collections at once
 
-Instead of repeating the steps above per collection, build one import folder from every download:
+Instead of repeating the steps above per collection, build one import folder from every download: press <kbd>l</kbd> on the downloads tab (with the client set to lazer), or run:
 
 ```bash
 osu-collect lazer-import
