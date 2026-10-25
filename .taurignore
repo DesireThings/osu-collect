@@ -1,0 +1,3 @@
+# Not part of the build: tool folders the dev watcher would otherwise restart on.
+.claude/
+.mcp.json

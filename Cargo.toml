@@ -83,3 +83,10 @@ windows-sys = { version = "0.61.2", features = ["Win32_System_Console", "Win32_F
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# The GUI lives in its own crate on top of this library. `cargo build` at the
+# root still builds only the CLI/TUI; `osu-downloader` keeps its own lockfile.
+[workspace]
+members = [".", "gui/src-tauri"]
+default-members = ["."]
+exclude = ["osu-downloader"]

@@ -1,0 +1,22 @@
+[package]
+name = "osu-collect-gui"
+version = "0.6.1"
+edition = "2024"
+description = "Desktop GUI for osu!collect"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+name = "osu_collect_gui"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.2", features = [] }
+
+[dependencies]
+osu-collect = { path = "../.." }
+tauri = { version = "=2.12.3", features = [] }
+tauri-plugin-dialog = "=2.8.2"
+tauri-plugin-opener = "=2.7.1"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread"] }
