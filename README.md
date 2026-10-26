@@ -34,27 +34,34 @@ osu-collect downloads every map in an [osu!collector](https://osucollector.com) 
 
 ## Installation
 
-> [!IMPORTANT]
-> This fork hasn't published a release yet. The `install.sh` / `install.bat` scripts and the built-in updater look for this fork's releases, so they have nothing to fetch until the first one. For now, build from source.
+> [!NOTE]
+> osu-collect is in beta. The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet; please [open an issue](https://github.com/DesireThings/osu-collect/issues/new) if one doesn't work.
 
-You need a current stable Rust (tested with 1.99; anything older than 1.88 won't build), CMake, a C++17 compiler and git. CMake and the compiler build the bundled realm library osu-collect uses to read osu!lazer's database.
+**Desktop app:** download the file for your system from the [latest release](https://github.com/DesireThings/osu-collect/releases/latest):
 
-**Terminal app:**
+| System | File |
+|---|---|
+| Windows 10/11 | `…-windows-x64-setup.exe` |
+| Mac with Apple Silicon | `…-macos-arm64.dmg` |
+| Linux | `…-linux-x64.AppImage`, or `…-linux-amd64.deb` on Debian/Ubuntu |
+
+The apps aren't signed with a paid certificate, so the first start shows a warning: on Windows, **More info → Run anyway**; on macOS, **System Settings → Privacy & Security → Open Anyway**. The desktop app doesn't update itself yet; install a new version over the old one.
+
+**Terminal app** (updates itself):
+
+Linux x64 / macOS Apple Silicon:
 
 ```bash
-cargo install --git https://github.com/DesireThings/osu-collect
+curl -fsSL https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.sh | bash
 ```
 
-**Desktop app** (no packaged build yet; also needs Node.js, pnpm and, on Linux, WebKitGTK 4.1, see [Tauri's prerequisites](https://v2.tauri.app/start/prerequisites/)):
+Windows x64 (PowerShell):
 
-```bash
-git clone --recurse-submodules https://github.com/DesireThings/osu-collect
-cd osu-collect/gui
-pnpm install
-pnpm tauri dev
+```powershell
+iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
 ```
 
-The desktop app has only been run on Linux so far. More in [Installation](https://github.com/DesireThings/osu-collect/wiki/Installation).
+Or download `osu-collect-linux-x64`, `osu-collect-windows-x64.exe` or `osu-collect-macos-arm64` from the release. Building from source, uninstalling and more: [Installation](https://github.com/DesireThings/osu-collect/wiki/Installation).
 
 ## Desktop app
 
@@ -119,6 +126,9 @@ The collection's details come from osu!Collector; the maps come from public beat
 **A download says map sets are "waiting for a free mirror". Is it stuck?**
 No. Every mirror that has those maps is rate-limiting, so they're retried once a mirror frees up, usually within minutes. In the desktop app you can **Skip these for now** and get them later with **Check again**.
 
+**I also use uwuclxdy's osu-collect. Can I keep both?**
+Yes, but they share one settings folder. This version deletes a saved osu!lazer login from the original, because it no longer signs in through osu!lazer's client. The original keeps updating from its own releases.
+
 **Does osu!Collector have its own app?**
 Yes, the [osu!Collector desktop client](https://osucollector.com/app). Its subscription pays for the site that hosts every collection osu-collect reads. If you use osu!Collector a lot, consider supporting it.
 
@@ -128,8 +138,9 @@ The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-col
 
 ## What's next
 
-- [ ] First release: packaged desktop app and terminal binaries for Linux, Windows and macOS
+- [x] First release: packaged desktop app and terminal binaries for Linux, Windows and macOS (0.1.0-beta.1)
 - [ ] Desktop app: find and update screens (terminal-only today)
+- [ ] Desktop app: tell you when a new version is out
 - [ ] osu! stable: add maps and collections straight into stable (with a backup, while osu! is closed), so Collection Manager isn't needed
 - [ ] Export collections as `.osdb`, Collection Manager's format, for sharing and merging
 - [ ] Save find results as a collection, like [Batch Beatmap Downloader](https://github.com/nzbasic/batch-beatmap-downloader) does
@@ -155,4 +166,4 @@ The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-col
 
 ## License
 
-Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) at your option, like upstream. Releases will include a `THIRD-PARTY-LICENSES.txt` with the licences of everything built into the binaries. Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this work shall be dual licensed as above, without any additional terms or conditions.
+Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) at your option, like upstream. Each release includes `THIRD-PARTY-LICENSES.txt` (terminal app) and `THIRD-PARTY-LICENSES-desktop.txt` (desktop app) with the licences of everything built into them; the desktop app also shows its list under **Settings → About**. Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this work shall be dual licensed as above, without any additional terms or conditions.

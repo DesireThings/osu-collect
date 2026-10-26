@@ -2,7 +2,7 @@
 
 The desktop app is a window with buttons and text boxes instead of keyboard shortcuts. It uses the same download engine, mirrors and `config.toml` as the terminal app, so settings changed in one show up in the other.
 
-It's new and only runs from source for now; see [Installation](Installation#desktop-app-from-source). It covers downloading collections and getting them into osu!lazer. **find** and **update** are still terminal-only.
+Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections and getting them into osu!lazer. **find** and **update** are still terminal-only.
 
 The sidebar has three steps, plus Settings. You can go back to any step at any time.
 
