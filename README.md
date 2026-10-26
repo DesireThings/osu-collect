@@ -35,7 +35,7 @@ osu-collect downloads every map in an [osu!collector](https://osucollector.com) 
 ## Installation
 
 > [!NOTE]
-> osu-collect is in beta. The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet; please [open an issue](https://github.com/DesireThings/osu-collect/issues/new) if one doesn't work.
+> osu-collect is in early access (version 0.x). The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet; please [open an issue](https://github.com/DesireThings/osu-collect/issues/new) if one doesn't work.
 
 **Desktop app:** download the file for your system from the [latest release](https://github.com/DesireThings/osu-collect/releases/latest):
 
@@ -138,7 +138,7 @@ The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-col
 
 ## What's next
 
-- [x] First release: packaged desktop app and terminal binaries for Linux, Windows and macOS (0.1.0-beta.1)
+- [x] First release: packaged desktop app and terminal binaries for Linux, Windows and macOS (0.1.0)
 - [ ] Desktop app: find and update screens (terminal-only today)
 - [ ] Desktop app: tell you when a new version is out
 - [ ] osu! stable: add maps and collections straight into stable (with a backup, while osu! is closed), so Collection Manager isn't needed

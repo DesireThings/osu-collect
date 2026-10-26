@@ -3,7 +3,7 @@
 osu-collect comes as a **desktop app** (a window with buttons) and a **terminal app**. Both use the same settings, so you can have either or both. Downloads are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest).
 
 > [!NOTE]
-> osu-collect is in beta. The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet. If one doesn't work, please [open an issue](https://github.com/DesireThings/osu-collect/issues/new).
+> osu-collect is in early access (version 0.x). The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet. If one doesn't work, please [open an issue](https://github.com/DesireThings/osu-collect/issues/new).
 
 ## Desktop app
 
