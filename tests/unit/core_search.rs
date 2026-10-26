@@ -1,4 +1,6 @@
-use super::{GUEST_REFRESH_MARGIN_SECS, GuestToken};
+use super::{GUEST_REFRESH_MARGIN_SECS, GuestToken, HttpSearchService, NO_API_APP};
+use crate::auth::{AUTH_ENV_PATH, StoredAuth};
+use crate::test_env::TempEnvVar;
 
 fn token(expires_at: u64) -> GuestToken {
     GuestToken {
@@ -69,4 +71,47 @@ async fn guest_grant_then_live_search() {
         results.total,
         results.beatmapsets.len()
     );
+}
+
+fn service() -> HttpSearchService {
+    HttpSearchService::new(osu_downloader::search::SearchClient::new())
+}
+
+/// A saved API app comes before any built-in credentials. Unexpired, so this
+/// stays offline.
+#[tokio::test]
+async fn a_saved_api_app_is_used_first() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("auth.json");
+    let saved = StoredAuth {
+        client_id: "12345".into(),
+        client_secret: "secret".into(),
+        redirect_uri: String::new(),
+        access_token: "app-token".into(),
+        refresh_token: None,
+        expires_at: u64::MAX,
+        scopes: vec!["public".into()],
+        supporter: None,
+    };
+    std::fs::write(&path, serde_json::to_string(&saved).unwrap()).unwrap();
+    let _auth = TempEnvVar::set(AUTH_ENV_PATH, path.to_str().unwrap());
+
+    assert_eq!(service().resolve_token().await.unwrap(), "app-token");
+}
+
+/// With nothing saved and nothing built in, the error says where to fix it.
+#[tokio::test]
+async fn no_api_app_points_at_settings() {
+    if super::OSU_CLIENT_ID.is_some() && super::OSU_CLIENT_SECRET.is_some() {
+        eprintln!("built with OSU_CLIENT_ID/SECRET; the guest path would run instead");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let _auth = TempEnvVar::set(
+        AUTH_ENV_PATH,
+        dir.path().join("auth.json").to_str().unwrap(),
+    );
+
+    let err = service().resolve_token().await.unwrap_err().to_string();
+    assert!(err.contains(NO_API_APP), "{err}");
 }

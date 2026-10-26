@@ -30,7 +30,8 @@ pub(super) fn handle_auth_event(event: AuthEvent, app: &mut App) {
 /// that answers nothing sends no event, so startup is unaffected by a failure.
 pub(super) fn spawn_supporter_refresh_task(tx: mpsc::UnboundedSender<AuthEvent>) {
     tokio::spawn(async move {
-        let Some(mut stored) = auth::load() else {
+        // An API-app token has no user, so `/me` would only 401.
+        let Some(mut stored) = auth::load().filter(auth::StoredAuth::is_user_login) else {
             return;
         };
         let client = reqwest::Client::new();

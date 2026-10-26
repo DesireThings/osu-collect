@@ -16,6 +16,10 @@ const OSU_TOKEN_URL: &str = "https://osu.ppy.sh/oauth/token";
 /// Base URL for osu! API v2.
 pub const OSU_API_BASE: &str = "https://osu.ppy.sh/api/v2";
 
+/// Where a user registers their own osu! OAuth app. The callback URL can stay
+/// blank: the app is only used for the client-credentials grant.
+pub const OAUTH_APP_URL: &str = "https://osu.ppy.sh/home/account/edit#new-oauth-application";
+
 /// osu!lazer's own OAuth client id. Earlier builds signed in through it, which
 /// ppy never allowed third-party apps to do; a token stored by one of them is
 /// dropped on load (see [`load`]) and nothing here requests one any more.
@@ -82,6 +86,14 @@ impl StoredAuth {
     /// features.
     pub fn is_supporter(&self) -> bool {
         self.supporter == Some(true)
+    }
+
+    /// Whether this token belongs to a signed-in user. Only a user login comes
+    /// with a refresh token; the user's own API app (see
+    /// [`save_app_credentials`]) gets a client-credentials token, which has no
+    /// user behind it and can't call `/me`.
+    pub fn is_user_login(&self) -> bool {
+        self.refresh_token.is_some()
     }
 }
 
@@ -296,6 +308,18 @@ async fn request_token(
     token_url: &str,
     params: &[(&str, &str)],
 ) -> Result<TokenResponse> {
+    post_token(client, token_url, params)
+        .await?
+        .map_err(|status| token_request_failed("token request", status))
+}
+
+/// One token POST. The outer `Err` is a network or parse failure; the inner one
+/// is the HTTP status of a refused request, so callers can word a rejection.
+async fn post_token(
+    client: &reqwest::Client,
+    token_url: &str,
+    params: &[(&str, &str)],
+) -> Result<std::result::Result<TokenResponse, reqwest::StatusCode>> {
     let resp = client
         .post(token_url)
         .form(params)
@@ -304,12 +328,99 @@ async fn request_token(
         .map_err(|e| AppError::other_dynamic(format!("token request: {e}").into_boxed_str()))?;
 
     if !resp.status().is_success() {
-        return Err(token_request_failed("token request", resp.status()));
+        return Ok(Err(resp.status()));
     }
 
     resp.json::<TokenResponse>()
         .await
+        .map(Ok)
         .map_err(|e| AppError::other_dynamic(format!("token parse: {e}").into_boxed_str()))
+}
+
+/// A client-credentials token for the user's own API app, with osu!'s refusal
+/// (`401 invalid_client`, or a 400) worded for the settings screen.
+async fn app_token(
+    client: &reqwest::Client,
+    token_url: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<TokenResponse> {
+    let params = client_credentials_params(client_id, client_secret);
+    match post_token(client, token_url, &params).await? {
+        Ok(token) => Ok(token),
+        Err(reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::BAD_REQUEST) => Err(
+            AppError::api("osu! didn't accept the API app's client ID and secret"),
+        ),
+        Err(status) => Err(token_request_failed("token request", status)),
+    }
+}
+
+/// Check the user's own osu! OAuth app by getting a token with it, then store
+/// it in place of whatever was saved before. Search and enrichment pick it up
+/// through [`load`], and [`ensure_valid`] gets a new token the same way when
+/// this one runs out. Nothing is saved when osu! refuses the app.
+pub async fn save_app_credentials(
+    client: &reqwest::Client,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<()> {
+    save_app_credentials_at(client, OSU_TOKEN_URL, client_id, client_secret).await
+}
+
+async fn save_app_credentials_at(
+    client: &reqwest::Client,
+    token_url: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<()> {
+    let (client_id, client_secret) = check_app_credentials(client_id, client_secret)?;
+    let token = app_token(client, token_url, client_id, client_secret).await?;
+    let mut auth = StoredAuth {
+        client_id: client_id.to_owned(),
+        client_secret: client_secret.to_owned(),
+        redirect_uri: String::new(),
+        access_token: String::new(),
+        refresh_token: None,
+        expires_at: 0,
+        scopes: vec!["public".into()],
+        supporter: None,
+    };
+    apply_token_response(&mut auth, token);
+    save_off_thread(&auth).await?;
+    info!("saved the osu! API app");
+    Ok(())
+}
+
+/// Trim and sanity-check typed-in app credentials before asking osu!.
+fn check_app_credentials<'a>(
+    client_id: &'a str,
+    client_secret: &'a str,
+) -> Result<(&'a str, &'a str)> {
+    let (client_id, client_secret) = (client_id.trim(), client_secret.trim());
+    if client_id.is_empty() || client_secret.is_empty() {
+        return Err(AppError::config(
+            "enter both the client ID and the client secret",
+        ));
+    }
+    if !client_id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(AppError::config(
+            "the client ID is a number; copy it from your osu! account settings",
+        ));
+    }
+    if client_id == LAZER_CLIENT_ID {
+        return Err(AppError::config(
+            "that's osu!lazer's own client; register an app of your own",
+        ));
+    }
+    Ok((client_id, client_secret))
+}
+
+/// [`save`] on a blocking thread, for async callers.
+async fn save_off_thread(auth: &StoredAuth) -> Result<()> {
+    let snap = auth.clone();
+    tokio::task::spawn_blocking(move || save(&snap))
+        .await
+        .map_err(|e| AppError::other_dynamic(format!("save task panicked: {e}").into_boxed_str()))?
 }
 
 pub async fn ensure_valid(client: &reqwest::Client, auth: &mut StoredAuth) -> Result<()> {
@@ -331,16 +442,10 @@ pub async fn ensure_valid(client: &reqwest::Client, auth: &mut StoredAuth) -> Re
         .await?
     } else {
         info!("refreshing OAuth token with client credentials");
-        client_credentials(client, &auth.client_id, &auth.client_secret).await?
+        app_token(client, OSU_TOKEN_URL, &auth.client_id, &auth.client_secret).await?
     };
     apply_token_response(auth, token_resp);
-    let snap = auth.clone();
-    tokio::task::spawn_blocking(move || save(&snap))
-        .await
-        .map_err(|e| {
-            AppError::other_dynamic(format!("save task panicked: {e}").into_boxed_str())
-        })??;
-    Ok(())
+    save_off_thread(auth).await
 }
 
 fn apply_token_response(auth: &mut StoredAuth, resp: TokenResponse) {

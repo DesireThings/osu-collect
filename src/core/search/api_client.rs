@@ -7,11 +7,15 @@ use osu_downloader::{
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 
-/// osu-collect's own registered app credentials, injected by `build.rs` from
-/// `.env` / CI env. `None` in a fork build with no creds — search then degrades
-/// to login-required.
+/// App credentials built in by `build.rs` from `.env` or the environment, for
+/// local builds only. Published builds have none, so search then needs the
+/// user's own API app (see [`crate::auth::save_app_credentials`]).
 const OSU_CLIENT_ID: Option<&str> = option_env!("OSU_CLIENT_ID");
 const OSU_CLIENT_SECRET: Option<&str> = option_env!("OSU_CLIENT_SECRET");
+
+/// Shown when there is neither a saved API app nor built-in credentials.
+pub const NO_API_APP: &str =
+    "osu! search needs your own osu! API app: add its client ID and secret in settings";
 
 /// Re-mint the guest token this many seconds before it actually expires.
 const GUEST_REFRESH_MARGIN_SECS: u64 = 60;
@@ -39,9 +43,10 @@ impl GuestToken {
     }
 }
 
-/// osu! API v2 search wrapper. Resolves the bearer token per call: a stored user
-/// token (full features) when logged in, else a cached guest `client_credentials`
-/// token minted from the build-injected app creds, else a login-required error.
+/// osu! API v2 search wrapper. Resolves the bearer token per call: the stored
+/// token (the user's own API app, or an older user login), else a cached guest
+/// `client_credentials` token minted from built-in app creds, else an error
+/// pointing at settings.
 pub struct HttpSearchService {
     client: SearchClient,
     token_client: reqwest::Client,
@@ -58,19 +63,18 @@ impl HttpSearchService {
     }
 
     async fn resolve_token(&self) -> Result<String> {
-        // Logged in: use the stored user token (unlocks supporter r/played).
+        // A stored token: the user's own API app, or an older user login
+        // (which also unlocks supporter r/played).
         if let Some(mut auth) = crate::auth::load() {
             crate::auth::ensure_valid(&self.token_client, &mut auth).await?;
             return Ok(auth.bearer_token().to_string());
         }
 
-        // Logged out: guest client_credentials from the app's own creds. Own
+        // Nothing stored: guest client_credentials from built-in creds. Own
         // registered client required — lazer's public client (id 5) is refused
         // this grant ("client is missing owner", probed live 2026-07-05).
         let (Some(client_id), Some(client_secret)) = (OSU_CLIENT_ID, OSU_CLIENT_SECRET) else {
-            return Err(AppError::api(
-                "osu! search needs API credentials, which this build doesn't have",
-            ));
+            return Err(AppError::api(NO_API_APP));
         };
 
         // Single-flight the guest mint: hold the lock across the grant so
@@ -133,7 +137,9 @@ fn unix_now() -> u64 {
 fn map_search_error(err: Error) -> AppError {
     match err {
         Error::RateLimited { .. } => AppError::api("rate-limited by osu! (429), try again later"),
-        Error::HttpStatus(401) => AppError::api("search requires login (401)"),
+        Error::HttpStatus(401) => {
+            AppError::api("osu! refused the API token (401); check the API app in settings")
+        }
         Error::HttpStatus(status) => {
             AppError::api_dynamic(format!("search failed: HTTP {status}").into_boxed_str())
         }

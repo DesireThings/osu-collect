@@ -91,7 +91,7 @@ async fn run_search_task(
                     }
                 }
                 // `AppError`'s Display is already user-facing (`map_search_error`
-                // maps 401 → "search requires login", 429 → "rate limited", …).
+                // maps 401 → "osu! refused the API token", 429 → "rate-limited", …).
                 Err(err) => HomeSearchEvent::Failed { reason: err.to_string() },
             };
             let _ = tx.send(event);
