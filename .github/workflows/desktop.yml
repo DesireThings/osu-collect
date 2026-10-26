@@ -1,0 +1,195 @@
+# Builds the desktop app's installers and keeps them as workflow artifacts:
+# Linux AppImage + .deb, Windows setup .exe (NSIS), macOS .dmg (Apple Silicon).
+# Nothing is published from here. It runs on pull requests that touch the
+# packaging, by hand, and from release.yml (workflow_call), which attaches
+# the artifacts to the release.
+#
+# Unsigned: Windows shows a SmartScreen warning, and the macOS app is only
+# ad-hoc signed (bundle.macOS.signingIdentity "-"), so it opens through
+# System Settings > Privacy & Security > Open Anyway.
+name: desktop app
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/desktop.yml
+      - gui/src-tauri/tauri.conf.json
+      - gui/src-tauri/tauri.release.conf.json
+      - gui/src-tauri/icons/**
+      - scripts/third-party-licenses.sh
+      - scripts/js-bundle-licenses.mjs
+      - scripts/appimage-lib-notices.sh
+      - scripts/notices/**
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: "10"
+  CARGO_HTTP_MULTIPLEXING: "false"
+
+jobs:
+  # The licence list is the same for every platform (cargo-about covers all
+  # three release targets), so it's built once and bundled by each build.
+  licences:
+    name: Licence list
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.15.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: gui/pnpm-lock.yaml
+      - name: Install the frontend's packages
+        run: pnpm -C gui install --frozen-lockfile
+      - name: Install cargo-about
+        run: cargo install cargo-about --version 0.9.2 --locked --features cli
+      - name: Build THIRD-PARTY-LICENSES-desktop.txt
+        run: scripts/third-party-licenses.sh --desktop THIRD-PARTY-LICENSES-desktop.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-licences
+          path: THIRD-PARTY-LICENSES-desktop.txt
+          if-no-files-found: error
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: licences
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04, not latest: the AppImage carries Ubuntu's libraries and runs
+          # on distributions whose glibc is at least the build machine's.
+          - name: linux-x64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - name: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+            bundles: dmg
+    env:
+      BUNDLE: target/${{ matrix.target }}/release/bundle
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install native deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential zlib1g-dev libssl-dev \
+            libwebkit2gtk-4.1-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Install native deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop-${{ matrix.target }}
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.15.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: gui/pnpm-lock.yaml
+      - name: Install the frontend's packages
+        run: pnpm -C gui install --frozen-lockfile
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: desktop-licences
+
+      - name: Build the installers
+        working-directory: gui
+        run: pnpm tauri build --config src-tauri/tauri.release.conf.json --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      # The AppImage carries Ubuntu's GTK/WebKitGTK libraries, which are only
+      # known once linuxdeploy has collected them: add their notices to the
+      # licence list, then bundle again so the AppImage and .deb carry it.
+      - name: Add the AppImage's libraries to the licence list, bundle again
+        if: runner.os == 'Linux'
+        run: |
+          scripts/appimage-lib-notices.sh "$BUNDLE/appimage/osu-collect.AppDir" > "$RUNNER_TEMP/appimage-libs.txt"
+          { printf '\n'; cat "$RUNNER_TEMP/appimage-libs.txt"; } >> THIRD-PARTY-LICENSES-desktop.txt
+          cd gui
+          pnpm tauri build --config src-tauri/tauri.release.conf.json --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      - name: Check the licence list is inside the bundles
+        run: |
+          set -x
+          case "${{ runner.os }}" in
+            Linux)
+              test -f "$BUNDLE/appimage/osu-collect.AppDir/usr/lib/osu-collect/THIRD-PARTY-LICENSES.txt"
+              grep -q '^Libraries bundled in the Linux AppImage' "$BUNDLE/appimage/osu-collect.AppDir/usr/lib/osu-collect/THIRD-PARTY-LICENSES.txt"
+              dpkg-deb -c "$BUNDLE"/deb/*.deb | grep 'usr/lib/osu-collect/THIRD-PARTY-LICENSES.txt'
+              dpkg-deb -f "$BUNDLE"/deb/*.deb Package Version Depends
+              find "$BUNDLE/appimage/osu-collect.AppDir" -name '*.so*' -type f | wc -l
+              ;;
+            Windows)
+              7z l "$BUNDLE"/nsis/*-setup.exe | grep 'THIRD-PARTY-LICENSES.txt'
+              ;;
+            macOS)
+              test -f "$BUNDLE/macos/osu-collect.app/Contents/Resources/THIRD-PARTY-LICENSES.txt"
+              codesign -dv "$BUNDLE/macos/osu-collect.app" 2>&1 | grep -E 'Signature|Identifier|flags'
+              ;;
+          esac
+
+      - name: Name the installers
+        run: |
+          version="$(node -p "require('./gui/src-tauri/tauri.conf.json').version")"
+          base="osu-collect-desktop-${version}"
+          mkdir -p out
+          case "${{ runner.os }}" in
+            Linux)
+              cp "$BUNDLE"/appimage/*.AppImage "out/${base}-linux-x64.AppImage"
+              cp "$BUNDLE"/deb/*.deb "out/${base}-linux-amd64.deb"
+              cp THIRD-PARTY-LICENSES-desktop.txt out/
+              ;;
+            Windows)
+              cp "$BUNDLE"/nsis/*-setup.exe "out/${base}-windows-x64-setup.exe"
+              ;;
+            macOS)
+              cp "$BUNDLE"/dmg/*.dmg "out/${base}-macos-arm64.dmg"
+              ;;
+          esac
+          ls -la out
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-${{ matrix.name }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 14
