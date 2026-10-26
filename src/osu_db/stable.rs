@@ -263,3 +263,7 @@ impl StableReader {
         paths
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/osu_db_stable.rs"]
+mod tests;

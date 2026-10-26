@@ -27,7 +27,10 @@ dirs = "6.0.0"
 time = { version = "0.3.53", features = ["formatting"] }
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "fs", "io-util", "sync", "time", "net"] }
 futures-util = { version = "0.3.32", default-features = false, features = ["alloc"] }
-osu-db = "0.3.0"
+# 0.2.1 is newer than 0.3.0: upstream published its fix for osu! stable's
+# 20250107 format (float star ratings) under the lower number (kovaxis/osu-db#6).
+# 0.3.0 can't read any osu!.db written since then. Pinned so nothing "upgrades" it back.
+osu-db = "=0.2.1"
 # `.osz` unpacking for the lazer import folder; `deflate-flate2` reuses
 # the flate2 (miniz_oxide) already in the tree instead of zopfli + zlib-rs.
 zip = { version = "9.1.1", default-features = false, features = ["deflate-flate2"] }
