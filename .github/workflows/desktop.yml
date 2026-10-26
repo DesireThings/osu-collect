@@ -162,8 +162,12 @@ jobs:
               7z l "$BUNDLE"/nsis/*-setup.exe | grep 'THIRD-PARTY-LICENSES.txt'
               ;;
             macOS)
-              test -f "$BUNDLE/macos/osu-collect.app/Contents/Resources/THIRD-PARTY-LICENSES.txt"
-              codesign -dv "$BUNDLE/macos/osu-collect.app" 2>&1 | grep -E 'Signature|Identifier|flags'
+              # A dmg-only build deletes the .app it made, so look inside the dmg.
+              mnt="$(mktemp -d)"
+              hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$BUNDLE"/dmg/*.dmg
+              test -f "$mnt/osu-collect.app/Contents/Resources/THIRD-PARTY-LICENSES.txt"
+              codesign -dv "$mnt/osu-collect.app" 2>&1 | grep -E 'Signature|Identifier|flags'
+              hdiutil detach "$mnt"
               ;;
           esac
 
