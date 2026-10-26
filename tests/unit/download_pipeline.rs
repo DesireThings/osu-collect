@@ -1,5 +1,6 @@
-use super::{try_remove_empty_output_dir, unsatisfied_targets, verified_targets};
+use super::{build_downloader, try_remove_empty_output_dir, unsatisfied_targets, verified_targets};
 use crate::app::collection::FailureReason;
+use crate::config::constants::DOWNLOAD_USER_AGENT;
 use crate::core::collection::{test_beatmapset, test_collection};
 use crate::download::collection_db::create_selective_collection_db;
 use crate::download::events::{Tally, translate_event};
@@ -9,13 +10,14 @@ use crate::download::{
     SelectiveDownloadCollection, selective_folder_name,
 };
 use crate::osu_db::OsuClient;
-use osu_downloader::{Event as LibEvent, MirrorKind, MirrorRef, Skip, Status};
+use osu_downloader::{Event as LibEvent, Mirror, MirrorKind, MirrorRef, OnExists, Skip, Status};
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 use tempfile::tempdir;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::watch;
 
 fn make_selective(id: u32, name: &str, beatmapset_ids: Vec<u32>) -> SelectiveDownloadCollection {
@@ -1635,5 +1637,65 @@ async fn retry_builds_an_ids_request_that_reuses_the_source_output_dir() {
         request.config.directory,
         source_output.to_string_lossy(),
         "retry config carries the source run's output dir, not a nested path",
+    );
+}
+
+#[tokio::test]
+async fn downloads_tell_the_mirror_which_app_is_asking() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    // Answer the first request with a 404 and hand back what it sent.
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        let mut buf = [0u8; 1024];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = socket.read(&mut buf).await.unwrap();
+            if n == 0 {
+                break;
+            }
+            request.extend_from_slice(&buf[..n]);
+        }
+        socket
+            .write_all(b"HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
+            .await
+            .unwrap();
+        String::from_utf8_lossy(&request).into_owned()
+    });
+    let config = DownloadConfig {
+        directory: String::new(),
+        mirrors: Vec::new(),
+        concurrent: 1,
+        archive_validation: ArchiveValidation::Magic,
+        auto_skip_rate_limited: false,
+        rate_limit_skip_secs: 60,
+    };
+    let mirror = Mirror::custom(format!("http://127.0.0.1:{port}/d/{{id}}")).unwrap();
+    let downloader = build_downloader(&config, vec![mirror], OnExists::Skip).unwrap();
+    let dir = tempdir().unwrap();
+
+    let session = downloader.download_many([1], dir.path());
+    let request = tokio::time::timeout(std::time::Duration::from_secs(10), server)
+        .await
+        .expect("the mirror was asked for the map set")
+        .unwrap();
+    session.cancel();
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(10), session.wait()).await;
+
+    let user_agent = request
+        .lines()
+        .find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            name.eq_ignore_ascii_case("user-agent")
+                .then(|| value.trim())
+        })
+        .expect("a User-Agent header");
+    assert_eq!(user_agent, DOWNLOAD_USER_AGENT);
+    assert_eq!(
+        DOWNLOAD_USER_AGENT,
+        format!(
+            "osu-collect/{} (+https://github.com/DesireThings/osu-collect)",
+            env!("CARGO_PKG_VERSION")
+        )
     );
 }

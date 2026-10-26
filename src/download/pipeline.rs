@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{
     app::{failed_maps, library_cache, snapshots},
-    config::constants::{DEFAULT_PROGRESS_WATCHDOG_SECS, NETWORK_RETRY_CAP},
+    config::constants::{DEFAULT_PROGRESS_WATCHDOG_SECS, DOWNLOAD_USER_AGENT, NETWORK_RETRY_CAP},
     osu_db::OsuClient,
 };
 use futures_util::StreamExt;
@@ -621,20 +621,7 @@ async fn run_pipeline_core(
         return Err(DownloadError::NoMirrors);
     }
 
-    let downloader = Downloader::builder()
-        .mirrors(mirrors.iter().cloned())
-        .concurrent_downloads(config.concurrent.max(1) as usize)
-        .archive_validation(config.archive_validation)
-        .progress_timeout(Duration::from_secs(DEFAULT_PROGRESS_WATCHDOG_SECS))
-        .network_retry_attempts(NETWORK_RETRY_CAP as usize)
-        .on_exists(on_exists)
-        .rate_limit_skip_after(
-            config
-                .auto_skip_rate_limited
-                .then(|| Duration::from_secs(config.rate_limit_skip_secs.max(1) as u64)),
-        )
-        .build()
-        .map_err(|err| DownloadError::internal(err.to_string()))?;
+    let downloader = build_downloader(config, mirrors, on_exists)?;
 
     let mut session_handle = downloader.download_many(
         session.pending_ids.iter().copied(),
@@ -679,6 +666,29 @@ async fn run_pipeline_core(
     }
 
     Ok(Some(tally))
+}
+
+/// The downloader for one run, set up from the run's config.
+fn build_downloader(
+    config: &DownloadConfig,
+    mirrors: Vec<Mirror>,
+    on_exists: OnExists,
+) -> Result<Downloader, DownloadError> {
+    Downloader::builder()
+        .mirrors(mirrors)
+        .user_agent(DOWNLOAD_USER_AGENT)
+        .concurrent_downloads(config.concurrent.max(1) as usize)
+        .archive_validation(config.archive_validation)
+        .progress_timeout(Duration::from_secs(DEFAULT_PROGRESS_WATCHDOG_SECS))
+        .network_retry_attempts(NETWORK_RETRY_CAP as usize)
+        .on_exists(on_exists)
+        .rate_limit_skip_after(
+            config
+                .auto_skip_rate_limited
+                .then(|| Duration::from_secs(config.rate_limit_skip_secs.max(1) as u64)),
+        )
+        .build()
+        .map_err(|err| DownloadError::internal(err.to_string()))
 }
 
 async fn drive_session<F, S>(

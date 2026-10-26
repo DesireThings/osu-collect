@@ -47,6 +47,13 @@ pub const RELEASES_URL: &str =
 /// in, since `/releases/latest` excludes prereleases and drafts.
 pub const RELEASES_LIST_URL: &str =
     "https://api.github.com/repos/DesireThings/osu-collect/releases";
+/// Sent with every map download, so mirror operators can tell which app is
+/// asking and where to find it.
+pub const DOWNLOAD_USER_AGENT: &str = concat!(
+    "osu-collect/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://github.com/DesireThings/osu-collect)"
+);
 pub const AUTO_UPDATE_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub const SPEED_UPDATE_INTERVAL: Duration = Duration::from_millis(250);
