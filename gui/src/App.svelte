@@ -4,10 +4,17 @@
   import Collections from "./lib/Collections.svelte";
   import Import from "./lib/Import.svelte";
   import SettingsPage from "./lib/Settings.svelte";
-  import { detectInstalls, loadSettings, type Installs, type Settings } from "./lib/api";
+  import Update from "./lib/Update.svelte";
+  import {
+    detectInstalls,
+    loadSettings,
+    type Installs,
+    type RunKind,
+    type Settings,
+  } from "./lib/api";
   import { initDownloads, store } from "./lib/store.svelte";
 
-  type Page = "setup" | "collections" | "import" | "settings";
+  type Page = "setup" | "collections" | "import" | "update" | "settings";
 
   const steps: { id: Page; label: string; hint: string }[] = [
     { id: "setup", label: "Set up", hint: "Your osu! and a download folder" },
@@ -20,16 +27,20 @@
   let installs = $state<Installs | null>(null);
   let loadError = $state<string | null>(null);
 
-  /** Sidebar hint for step 2 while something downloads, so it shows from any step. */
-  const downloadingHint = $derived.by(() => {
+  /** Sidebar hint while a run of `kind` downloads, so it shows from any page. */
+  function downloadingHint(kind: RunKind) {
     const running = Object.values(store.downloads).find(
-      (s) => s.phase === "downloading" || s.phase === "preparing",
+      (s) => s.kind === kind && (s.phase === "downloading" || s.phase === "preparing"),
     );
     if (!running) return null;
     if (running.phase === "preparing") return `Getting ready: ${running.name}`;
     const settled = running.downloaded + running.skipped + running.failed;
     return `Downloading ${settled}/${running.total}: ${running.name}`;
-  });
+  }
+  const collectionsHint = $derived(downloadingHint("collection"));
+  const updateHint = $derived(
+    store.updates.scanning ? "Checking for new maps…" : downloadingHint("update"),
+  );
 
   onMount(async () => {
     try {
@@ -58,8 +69,8 @@
             <span class="num">{i + 1}</span>
             <span class="text">
               <span class="label">{step.label}</span>
-              {#if step.id === "collections" && downloadingHint}
-                <span class="hint live">{downloadingHint}</span>
+              {#if step.id === "collections" && collectionsHint}
+                <span class="hint live">{collectionsHint}</span>
               {:else}
                 <span class="hint">{step.hint}</span>
               {/if}
@@ -68,6 +79,18 @@
         </li>
       {/each}
     </ol>
+    <p class="group-label">Already downloaded some?</p>
+    <button class="step" class:active={page === "update"} onclick={() => (page = "update")}>
+      <span class="num" aria-hidden="true">↻</span>
+      <span class="text">
+        <span class="label">Update collections</span>
+        {#if updateHint}
+          <span class="hint live">{updateHint}</span>
+        {:else}
+          <span class="hint">Get maps added since you downloaded</span>
+        {/if}
+      </span>
+    </button>
     <button
       class="step settings-link"
       class:active={page === "settings"}
@@ -96,6 +119,8 @@
       <Collections onNext={() => (page = "import")} />
     {:else if page === "import"}
       <Import {settings} />
+    {:else if page === "update"}
+      <Update {settings} onImport={() => (page = "import")} />
     {:else}
       <SettingsPage />
     {/if}

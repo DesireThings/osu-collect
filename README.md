@@ -24,7 +24,7 @@ osu-collect downloads every map in an [osu!collector](https://osucollector.com) 
 
 ## Features
 
-- **Desktop app:** three steps (set up, add collections, import), with buttons and text boxes and plain-language messages. See [Desktop app](#desktop-app).
+- **Desktop app:** three steps (set up, add collections, import), plus updating the collections you downloaded, with buttons and text boxes and plain-language messages. See [Desktop app](#desktop-app).
 - **Every collection into osu!lazer in one go:** however many collections you download, lazer imports them all, maps and collections, in a single pass of its setup wizard.
 - **No account needed:** paste a collection link and go.
 - **Nine mirrors with failover:** when a mirror rate-limits, the map waits and retries while the rest keep downloading. You can also skip the stuck ones and fetch them later. See [Mirrors](https://github.com/DesireThings/osu-collect/wiki/Mirrors).
@@ -68,6 +68,8 @@ Or download `osu-collect-linux-x64`, `osu-collect-windows-x64.exe` or `osu-colle
 1. **Set up:** pick osu!lazer or osu! stable (your osu! folder is found automatically when it's in the usual place) and a download folder.
 2. **Add collections:** paste osucollector.com links, check the names and map counts, then **Download** or **Download all**. Collections download one after another; you can cancel, retry, or skip map sets that are waiting on a busy mirror.
 3. **Import into osu!:** for lazer, **Prepare import folder**, then follow the four steps the app shows. For stable, see [below](#importing-into-osu).
+
+**Update collections** checks the collections you downloaded for maps added on osu!collector since and downloads only those; map sets you deleted from osu! stay left out unless you pick them again.
 
 **Settings** covers mirrors (on/off, order, your own mirror links), download options and your own osu! API app. Full guide: [Desktop app](https://github.com/DesireThings/osu-collect/wiki/Desktop-App).
 
@@ -139,7 +141,8 @@ The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-col
 ## What's next
 
 - [x] First release: packaged desktop app and terminal binaries for Linux, Windows and macOS (0.1.0)
-- [ ] Desktop app: find and update screens (terminal-only today)
+- [x] Desktop app: update screen
+- [ ] Desktop app: find screen (terminal-only today)
 - [ ] Desktop app: tell you when a new version is out
 - [ ] osu! stable: add maps and collections straight into stable (with a backup, while osu! is closed), so Collection Manager isn't needed
 - [ ] Export collections as `.osdb`, Collection Manager's format, for sharing and merging

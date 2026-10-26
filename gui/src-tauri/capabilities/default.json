@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the main window may do: core IPC, folder pickers, revealing a folder in the file manager, and opening the osu! page where an API app is made.",
+  "description": "What the main window may do: core IPC, folder pickers, revealing a folder in the file manager, and opening two kinds of osu! page: where an API app is made, and a map set's page.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -9,7 +9,10 @@
     "opener:allow-reveal-item-in-dir",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "https://osu.ppy.sh/home/account/edit*" }]
+      "allow": [
+        { "url": "https://osu.ppy.sh/home/account/edit*" },
+        { "url": "https://osu.ppy.sh/beatmapsets/*" }
+      ]
     }
   ]
 }

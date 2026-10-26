@@ -3,7 +3,7 @@
 
 use osu_collect::engine::{
     self, CollectionPreview, DownloadOptions, DownloadStatus, Downloads, ImportFolderReport,
-    Installs, Settings,
+    Installs, ScanProgress, Settings, UpdatePick, UpdateReport, Updates,
 };
 use serde::Serialize;
 use std::{path::PathBuf, sync::Arc};
@@ -11,6 +11,8 @@ use tauri::{Emitter, Manager, State};
 
 /// Event every download status change is pushed to the window under.
 const DOWNLOAD_STATUS_EVENT: &str = "download-status";
+/// Event an update scan's progress is pushed to the window under.
+const SCAN_PROGRESS_EVENT: &str = "update-scan-progress";
 
 /// The licence listing a release bundles with the app (built by
 /// scripts/third-party-licenses.sh --desktop, added by tauri.release.conf.json).
@@ -102,6 +104,40 @@ fn list_downloads(downloads: State<'_, Downloads>) -> Vec<DownloadStatus> {
     downloads.list()
 }
 
+/// Scan the osu! library in the saved settings for collection updates. The
+/// scan's state is saved unless a download is running (its own completion
+/// writes it then).
+#[tauri::command]
+async fn scan_updates(
+    app: tauri::AppHandle,
+    downloads: State<'_, Downloads>,
+    updates: State<'_, Updates>,
+) -> Result<UpdateReport, String> {
+    let persist = !downloads.is_busy();
+    updates
+        .scan(
+            &engine::load_settings(),
+            persist,
+            |progress: ScanProgress| {
+                let _ = app.emit(SCAN_PROGRESS_EVENT, progress);
+            },
+        )
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Async so it runs on Tauri's Tokio runtime: queueing can start the pipeline.
+#[tauri::command]
+async fn download_updates(
+    pick: UpdatePick,
+    downloads: State<'_, Downloads>,
+    updates: State<'_, Updates>,
+) -> Result<u64, String> {
+    updates
+        .download(&downloads, &pick)
+        .map_err(|e| e.to_string())
+}
+
 /// Result of building the lazer import folder, plus where it is.
 #[derive(Serialize)]
 struct LazerImportResult {
@@ -137,6 +173,7 @@ pub fn run() {
             app.manage(Downloads::new(Arc::new(move |status: &DownloadStatus| {
                 let _ = handle.emit(DOWNLOAD_STATUS_EVENT, status);
             })));
+            app.manage(Updates::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -154,6 +191,8 @@ pub fn run() {
             cancel_download,
             skip_waiting,
             list_downloads,
+            scan_updates,
+            download_updates,
             third_party_licences,
         ])
         .run(tauri::generate_context!())
