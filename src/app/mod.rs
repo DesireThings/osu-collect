@@ -38,7 +38,7 @@ pub use find_source::{
 pub use home::{FindBackend, GetMapsSource, HomeField, HomeTab, InputField, ResolveState};
 pub use library::LibraryState;
 pub use runtime::run as run_app;
-pub use state::{App, AppCommand, UpdateIndicator};
+pub use state::{ApiAppCredentials, App, AppCommand, UpdateIndicator};
 pub use tab::Tab;
 pub use toast::{Toast, ToastLevel, ToastTag, Toasts};
 pub use update_source::{ScanCta, UpdateSource};

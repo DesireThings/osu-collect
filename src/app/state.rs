@@ -2,7 +2,7 @@ use super::{
     banner::BannerRecency,
     collection::CollectionPage,
     collection_state::{self, CollectionStateFile},
-    config::{AuthLoginState, ConfigTab},
+    config::{AuthLoginState, ConfigField, ConfigTab},
     covers::Covers,
     download_history::{DownloadHistory, HistoryRecord},
     downloads_tab::{DownloadsRow, DownloadsTab},
@@ -253,7 +253,24 @@ pub enum AppCommand {
     FocusOutputDir,
     /// Confirm the update modal: download and apply the available update.
     StartUpdate,
+    /// Check the typed-in osu! API app with osu! and save it (config tab).
+    SaveApiApp(ApiAppCredentials),
     Quit,
+}
+
+/// A typed-in osu! API app on its way to [`AppCommand::SaveApiApp`]. `Debug`
+/// leaves the secret out, so a logged or asserted command never prints it.
+pub struct ApiAppCredentials {
+    pub client_id: String,
+    pub client_secret: String,
+}
+
+impl std::fmt::Debug for ApiAppCredentials {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ApiAppCredentials")
+            .field("client_id", &self.client_id)
+            .finish_non_exhaustive()
+    }
 }
 
 /// State for the "Retry N failed mapsets?" confirm modal shown when `R` is pressed
@@ -781,6 +798,47 @@ impl App {
             }
             Err(err) => self.toast_err(err.to_string()),
         }
+    }
+
+    /// The API app's save button: hand the typed-in credentials to the runtime
+    /// to check with osu!, or say why nothing happens.
+    fn save_api_app(&mut self) -> Option<AppCommand> {
+        if self.config.api_app_checking {
+            return None;
+        }
+        let Some((client_id, client_secret)) = self.config.begin_api_app_save() else {
+            self.toast_info("enter the client id and the client secret first");
+            return None;
+        };
+        Some(AppCommand::SaveApiApp(ApiAppCredentials {
+            client_id,
+            client_secret,
+        }))
+    }
+
+    fn remove_api_app(&mut self) {
+        match crate::auth::delete() {
+            Ok(()) => {
+                self.config.api_app_removed();
+                self.toast_ok("removed the osu! API app");
+            }
+            Err(err) => self.toast_err(format!("couldn't remove the osu! API app: {err}")),
+        }
+    }
+
+    /// osu! accepted the API app and it's saved in place of any older login.
+    pub fn api_app_saved(&mut self, client_id: String) {
+        if self.config.login_state == AuthLoginState::LoggedIn {
+            // The save replaced that login's token, and its supporter gate.
+            self.set_logged_out();
+        }
+        self.config.api_app_saved(client_id);
+        self.toast_ok("osu! API app saved; find can search osu! now");
+    }
+
+    pub fn api_app_save_failed(&mut self, reason: String) {
+        self.config.api_app_save_failed();
+        self.toast_err(reason);
     }
 
     // ── auth transitions ──────────────────────────────────────────────────────
@@ -2195,9 +2253,10 @@ impl App {
                 // esc exits edit mode before anything else (back/quit cascade).
                 if self.editing {
                     self.editing = false;
-                    // Committing a config text edit applies it immediately. Login
-                    // fields hold their own value and persist nothing on exit.
-                    if self.active_tab() == Tab::Config {
+                    // Committing a config text edit applies it immediately. The
+                    // API app fields hold their own value until saved through
+                    // osu!, so they persist nothing on exit.
+                    if self.active_tab() == Tab::Config && !self.config.focus.is_api_app() {
                         self.apply_config_change();
                     }
                     return None;
@@ -2368,9 +2427,12 @@ impl App {
                     let was_update_path = self.home_update_path_editing();
                     self.editing = !self.editing;
                     // Leaving edit mode commits: config rows flush to disk, the
-                    // update source's osu! path persists to `[recent]`. Login
-                    // fields hold their own value and persist nothing on exit.
-                    if was_editing && self.active_tab() == Tab::Config {
+                    // update source's osu! path persists to `[recent]`. The API
+                    // app fields hold their own value and persist nothing on exit.
+                    if was_editing
+                        && self.active_tab() == Tab::Config
+                        && !self.config.focus.is_api_app()
+                    {
                         self.apply_config_change();
                     } else if was_editing && was_update_path {
                         self.persist_osu_path_inputs();
@@ -2481,6 +2543,8 @@ impl App {
                     }
                     Tab::Config => match self.config.focus {
                         field if field.is_text_input() || field.is_stepper() => {}
+                        ConfigField::ApiAppSave => return self.save_api_app(),
+                        ConfigField::ApiAppRemove => self.remove_api_app(),
                         // toggle / cycle fields (space also works) — applied live
                         _ => {
                             self.config.toggle_current();
@@ -2556,7 +2620,9 @@ impl App {
                 }
                 Tab::Config => match self.config.focus {
                     _ if typing => self.config.handle_char(' '),
-                    field if field.is_text_input() || field.is_stepper() => {}
+                    // The API app buttons only answer enter; space never
+                    // presses a button.
+                    field if field.is_text_input() || field.is_stepper() || field.is_api_app() => {}
                     _ => {
                         self.config.toggle_current();
                         self.apply_config_change();

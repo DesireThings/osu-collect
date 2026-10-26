@@ -141,7 +141,7 @@ Run osu-collect, paste the collection URL, press <kbd>↵</kbd>. The collection'
 Yes. See [Importing into osu!](#importing-into-osu). The generated `collection.db` imports through lazer's "first-time-setup".
 
 **Do I need an osu! account?**
-No. osu-collect never asks for your osu! login.
+Not for downloading collections. osu-collect never asks for your osu! login. Searching for maps through the osu! API (the default for find) needs an API app of your own, which you make on your osu! account page; see [Finding Maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps#your-osu-api-app).
 
 ## Documentation
 

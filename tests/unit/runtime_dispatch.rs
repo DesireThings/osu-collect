@@ -10,13 +10,13 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use super::*;
-use crate::app::EnrichSink;
 use crate::app::collection::FailureReason;
 use crate::app::collection_state::STATE_ENV_PATH;
 use crate::app::failed_maps::{FAILED_MAPS_ENV_PATH, FailedMapsFile};
 use crate::app::find_source::BrowseRow;
 use crate::app::find_source::ENRICH_PAGE;
 use crate::app::home::HomeField;
+use crate::app::{ApiAppCredentials, EnrichSink};
 use crate::auth::AUTH_ENV_PATH;
 use crate::config::Config;
 use crate::download::{
@@ -88,6 +88,7 @@ struct Fixture {
     home_size_rx: mpsc::UnboundedReceiver<HomeSizeEvent>,
     home_cover_rx: mpsc::UnboundedReceiver<HomeCoverEvent>,
     mirror_probe_rx: mpsc::UnboundedReceiver<MirrorProbeEvent>,
+    auth_rx: mpsc::UnboundedReceiver<AuthEvent>,
 }
 
 impl Fixture {
@@ -125,6 +126,7 @@ impl Fixture {
         let (home_cover_tx, home_cover_rx) = mpsc::unbounded_channel::<HomeCoverEvent>();
         let (mirror_probe_tx, mirror_probe_rx) = mpsc::unbounded_channel::<MirrorProbeEvent>();
         let (lazer_import_tx, _lazer_import_rx) = mpsc::unbounded_channel::<LazerImportEvent>();
+        let (auth_tx, auth_rx) = mpsc::unbounded_channel::<AuthEvent>();
 
         let tasks = BackgroundTasks {
             resolve: None,
@@ -148,6 +150,7 @@ impl Fixture {
             mirror_probe_tx,
             lazer_import: None,
             lazer_import_tx,
+            auth_tx,
             update_apply: None,
         };
 
@@ -170,6 +173,7 @@ impl Fixture {
             home_size_rx,
             home_cover_rx,
             mirror_probe_rx,
+            auth_rx,
         }
     }
 
@@ -820,4 +824,26 @@ async fn none_command_is_a_noop_returning_false() {
         fx.tasks.resolve.is_none() && fx.tasks.search.is_none() && fx.tasks.filter.is_none(),
         "None left every task slot empty"
     );
+}
+
+// ── osu! API app ───────────────────────────────────────────────────────────
+
+/// The save runs in the background and reports back on the auth channel. A
+/// non-numeric id is refused before any request, so this stays offline.
+#[tokio::test]
+async fn save_api_app_reports_back_on_the_auth_channel() {
+    let mut fx = Fixture::new();
+    let quit = fx.dispatch(Some(AppCommand::SaveApiApp(ApiAppCredentials {
+        client_id: "not-a-number".into(),
+        client_secret: "secret".into(),
+    })));
+    assert!(!quit);
+    let event = tokio::time::timeout(Duration::from_secs(5), fx.auth_rx.recv())
+        .await
+        .expect("the save task answers")
+        .expect("channel open");
+    match event {
+        AuthEvent::ApiAppSaveFailed(reason) => assert!(reason.contains("number"), "{reason}"),
+        other => panic!("expected a failed save, got {other:?}"),
+    }
 }

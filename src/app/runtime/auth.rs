@@ -1,7 +1,7 @@
-use super::super::App;
+use super::super::{ApiAppCredentials, App};
 use crate::auth;
 use tokio::sync::mpsc;
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[derive(Debug)]
 pub(super) enum AuthEvent {
@@ -9,6 +9,10 @@ pub(super) enum AuthEvent {
     /// ever sent for a CONFIRMED answer — an unreachable or unauthorized probe
     /// sends nothing, so a flaky network can never revoke supporter features.
     SupporterRefreshed(bool),
+    /// osu! accepted the user's API app and it's saved; carries its client id.
+    ApiAppSaved(String),
+    /// The API app check failed; the reason is user-facing.
+    ApiAppSaveFailed(String),
 }
 
 pub(super) fn handle_auth_event(event: AuthEvent, app: &mut App) {
@@ -16,7 +20,33 @@ pub(super) fn handle_auth_event(event: AuthEvent, app: &mut App) {
         AuthEvent::SupporterRefreshed(supporter) => {
             app.set_supporter(supporter);
         }
+        AuthEvent::ApiAppSaved(client_id) => app.api_app_saved(client_id),
+        AuthEvent::ApiAppSaveFailed(reason) => app.api_app_save_failed(reason),
     }
+}
+
+/// Check the typed-in API app with osu! and save it, off the UI thread. The
+/// config tab marks the check as running before this starts, so a second
+/// press can't race it; there's no handle to keep.
+pub(super) fn spawn_api_app_save(
+    credentials: ApiAppCredentials,
+    tx: mpsc::UnboundedSender<AuthEvent>,
+) {
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        let ApiAppCredentials {
+            client_id,
+            client_secret,
+        } = credentials;
+        let event = match auth::save_app_credentials(&client, &client_id, &client_secret).await {
+            Ok(()) => AuthEvent::ApiAppSaved(client_id.trim().to_owned()),
+            Err(err) => {
+                warn!(error = %err, "saving the osu! API app failed");
+                AuthEvent::ApiAppSaveFailed(err.to_string())
+            }
+        };
+        let _ = tx.send(event);
+    });
 }
 
 /// Re-probe `/me` for the supporter flag of a session that was ALREADY logged in

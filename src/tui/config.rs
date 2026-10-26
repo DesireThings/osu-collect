@@ -13,11 +13,19 @@ use osu_downloader::MirrorKind;
 
 const PANEL_TITLE: &str = " CONFIG ";
 
+const SECTION_API: &str = "osu! api";
 const SECTION_DISPLAY: &str = "display";
 const SECTION_DOWNLOAD: &str = "download";
 const SECTION_MIRRORS: &str = "mirrors";
 const SECTION_LOGGING: &str = "logging";
 const SECTION_UPDATE: &str = "updates";
+
+/// The API app's two inputs share one label column so their values line up.
+const API_LABEL_WIDTH: usize = "client secret".len();
+const LABEL_API_SAVE: &str = "check & save";
+const LABEL_API_CHECKING: &str = "checking with osu!…";
+const LABEL_API_REMOVE: &str = "remove saved app";
+const HELP_API_REGISTER: &str = "make one at osu.ppy.sh/home/account/edit → OAuth → new application; leave the callback URL blank";
 
 const LABEL_THEME: &str = "theme";
 const LABEL_VIM_KEYS: &str = "vim keys";
@@ -103,10 +111,15 @@ pub fn render(
         widgets::panel_content_width(area),
     );
 
+    let label_width = if form.focus.is_api_app() {
+        API_LABEL_WIDTH
+    } else {
+        0
+    };
     let cursor_col = editing
         .then(|| {
             form.focused_input()
-                .map(|f| widgets::input_cursor_col(f, 0))
+                .map(|f| widgets::input_cursor_col(f, label_width))
         })
         .flatten();
     let (items, focused_index) = items.into_parts();
@@ -123,6 +136,80 @@ pub fn render(
         true,
         &form.list_offset,
     )
+}
+
+/// What the API app section says about the saved app, under its buttons.
+fn api_app_status(form: &ConfigTab) -> String {
+    match &form.api_app {
+        Some(client_id) => format!("saved: app {client_id} · find searches osu! with it"),
+        None => "not set · find's osu! route needs your own API app".to_string(),
+    }
+}
+
+/// The osu! API app rows: two inputs (the secret masked), the save button and,
+/// while an app is saved, the remove button. Field order matches
+/// [`ConfigTab::api_app_fields`].
+fn push_api_app_items(
+    items: &mut widgets::FormItems<ConfigField>,
+    form: &ConfigTab,
+    show_chrome: bool,
+    editing: bool,
+) {
+    let focus = form.focus;
+    items.push_focusable(
+        ConfigField::ApiClientId,
+        widgets::input_item(
+            &form.api_client_id,
+            focus == ConfigField::ApiClientId,
+            editing,
+            API_LABEL_WIDTH,
+        ),
+    );
+    items.push_focusable(
+        ConfigField::ApiClientSecret,
+        widgets::masked_input_item(
+            &form.api_client_secret,
+            focus == ConfigField::ApiClientSecret,
+            editing,
+            API_LABEL_WIDTH,
+        ),
+    );
+    if show_chrome
+        && matches!(
+            focus,
+            ConfigField::ApiClientId | ConfigField::ApiClientSecret
+        )
+    {
+        items.push(widgets::help_item(HELP_API_REGISTER));
+    }
+    let save_label = if form.api_app_checking {
+        LABEL_API_CHECKING
+    } else {
+        LABEL_API_SAVE
+    };
+    items.push_focusable(
+        ConfigField::ApiAppSave,
+        widgets::button_item(
+            save_label,
+            focus == ConfigField::ApiAppSave,
+            form.api_app_ready(),
+            widgets::ButtonProminence::Primary,
+        ),
+    );
+    if form.api_app.is_some() {
+        items.push_focusable(
+            ConfigField::ApiAppRemove,
+            widgets::button_item(
+                LABEL_API_REMOVE,
+                focus == ConfigField::ApiAppRemove,
+                true,
+                widgets::ButtonProminence::Secondary,
+            ),
+        );
+    }
+    if show_chrome {
+        items.push(widgets::help_item(api_app_status(form)));
+    }
 }
 
 /// Latency suffix appended to a built-in mirror row, mirroring
@@ -163,6 +250,14 @@ fn build_config_items(
     let mut items = widgets::FormItems::new(focus);
 
     if show_chrome {
+        items.push(widgets::section_header(
+            SECTION_API,
+            active_section == Some(SECTION_API),
+        ));
+    }
+    push_api_app_items(&mut items, form, show_chrome, editing);
+    if show_chrome {
+        items.push(widgets::spacer());
         items.push(widgets::section_header(
             SECTION_DISPLAY,
             active_section == Some(SECTION_DISPLAY),
@@ -422,6 +517,7 @@ fn build_config_items(
 fn focus_section(field: ConfigField) -> Option<&'static str> {
     use ConfigField::*;
     Some(match field {
+        ApiClientId | ApiClientSecret | ApiAppSave | ApiAppRemove => SECTION_API,
         Theme | VimKeys | JumpToDownloads => SECTION_DISPLAY,
         MirrorOsuDirect | MirrorNerinyan | MirrorSayobot | MirrorNekoha | MirrorBeatconnect
         | MirrorOsudl | MirrorCatboy | MirrorHinamizawa | MirrorNzbasic | MirrorCustomUrl(_) => {

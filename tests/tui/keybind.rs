@@ -792,7 +792,7 @@ fn vim_gg_and_capital_g_jump_to_ends() {
     app.handle_key(press(KeyCode::Char('g')));
     assert_eq!(
         app.config.focus,
-        ConfigField::Theme,
+        ConfigField::ApiClientId,
         "gg jumps to the first field"
     );
     app.handle_key(press(KeyCode::Char('G')));

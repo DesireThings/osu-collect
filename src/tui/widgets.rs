@@ -652,6 +652,31 @@ pub fn input_item(
     ListItem::new(Line::from(spans))
 }
 
+/// [`input_item`] for a secret: every typed char draws as `•`, so the value
+/// never reaches the screen while the caret math (one cell per char) still
+/// lines up.
+pub fn masked_input_item(
+    field: &InputField,
+    focused: bool,
+    editing: bool,
+    label_width: usize,
+) -> ListItem<'static> {
+    let value = if field.value.is_empty() {
+        field.placeholder.clone().fg(text_faint())
+    } else {
+        "•".repeat(field.value.chars().count()).fg(accent())
+    };
+
+    ListItem::new(Line::from(vec![
+        input_focus_span(focused, editing),
+        Span::styled(
+            label_cell(&field.label.to_lowercase(), label_width),
+            focused_label(focused),
+        ),
+        value,
+    ]))
+}
+
 /// Left inset of the boxed search input, matching [`FOCUS_PAD`] on every other
 /// form row.
 const SEARCH_BOX_INSET: usize = 2;

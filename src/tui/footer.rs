@@ -1,5 +1,5 @@
 use crate::app::{
-    App, ConfigTab, EnrichSink, FindBackend, GetMapsSource, HomeField, HomeTab, Tab,
+    App, ConfigField, ConfigTab, EnrichSink, FindBackend, GetMapsSource, HomeField, HomeTab, Tab,
     messages::AppMessage,
 };
 use crate::download::DownloadStage;
@@ -71,6 +71,8 @@ const HINT_MORE: &str = "m more";
 const HINT_ENTER_TOGGLE: &str = "↵ toggle";
 const HINT_ENTER_OPEN: &str = "↵ open";
 const HINT_ENTER_DOWNLOAD: &str = "↵ download";
+const HINT_ENTER_SAVE: &str = "↵ check & save";
+const HINT_ENTER_REMOVE: &str = "↵ remove";
 /// Update source's scan CTA (form focus): run the scan / descend into the browse.
 const HINT_SCAN: &str = "↵ scan";
 /// Update browse: focus the preview pane / return to the collections list.
@@ -575,6 +577,8 @@ fn config_hints(config: &ConfigTab) -> Vec<&'static str> {
     match config.focus {
         field if field.is_stepper() => segments.push(HINT_PLUS_MINUS),
         field if field.is_text_input() => segments.push(HINT_EDIT),
+        ConfigField::ApiAppSave => segments.push(HINT_ENTER_SAVE),
+        ConfigField::ApiAppRemove => segments.push(HINT_ENTER_REMOVE),
         _ => segments.push(HINT_ENTER_TOGGLE),
     }
     // ⇧↑↓ reorders the focused built-in mirror row in the try-order.

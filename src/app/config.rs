@@ -29,6 +29,12 @@ pub enum AuthLoginState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigField {
+    /// The user's own osu! API app: client id, client secret, then the save and
+    /// remove buttons. Remove only exists while an app is saved.
+    ApiClientId,
+    ApiClientSecret,
+    ApiAppSave,
+    ApiAppRemove,
     Theme,
     VimKeys,
     JumpToDownloads,
@@ -60,11 +66,12 @@ pub enum ConfigField {
 }
 
 // Navigation order — must mirror the render order in `tui::config`
-// (`build_config_items`): display · mirrors · download · logging,
-// matching the home tab's mirrors-before-download flow. The built-in mirror
-// rows sit between this head slice and the dynamic custom-mirror rows, in the
-// configured try-order (`ConfigTab::ordered_mirror_rows`), so they are not
-// listed here.
+// (`build_config_items`): osu! api · display · mirrors · download · logging,
+// matching the home tab's mirrors-before-download flow. The API app rows come
+// first from [`ConfigTab::api_app_fields`] (remove only while an app is saved).
+// The built-in mirror rows sit between this head slice and the dynamic
+// custom-mirror rows, in the configured try-order
+// (`ConfigTab::ordered_mirror_rows`), so they are not listed here.
 const CONFIG_FIELDS_HEAD: &[ConfigField] = &[
     ConfigField::Theme,
     ConfigField::VimKeys,
@@ -94,6 +101,19 @@ impl ConfigField {
             ConfigField::MirrorCustomUrl(_)
                 | ConfigField::LoggingDirectory
                 | ConfigField::DownloadRateLimitSkipSecs
+                | ConfigField::ApiClientId
+                | ConfigField::ApiClientSecret
+        )
+    }
+
+    /// The API app rows. They save through osu!, not `config.toml`.
+    pub fn is_api_app(self) -> bool {
+        matches!(
+            self,
+            ConfigField::ApiClientId
+                | ConfigField::ApiClientSecret
+                | ConfigField::ApiAppSave
+                | ConfigField::ApiAppRemove
         )
     }
 
@@ -114,6 +134,14 @@ pub struct ConfigTab {
     pub osu_official: bool,
     pub nzbasic: bool,
     pub custom_mirrors: CustomMirrorList,
+    /// Typed-in credentials for the user's own osu! API app. Never prefilled
+    /// and cleared once saved, so the secret only sits here while being entered.
+    pub api_client_id: InputField,
+    pub api_client_secret: InputField,
+    /// Client id of the saved API app, or `None` when none is saved.
+    pub api_app: Option<String>,
+    /// A save is being checked with osu!; the save button is inert meanwhile.
+    pub api_app_checking: bool,
     pub login_state: AuthLoginState,
     /// Cached osu!supporter status, mirroring `StoredAuth::is_supporter` at
     /// the moment `login_state` last became [`AuthLoginState::LoggedIn`].
@@ -167,7 +195,14 @@ pub struct ConfigTab {
 impl ConfigTab {
     pub fn new(config: &Config) -> Self {
         let stored_auth = crate::auth::load();
-        let auth_loaded = stored_auth.is_some();
+        // An API app's token has no user behind it, so it isn't a login.
+        let auth_loaded = stored_auth
+            .as_ref()
+            .is_some_and(crate::auth::StoredAuth::is_user_login);
+        let api_app = stored_auth
+            .as_ref()
+            .filter(|auth| !auth.is_user_login())
+            .map(|auth| auth.client_id.clone());
         let supporter = stored_auth.as_ref().is_some_and(|auth| auth.is_supporter());
         let lazer_scope = stored_auth
             .as_ref()
@@ -184,6 +219,10 @@ impl ConfigTab {
             osu_official: config.mirror.osu_official,
             nzbasic: config.mirror.nzbasic,
             custom_mirrors: CustomMirrorList::from_templates(&config.mirror.custom_templates()),
+            api_client_id: InputField::new("client id", "", "from osu! account settings → OAuth"),
+            api_client_secret: InputField::new("client secret", "", "paste it here"),
+            api_app,
+            api_app_checking: false,
             login_state: login_state(auth_loaded),
             supporter,
             lazer_scope,
@@ -205,7 +244,7 @@ impl ConfigTab {
             auto_update: config.update.auto_update,
             prereleases: config.update.prereleases,
             mirror_order: config.mirror.ordered_builtins(),
-            focus: ConfigField::Theme,
+            focus: ConfigField::ApiClientId,
             message: None,
             default_threads: default_threads(),
             loaded_config: config.clone(),
@@ -218,12 +257,15 @@ impl ConfigTab {
     /// dynamic custom-mirror count is always reflected.
     pub(crate) fn fields(&self) -> Vec<ConfigField> {
         let mirror_rows = self.ordered_mirror_rows();
+        let api_rows = self.api_app_fields();
         let mut fields = Vec::with_capacity(
-            CONFIG_FIELDS_HEAD.len()
+            api_rows.len()
+                + CONFIG_FIELDS_HEAD.len()
                 + mirror_rows.len()
                 + self.custom_mirrors.row_count()
                 + CONFIG_FIELDS_AFTER_CUSTOM.len(),
         );
+        fields.extend_from_slice(api_rows);
         fields.extend_from_slice(CONFIG_FIELDS_HEAD);
         fields.extend(mirror_rows.iter().map(|&(_, field, _)| field));
         for idx in 0..self.custom_mirrors.row_count() {
@@ -231,6 +273,63 @@ impl ConfigTab {
         }
         fields.extend_from_slice(CONFIG_FIELDS_AFTER_CUSTOM);
         fields
+    }
+
+    /// The API app rows in nav/render order: remove only while an app is saved.
+    pub(crate) fn api_app_fields(&self) -> &'static [ConfigField] {
+        const WITH_REMOVE: &[ConfigField] = &[
+            ConfigField::ApiClientId,
+            ConfigField::ApiClientSecret,
+            ConfigField::ApiAppSave,
+            ConfigField::ApiAppRemove,
+        ];
+        if self.api_app.is_some() {
+            WITH_REMOVE
+        } else {
+            &WITH_REMOVE[..3]
+        }
+    }
+
+    /// Whether both credentials are typed in and no check is running, so the
+    /// save button can fire.
+    pub fn api_app_ready(&self) -> bool {
+        !self.api_app_checking
+            && !self.api_client_id.value.trim().is_empty()
+            && !self.api_client_secret.value.trim().is_empty()
+    }
+
+    /// Take the typed-in credentials for a save and mark the check as running.
+    /// `None` (nothing changes) unless [`api_app_ready`](Self::api_app_ready).
+    pub fn begin_api_app_save(&mut self) -> Option<(String, String)> {
+        if !self.api_app_ready() {
+            return None;
+        }
+        self.api_app_checking = true;
+        Some((
+            self.api_client_id.value.clone(),
+            self.api_client_secret.value.clone(),
+        ))
+    }
+
+    /// osu! accepted the app and it's saved: show it and drop the typed copy.
+    pub fn api_app_saved(&mut self, client_id: String) {
+        self.api_app_checking = false;
+        self.api_app = Some(client_id);
+        self.api_client_id.set_value(String::new());
+        self.api_client_secret.set_value(String::new());
+    }
+
+    /// The check failed: keep what was typed so it can be corrected.
+    pub fn api_app_save_failed(&mut self) {
+        self.api_app_checking = false;
+    }
+
+    /// The saved app was removed. Focus leaves the remove row, which is gone.
+    pub fn api_app_removed(&mut self) {
+        self.api_app = None;
+        if self.focus == ConfigField::ApiAppRemove {
+            self.focus = ConfigField::ApiAppSave;
+        }
     }
 
     /// Built-in mirror rows in the configured try-order: `(kind, nav field,
@@ -431,6 +530,8 @@ impl ConfigTab {
             ConfigField::MirrorCustomUrl(idx) => self.custom_mirrors.row(idx),
             ConfigField::LoggingDirectory => Some(&self.logging_dir),
             ConfigField::DownloadRateLimitSkipSecs => Some(&self.rate_limit_skip_secs),
+            ConfigField::ApiClientId => Some(&self.api_client_id),
+            ConfigField::ApiClientSecret => Some(&self.api_client_secret),
             _ => None,
         }
     }
@@ -440,6 +541,8 @@ impl ConfigTab {
             ConfigField::MirrorCustomUrl(idx) => self.custom_mirrors.row_mut(idx),
             ConfigField::LoggingDirectory => Some(&mut self.logging_dir),
             ConfigField::DownloadRateLimitSkipSecs => Some(&mut self.rate_limit_skip_secs),
+            ConfigField::ApiClientId => Some(&mut self.api_client_id),
+            ConfigField::ApiClientSecret => Some(&mut self.api_client_secret),
             _ => None,
         }
     }
@@ -476,7 +579,11 @@ impl ConfigTab {
             ConfigField::MirrorCustomUrl(_)
             | ConfigField::DownloadThreads
             | ConfigField::DownloadRateLimitSkipSecs
-            | ConfigField::LoggingDirectory => {}
+            | ConfigField::LoggingDirectory
+            | ConfigField::ApiClientId
+            | ConfigField::ApiClientSecret
+            | ConfigField::ApiAppSave
+            | ConfigField::ApiAppRemove => {}
         }
     }
 

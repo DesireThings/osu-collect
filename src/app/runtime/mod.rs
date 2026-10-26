@@ -38,7 +38,7 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tracing::{debug, info, trace, warn};
 
-use auth::{AuthEvent, handle_auth_event, spawn_supporter_refresh_task};
+use auth::{AuthEvent, handle_auth_event, spawn_api_app_save, spawn_supporter_refresh_task};
 use cover::schedule_cover_fetch;
 use details::{HomeDetailsEvent, handle_home_details_event, schedule_details};
 use enrich::{enrich_sink_mut, schedule_enrichment};
@@ -346,6 +346,7 @@ pub async fn run(
         mirror_probe_tx: mirror_probe_tx.clone(),
         lazer_import: None,
         lazer_import_tx,
+        auth_tx: auth_tx.clone(),
         update_apply: None,
     };
 
@@ -909,6 +910,9 @@ fn dispatch_command(
         Some(AppCommand::RecheckFailedMaps) => {
             spawn_failed_map_recheck_task(app, updates_tx.clone());
         }
+        Some(AppCommand::SaveApiApp(credentials)) => {
+            spawn_api_app_save(credentials, tasks.auth_tx.clone());
+        }
         Some(AppCommand::BuildLazerImport { download_dir }) => {
             if !schedule_lazer_import(
                 &mut tasks.lazer_import,
@@ -1061,6 +1065,9 @@ struct BackgroundTasks {
     /// refused rather than racing it over the same `Songs/`.
     lazer_import: Option<tokio::task::JoinHandle<()>>,
     lazer_import_tx: mpsc::UnboundedSender<LazerImportEvent>,
+    /// Auth results from commands (the API app save). Fire-and-forget: the
+    /// config tab's checking flag already stops a second save racing the first.
+    auth_tx: mpsc::UnboundedSender<AuthEvent>,
     /// Handle for the apply-update task spawned by [`AppCommand::StartUpdate`].
     /// Fire-and-forget in practice, but stored so the dispatch-arm test can
     /// assert the spawn happened.

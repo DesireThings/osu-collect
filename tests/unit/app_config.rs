@@ -316,3 +316,114 @@ fn nav_order_follows_reordered_mirrors() {
     tab.next_field();
     assert_eq!(tab.focus, ConfigField::MirrorNerinyan);
 }
+
+// ── osu! API app ───────────────────────────────────────────────────────────
+
+/// A config tab built with `auth.json` holding `stored` (or nothing), so the
+/// API app state doesn't depend on the machine running the test.
+fn tab_with_stored(stored: Option<crate::auth::StoredAuth>) -> ConfigTab {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("auth.json");
+    if let Some(auth) = stored {
+        std::fs::write(&path, serde_json::to_string(&auth).unwrap()).unwrap();
+    }
+    let _auth =
+        crate::test_env::TempEnvVar::set(crate::auth::AUTH_ENV_PATH, path.to_str().unwrap());
+    ConfigTab::new(&Config::default())
+}
+
+fn stored_auth(refresh_token: Option<&str>) -> crate::auth::StoredAuth {
+    crate::auth::StoredAuth {
+        client_id: "12345".into(),
+        client_secret: "secret".into(),
+        redirect_uri: String::new(),
+        access_token: "tok".into(),
+        refresh_token: refresh_token.map(Into::into),
+        expires_at: u64::MAX,
+        scopes: vec!["public".into()],
+        supporter: None,
+    }
+}
+
+#[test]
+fn a_saved_api_app_shows_as_the_app_not_as_a_login() {
+    let tab = tab_with_stored(Some(stored_auth(None)));
+    assert_eq!(tab.api_app.as_deref(), Some("12345"));
+    assert_eq!(tab.login_state, AuthLoginState::LoggedOut);
+}
+
+#[test]
+fn an_older_user_login_stays_a_login() {
+    let tab = tab_with_stored(Some(stored_auth(Some("rt"))));
+    assert_eq!(tab.api_app, None);
+    assert_eq!(tab.login_state, AuthLoginState::LoggedIn);
+}
+
+#[test]
+fn the_api_rows_lead_and_remove_only_exists_while_an_app_is_saved() {
+    let mut tab = tab_with_stored(None);
+    assert_eq!(
+        tab.focus,
+        ConfigField::ApiClientId,
+        "focus starts on the first row"
+    );
+    assert_eq!(
+        tab.fields()[..4],
+        [
+            ConfigField::ApiClientId,
+            ConfigField::ApiClientSecret,
+            ConfigField::ApiAppSave,
+            ConfigField::Theme,
+        ]
+    );
+    tab.api_app = Some("12345".into());
+    assert_eq!(tab.fields()[3], ConfigField::ApiAppRemove);
+}
+
+#[test]
+fn a_save_needs_both_credentials_and_runs_one_at_a_time() {
+    let mut tab = tab_with_stored(None);
+    assert_eq!(tab.begin_api_app_save(), None, "nothing typed");
+    tab.api_client_id.set_value("12345");
+    tab.api_client_secret.set_value("   ");
+    assert_eq!(tab.begin_api_app_save(), None, "blank secret");
+
+    tab.api_client_secret.set_value("secret");
+    assert_eq!(
+        tab.begin_api_app_save(),
+        Some(("12345".to_string(), "secret".to_string()))
+    );
+    assert!(tab.api_app_checking);
+    assert_eq!(tab.begin_api_app_save(), None, "a check is already running");
+}
+
+#[test]
+fn a_saved_app_drops_the_typed_copy_and_a_failed_one_keeps_it() {
+    let mut tab = tab_with_stored(None);
+    tab.api_client_id.set_value("12345");
+    tab.api_client_secret.set_value("wrong");
+    tab.begin_api_app_save();
+    tab.api_app_save_failed();
+    assert!(!tab.api_app_checking);
+    assert_eq!(tab.api_client_secret.value, "wrong", "kept to be corrected");
+
+    tab.begin_api_app_save();
+    tab.api_app_saved("12345".into());
+    assert!(!tab.api_app_checking);
+    assert_eq!(tab.api_app.as_deref(), Some("12345"));
+    assert!(tab.api_client_id.value.is_empty());
+    assert!(
+        tab.api_client_secret.value.is_empty(),
+        "the secret isn't kept"
+    );
+}
+
+#[test]
+fn removing_the_app_moves_focus_off_the_vanished_row() {
+    let mut tab = tab_with_stored(Some(stored_auth(None)));
+    tab.focus = ConfigField::ApiAppRemove;
+    tab.api_app_removed();
+    assert_eq!(tab.api_app, None);
+    assert_eq!(tab.focus, ConfigField::ApiAppSave);
+    assert!(tab.fields().contains(&tab.focus));
+}

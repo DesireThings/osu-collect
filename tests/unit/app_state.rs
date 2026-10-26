@@ -659,14 +659,15 @@ fn osu_official_stays_dead_with_a_narrow_scope_token() {
     use crate::test_env::TempEnvVar;
     use std::collections::HashMap;
 
-    // A token that loads fine but carries only `public` scope — no download
-    // privilege. Built through `StoredAuth` so a field rename is a compile error.
+    // A user login that loads fine but carries only `public` scope — no
+    // download privilege. The refresh token makes it a login rather than an API
+    // app. Built through `StoredAuth` so a field rename is a compile error.
     let narrow = StoredAuth {
         client_id: "own-app".to_string(),
         client_secret: "secret".to_string(),
         redirect_uri: String::new(),
         access_token: "token".to_string(),
-        refresh_token: None,
+        refresh_token: Some("refresh".to_string()),
         expires_at: u64::MAX,
         scopes: vec!["public".to_string()],
         supporter: None,
@@ -716,4 +717,132 @@ fn osu_official_stays_dead_with_a_narrow_scope_token() {
             .button_enabled(HomeField::Download, app.osu_official_unlocked()),
         "the button must stay dead — the run would die with no mirrors"
     );
+}
+
+// ── osu! API app ───────────────────────────────────────────────────────────
+
+/// An app on the config tab with `auth.json` at `path` while it's built.
+fn config_app_with_auth(path: &std::path::Path) -> App {
+    let _auth =
+        crate::test_env::TempEnvVar::set(crate::auth::AUTH_ENV_PATH, path.to_str().unwrap());
+    let mut app = App::new(Config::default());
+    app.active_tab = Tab::Config;
+    app
+}
+
+#[test]
+fn the_save_button_sends_the_typed_app_without_printing_the_secret() {
+    use crate::app::ConfigField;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = config_app_with_auth(&dir.path().join("auth.json"));
+    app.config.api_client_id.set_value("12345");
+    app.config.api_client_secret.set_value("hunter2-secret");
+    app.config.focus = ConfigField::ApiAppSave;
+
+    let cmd = app.handle_key(key(KeyCode::Enter));
+    let Some(AppCommand::SaveApiApp(credentials)) = &cmd else {
+        panic!("expected SaveApiApp, got {cmd:?}");
+    };
+    assert_eq!(credentials.client_id, "12345");
+    assert_eq!(credentials.client_secret, "hunter2-secret");
+    assert!(
+        !format!("{cmd:?}").contains("hunter2"),
+        "Debug hides the secret"
+    );
+    assert!(app.config.api_app_checking);
+    assert!(
+        app.handle_key(key(KeyCode::Enter)).is_none(),
+        "a second press while checking does nothing"
+    );
+}
+
+#[test]
+fn the_save_button_says_what_is_missing() {
+    use crate::app::ConfigField;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = config_app_with_auth(&dir.path().join("auth.json"));
+    app.config.focus = ConfigField::ApiAppSave;
+
+    assert!(app.handle_key(key(KeyCode::Enter)).is_none());
+    let toast = app.toasts.iter().last().expect("a toast explains");
+    assert!(toast.title().contains("client id"), "{}", toast.title());
+}
+
+#[test]
+fn leaving_an_api_field_writes_no_config() {
+    use crate::app::ConfigField;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = config_app_with_auth(&dir.path().join("auth.json"));
+    // A form `build_config` rejects: if leaving the field tried to save the
+    // config, this error would come back as a toast.
+    app.config.threads.set_value("999");
+    app.config.focus = ConfigField::ApiClientId;
+    app.handle_key(key(KeyCode::Enter)); // start editing
+    app.handle_key(key(KeyCode::Char('1')));
+    app.handle_key(key(KeyCode::Enter)); // stop editing
+    app.handle_key(key(KeyCode::Enter));
+    app.handle_key(key(KeyCode::Esc));
+    assert_eq!(app.config.api_client_id.value, "1");
+    assert!(app.toasts.is_empty(), "no config save was attempted");
+}
+
+#[test]
+fn space_does_not_press_the_api_buttons() {
+    use crate::app::ConfigField;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = config_app_with_auth(&dir.path().join("auth.json"));
+    app.config.api_client_id.set_value("12345");
+    app.config.api_client_secret.set_value("secret");
+    app.config.threads.set_value("999"); // a config save would toast this
+    app.config.focus = ConfigField::ApiAppSave;
+    assert!(app.handle_key(key(KeyCode::Char(' '))).is_none());
+    assert!(!app.config.api_app_checking);
+    assert!(app.toasts.is_empty());
+}
+
+#[test]
+fn saving_an_app_over_an_old_login_logs_it_out() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = config_app_with_auth(&dir.path().join("auth.json"));
+    app.set_login_complete(true);
+    assert!(app.config.supporter());
+
+    app.api_app_saved("12345".into());
+    assert_eq!(
+        app.config.login_state,
+        crate::app::AuthLoginState::LoggedOut
+    );
+    assert!(
+        !app.config.supporter(),
+        "the login's supporter gate went with it"
+    );
+    assert_eq!(app.config.api_app.as_deref(), Some("12345"));
+}
+
+#[test]
+fn the_remove_button_deletes_the_saved_app() {
+    use crate::app::ConfigField;
+    use crate::auth::StoredAuth;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("auth.json");
+    let saved = StoredAuth {
+        client_id: "12345".into(),
+        client_secret: "secret".into(),
+        redirect_uri: String::new(),
+        access_token: "tok".into(),
+        refresh_token: None,
+        expires_at: u64::MAX,
+        scopes: vec!["public".into()],
+        supporter: None,
+    };
+    std::fs::write(&path, serde_json::to_string(&saved).unwrap()).unwrap();
+    let mut app = config_app_with_auth(&path);
+    assert_eq!(app.config.api_app.as_deref(), Some("12345"));
+    app.config.focus = ConfigField::ApiAppRemove;
+
+    let _auth =
+        crate::test_env::TempEnvVar::set(crate::auth::AUTH_ENV_PATH, path.to_str().unwrap());
+    assert!(app.handle_key(key(KeyCode::Enter)).is_none());
+    assert!(!path.exists());
+    assert_eq!(app.config.api_app, None);
 }

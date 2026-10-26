@@ -57,6 +57,16 @@ One form, two backends: the osu! api v2 search and nzbasic's [batch-beatmap-down
 
 Everything else runs on either backend; the default is the osu! api. Category `approved` works on both.
 
+## Your osu! API app
+
+The osu! api route needs an osu! API app of your own; the nzbasic route needs nothing. To make one:
+
+1. Open your [osu! account settings](https://osu.ppy.sh/home/account/edit#new-oauth-application), go to **OAuth** and press **New OAuth Application**.
+2. Give it any name. Leave the callback URL blank.
+3. Copy the client ID and the client secret into the **osu! api** section at the top of the config tab, then press **check & save**.
+
+osu-collect asks osu! for a token with them and only keeps them if osu! accepts. They're stored in `auth.json` (see [Configuration](Configuration#other-files)), readable by your user only. The token has no account behind it, so supporter-only filters stay off. **remove saved app** deletes it again. If you reset the secret on osu!, searches fail until you save the new one.
+
 ## Matching semantics per route
 
 - **Artist / mapper / title**: exact phrases on the osu! api route, substring matches on the nzbasic route. Want contains-matching? Force the nzbasic route with a special flag or the `bpm ↓` / `length ↑` sort.

@@ -699,6 +699,104 @@ fn config_tab_has_no_account_row_or_official_mirror() {
     }
 }
 
+/// An API-app token: no refresh token, so no user behind it.
+fn api_app_json() -> String {
+    let auth = osu_collect::auth::StoredAuth {
+        client_id: "12345".to_string(),
+        client_secret: "secret".to_string(),
+        redirect_uri: String::new(),
+        access_token: "token".to_string(),
+        refresh_token: None,
+        expires_at: u64::MAX,
+        scopes: vec!["public".to_string()],
+        supporter: None,
+    };
+    serde_json::to_string(&auth).unwrap()
+}
+
+#[test]
+fn config_tab_offers_the_api_app_until_one_is_saved() {
+    let content = config_tab_with_stored_auth(None);
+    for shown in [
+        "OSU! API", // section headers draw in capitals
+        "client id",
+        "client secret",
+        "check & save",
+        "not set",
+    ] {
+        assert!(content.contains(shown), "missing {shown:?}: {content}");
+    }
+    assert!(!content.contains("remove saved app"), "{content}");
+
+    let content = config_tab_with_stored_auth(Some(&api_app_json()));
+    assert!(content.contains("saved: app 12345"), "{content}");
+    assert!(content.contains("remove saved app"), "{content}");
+}
+
+/// A config-tab app with nothing stored, so the API section is the unset one.
+fn config_app_without_auth() -> App {
+    use osu_collect::app::Tab;
+    let dir = tempfile::tempdir().unwrap();
+    let _env = osu_collect::test_env::TempEnvVar::set(
+        osu_collect::auth::AUTH_ENV_PATH,
+        dir.path().join("auth.json").to_str().unwrap(),
+    );
+    let mut app = make_app();
+    app.active_tab = Tab::Config;
+    app
+}
+
+#[test]
+fn the_client_secret_is_drawn_masked() {
+    use osu_collect::app::ConfigField;
+    let mut app = config_app_without_auth();
+    app.config.api_client_secret.set_value("hunter2-secret");
+    app.config.focus = ConfigField::ApiClientSecret;
+    app.editing = true;
+    let content = render_content(&app, 120, 40);
+    assert!(
+        !content.contains("hunter2"),
+        "the secret reached the screen"
+    );
+    assert!(
+        content.contains(&"•".repeat("hunter2-secret".len())),
+        "{content}"
+    );
+}
+
+#[test]
+fn the_api_app_values_and_carets_share_one_column() {
+    use osu_collect::app::ConfigField;
+    let mut app = config_app_without_auth();
+    app.config.api_client_id.set_value("123");
+    app.config.api_client_secret.set_value("abc");
+    app.editing = true;
+
+    app.config.focus = ConfigField::ApiClientId;
+    let (id_x, id_y) = cursor_pos(&app, 120, 40);
+    app.config.focus = ConfigField::ApiClientSecret;
+    let (secret_x, secret_y) = cursor_pos(&app, 120, 40);
+    assert_eq!(secret_y, id_y + 1, "the secret row sits under the id row");
+    assert_eq!(id_x, secret_x, "equal-length values end at the same column");
+
+    // And the caret sits right after the drawn value, not off in the label.
+    let rows = render_rows(&app, 120, 40);
+    let row = &rows[id_y as usize];
+    let value_end = row.find("123").map(|byte| row[..byte].chars().count() + 3);
+    assert_eq!(value_end, Some(id_x as usize), "{row}");
+}
+
+#[test]
+fn config_footer_names_the_api_buttons() {
+    use osu_collect::app::ConfigField;
+    let mut app = config_app_without_auth();
+    app.config.focus = ConfigField::ApiAppSave;
+    assert!(render_footer_row(&app, 200, 24).contains("↵ check & save"));
+    app.config.api_app = Some("12345".to_string());
+    app.config.focus = ConfigField::ApiAppRemove;
+    assert!(render_footer_row(&app, 200, 24).contains("↵ remove"));
+}
+
 // ── error / message footer ───────────────────────────────────────────────────
 
 #[test]

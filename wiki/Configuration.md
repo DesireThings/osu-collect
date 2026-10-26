@@ -71,7 +71,7 @@ Managed automatically: last collection, last download directory, osu! client, in
 
 ## Other files
 
-`auth.json` (osu! token) sits next to `config.toml`. State files live in a per-user data dir: `~/.local/share/osu-collect` on Linux, `~/Library/Application Support/osu-collect` on macOS, `%APPDATA%\osu-collect` on Windows.
+`auth.json` (your osu! API app and its token, saved from the config tab; see [Finding Maps](Finding-Maps#your-osu-api-app)) sits next to `config.toml`, readable by your user only. State files live in a per-user data dir: `~/.local/share/osu-collect` on Linux, `~/Library/Application Support/osu-collect` on macOS, `%APPDATA%\osu-collect` on Windows.
 
 | File | Holds |
 |---|---|
