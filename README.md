@@ -58,7 +58,7 @@ curl -fsSL https://raw.githubusercontent.com/DesireThings/osu-collect/main/insta
 Windows x64 (PowerShell):
 
 ```powershell
-iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
+iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"; Remove-Item "$env:TEMP\osu-install.bat"
 ```
 
 Or download `osu-collect-linux-x64`, `osu-collect-windows-x64.exe` or `osu-collect-macos-arm64` from the release. Building from source, uninstalling and more: [Installation](https://github.com/DesireThings/osu-collect/wiki/Installation).
