@@ -1,67 +1,109 @@
 name: Release
 
+# A vX.Y.Z or vX.Y.Z-beta.N tag publishes a release. Everything is built and
+# checked first; the release is then created as a draft with every file
+# attached and published in one step, so /releases/latest (read by the
+# updater and the install scripts) never shows a release without its files.
+#
+# A pull request that changes this file, or a manual run, is a dry run: the
+# same builds and checks, with the files kept as a workflow artifact
+# ("release-files") and nothing published.
 on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+  workflow_dispatch:
 
-# create-release, the build legs, and checksums all attach to the GitHub Release.
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: "10"
+  CARGO_HTTP_MULTIPLEXING: "false"
 
 jobs:
-  # Release page exists the moment the tag lands; notes are NOT auto-generated
-  # (the release script writes them), assets attach when the builds finish.
-  create-release:
-    name: Create release
+  # The version must be the same in the tag and in all four files that hold
+  # it, and a tagged release needs its notes file. Checked before anything
+  # is built: a tag can't be moved or deleted (ruleset), so a tag that fails
+  # here is cheaper to replace with the next beta than one that fails later.
+  prepare:
+    name: Check version and notes
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
     steps:
-      # vX.Y.Z or vX.Y.Z-beta.N. Betas are published as normal releases (not
-      # GitHub pre-releases): install.sh, install.bat and the default updater
-      # read /releases/latest, which skips pre-releases.
-      - name: Validate tag is semver
+      - uses: actions/checkout@v7
+      - name: Versions agree
+        id: version
         run: |
-          ver="${GITHUB_REF_NAME#v}"
-          if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
-            echo "::error::tag '${GITHUB_REF_NAME}' is not vX.Y.Z or vX.Y.Z-beta.N"; exit 1
+          cargo_version() { grep -m1 '^version = ' "$1" | cut -d'"' -f2; }
+          root="$(cargo_version Cargo.toml)"
+          gui_crate="$(cargo_version gui/src-tauri/Cargo.toml)"
+          tauri="$(node -p "require('./gui/src-tauri/tauri.conf.json').version")"
+          package="$(node -p "require('./gui/package.json').version")"
+          echo "Cargo.toml $root, gui/src-tauri/Cargo.toml $gui_crate, tauri.conf.json $tauri, gui/package.json $package"
+          for v in "$gui_crate" "$tauri" "$package"; do
+            if [[ "$v" != "$root" ]]; then
+              echo "::error::the four version fields don't agree"; exit 1
+            fi
+          done
+          if [[ ! "$root" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
+            echo "::error::version '$root' is not X.Y.Z or X.Y.Z-beta.N"; exit 1
           fi
-      - uses: softprops/action-gh-release@v3
-        with:
-          generate_release_notes: false
+          publish=false
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            if [[ "$GITHUB_REF_NAME" != "v$root" ]]; then
+              echo "::error::tag '$GITHUB_REF_NAME' doesn't match the version v$root"; exit 1
+            fi
+            publish=true
+          fi
+          echo "version=$root" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+      - name: Release notes exist
+        run: |
+          notes="release-notes/v${{ steps.version.outputs.version }}.md"
+          if [[ -s "$notes" ]]; then
+            echo "using $notes"
+          elif [[ "${{ steps.version.outputs.publish }}" == "true" ]]; then
+            echo "::error::missing $notes"; exit 1
+          else
+            echo "::warning::missing $notes (needed before tagging)"
+          fi
 
-  # The licences of everything built into the binary, attached to the release
-  # next to it (Apache-2.0 / BSD / MIT notices travel with redistributed
-  # binaries). realm-core is C++, so the script appends its notices by hand.
+  # The licences of everything built into the terminal app (Apache-2.0 / BSD
+  # / MIT notices travel with redistributed binaries). realm-core is C++, so
+  # the script appends its notices by hand.
   licences:
-    name: Third-party licences
-    needs: create-release
+    name: Third-party licences (terminal app)
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-
       - uses: dtolnay/rust-toolchain@stable
-
       - name: Install cargo-about
         run: cargo install cargo-about --version 0.9.2 --locked --features cli
-
       - name: Build THIRD-PARTY-LICENSES.txt
         run: scripts/third-party-licenses.sh THIRD-PARTY-LICENSES.txt
-
-      - name: Upload to release
-        uses: softprops/action-gh-release@v3
+      - uses: actions/upload-artifact@v7
         with:
-          files: THIRD-PARTY-LICENSES.txt
+          name: cli-licences
+          path: THIRD-PARTY-LICENSES.txt
+          if-no-files-found: error
 
-  # Each target builds on its NATIVE runner so realm-cpp (vendored C++ submodule)
-  # links against the platform's own toolchain — windows is MSVC, no cross-build.
+  # The terminal app. Each target builds on its NATIVE runner so realm-cpp
+  # (vendored C++ submodule) links against the platform's own toolchain;
+  # windows is MSVC, no cross-build. The asset names are what the self-updater
+  # and install scripts look for, so they don't change.
   build:
     name: Build ${{ matrix.asset_name }}
-    needs: create-release
+    needs: prepare
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -70,8 +112,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # 22.04, not latest: the binary runs on distributions whose glibc
+          # is at least the build machine's (2.35 here).
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+            os: ubuntu-22.04
             asset_name: osu-collect-linux-x64
             ext: ""
           - target: x86_64-pc-windows-msvc
@@ -92,13 +136,13 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install native deps (Linux)
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential zlib1g-dev libssl-dev
 
       - name: Install native deps (macOS)
-        if: matrix.os == 'macos-14'
+        if: runner.os == 'macOS'
         run: brew install cmake
 
       - uses: Swatinem/rust-cache@v2
@@ -106,54 +150,90 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Check the version it reports
+        run: |
+          out="$("target/${{ matrix.target }}/release/osu-collect${{ matrix.ext }}" --version)"
+          echo "$out"
+          [[ "$out" == "osu-collect ${{ needs.prepare.outputs.version }}" ]]
+
       - name: Prepare asset
-        run: cp "target/${{ matrix.target }}/release/osu-collect${{ matrix.ext }}" "${{ matrix.asset_name }}${{ matrix.ext }}"
+        run: |
+          mkdir -p out
+          cp "target/${{ matrix.target }}/release/osu-collect${{ matrix.ext }}" "out/${{ matrix.asset_name }}${{ matrix.ext }}"
 
-      - name: Upload binary to release
-        uses: softprops/action-gh-release@v3
+      - uses: actions/upload-artifact@v7
         with:
-          files: ${{ matrix.asset_name }}${{ matrix.ext }}
-
-      - name: Upload artifact for checksum job
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.asset_name }}${{ matrix.ext }}
-          path: ${{ matrix.asset_name }}${{ matrix.ext }}
+          name: cli-${{ matrix.asset_name }}
+          path: out/*
           if-no-files-found: error
 
-  checksums:
-    name: Checksums
-    needs: [build]
+  # The desktop app's installers and its licence list (desktop.yml).
+  desktop:
+    name: Desktop app
+    needs: prepare
+    uses: ./.github/workflows/desktop.yml
+
+  # Collects every file, writes SHA256SUMS, and keeps the set as one artifact.
+  # On a tag it then creates the release as a draft with every file attached
+  # and publishes it; on a dry run it stops after the artifact.
+  release:
+    name: ${{ needs.prepare.outputs.publish == 'true' && 'Publish release' || 'Collect files (dry run)' }}
+    needs: [prepare, licences, build, desktop]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: release
-          merge-multiple: true
+      - uses: actions/checkout@v7
 
-      # The in-binary updater and install scripts verify against GitHub's inline
-      # per-asset `digest`, not these `.sha256`/SHA256SUMS files. The sidecars are
-      # kept for backward compatibility: binaries released BEFORE the digest switch
-      # only know how to fetch the sidecar, so dropping it here would strand them
-      # (they could no longer self-update to this release). Remove the sidecar
-      # generation + attachment once pre-digest installs are negligible.
-      - name: Generate checksums
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      # Explicit list, so a missing file fails here and nothing else (such as
+      # desktop.yml's licence list before the AppImage section) slips in.
+      - name: Collect the release files
         run: |
+          d="osu-collect-desktop-$VERSION"
+          mkdir -p release
+          cp artifacts/cli-osu-collect-linux-x64/osu-collect-linux-x64 \
+             artifacts/cli-osu-collect-windows-x64/osu-collect-windows-x64.exe \
+             artifacts/cli-osu-collect-macos-arm64/osu-collect-macos-arm64 \
+             artifacts/cli-licences/THIRD-PARTY-LICENSES.txt \
+             "artifacts/desktop-linux-x64/$d-linux-x64.AppImage" \
+             "artifacts/desktop-linux-x64/$d-linux-amd64.deb" \
+             artifacts/desktop-linux-x64/THIRD-PARTY-LICENSES-desktop.txt \
+             "artifacts/desktop-windows-x64/$d-windows-x64-setup.exe" \
+             "artifacts/desktop-macos-arm64/$d-macos-arm64.dmg" \
+             release/
+          chmod +x release/osu-collect-linux-x64 release/osu-collect-macos-arm64 "release/$d-linux-x64.AppImage"
           cd release
-          for f in osu-collect-linux-x64 osu-collect-windows-x64.exe osu-collect-macos-arm64; do
-            sha256sum "$f" > "$f.sha256"
-          done
-          cat osu-collect-linux-x64.sha256 \
-              osu-collect-windows-x64.exe.sha256 \
-              osu-collect-macos-arm64.sha256 \
-            > SHA256SUMS
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+          ls -la
 
-      - name: Upload checksums to release
-        uses: softprops/action-gh-release@v3
+      - uses: actions/upload-artifact@v7
         with:
-          files: |
-            release/osu-collect-linux-x64.sha256
-            release/osu-collect-windows-x64.exe.sha256
-            release/osu-collect-macos-arm64.sha256
-            release/SHA256SUMS
+          name: release-files
+          path: release/*
+          if-no-files-found: error
+
+      # The self-updater and install scripts check each file against the
+      # SHA-256 GitHub records for it (the asset's `digest`); SHA256SUMS is
+      # for people checking by hand.
+      - name: Create the draft release with every file, then publish it
+        if: needs.prepare.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --verify-tag \
+            --title "osu-collect $VERSION" \
+            --notes-file "release-notes/$TAG.md"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,isDraft,isPrerelease,assets \
+            --jq '"\(.url) draft=\(.isDraft) prerelease=\(.isPrerelease) files=\(.assets | length)"'
