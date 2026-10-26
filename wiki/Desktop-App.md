@@ -47,5 +47,6 @@ Mirror and download changes apply once you press **Save changes**; **Undo change
 | osu! API app | Your own osu! OAuth app (client ID and secret), only needed for the terminal app's find. Collections never need it. See [Finding maps](Finding-Maps#your-osu-api-app). |
 | Mirrors | Turn the built-in mirrors on or off and change the order they're tried in; add your own mirror links (with `{id}` where the map set number goes). osu!'s own servers aren't offered: they need a login this app doesn't do. |
 | Downloads | Background videos, skip maps already in osu!, maps at once (automatic or 1–100), how long a map set waits on a busy mirror before it goes back in the queue to try later, and how strictly downloaded files are checked. |
+| About | The app's version, and **Show third-party licences**: the licences of everything built into the app (release builds only). |
 
 The same settings are in `config.toml`; see [Configuration](Configuration).

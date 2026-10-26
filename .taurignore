@@ -10,6 +10,9 @@
 /media/**
 /*.md
 
+# Generated licence listings (scripts/third-party-licenses.sh).
+/THIRD-PARTY-LICENSES*.txt
+
 # The frontend. Vite hot-reloads it, so `tauri dev` restarting the app on
 # every edit here would only throw away the window's state.
 /gui/src/
