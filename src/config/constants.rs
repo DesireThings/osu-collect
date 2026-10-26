@@ -19,7 +19,9 @@ pub mod status {
     pub const RATE_LIMITED_SUFFIX: &str = " on all mirrors, waiting";
 }
 
-pub const CONCURRENT_REQUESTS: usize = 100;
+/// How many collections update fetches from osu!Collector at once. Kept low:
+/// someone tracking many collections shouldn't send osu!Collector a burst.
+pub const COLLECTOR_CONCURRENT_REQUESTS: usize = 4;
 pub const DEFAULT_PROGRESS_WATCHDOG_SECS: u64 = 120;
 
 pub fn default_threads() -> u8 {
