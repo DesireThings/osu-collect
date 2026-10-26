@@ -2,8 +2,8 @@
 //!
 //! Builds the same request the TUI's form does, but from the shared config,
 //! runs it on the download pipeline, and folds the pipeline's event stream into
-//! one serialisable [`DownloadStatus`] per run. A run is a whole collection or
-//! the missing sets an update scan found. Runs queue and download one at a
+//! one serialisable [`DownloadStatus`] per run. A run is a whole collection,
+//! the missing sets an update scan found, or map sets picked from a search. Runs queue and download one at a
 //! time: each already uses every configured thread, and ten runs at once would
 //! hit the mirrors ten times as hard.
 
@@ -13,7 +13,8 @@ use crate::{
     config::{Config, MirrorConfig, load_config_or_default},
     download::{
         BeatmapStage, DownloadConfig, DownloadEvent, DownloadHandle, DownloadId, DownloadRequest,
-        DownloadStage, SelectiveDownloadRequest, spawn_download, spawn_selective_download,
+        DownloadStage, IdsDownloadRequest, SelectiveDownloadRequest, spawn_download,
+        spawn_ids_download, spawn_selective_download,
     },
     mirrors::{Mirror, MirrorKind},
     osu_db::{BeatmapReader, LazerReader, OsuClient, StableReader},
@@ -61,6 +62,8 @@ pub enum RunKind {
     Collection,
     /// The missing sets an update scan found, across the collections picked.
     Update,
+    /// Map sets picked from a search.
+    Find,
 }
 
 /// One map set that couldn't be downloaded.
@@ -76,8 +79,8 @@ pub struct Failure {
 pub struct DownloadStatus {
     pub id: DownloadId,
     pub kind: RunKind,
-    /// The collection a [`RunKind::Collection`] run downloads; `None` for an
-    /// update, which can span several.
+    /// The collection a [`RunKind::Collection`] run downloads; `None` for the
+    /// other kinds.
     pub collection_id: Option<u32>,
     /// Collection name once fetched; the pasted link (or the update's label)
     /// until then.
@@ -458,6 +461,7 @@ fn build_request(input: &str, config: &Config) -> Result<DownloadRequest> {
 enum Job {
     Collection(DownloadRequest),
     Update(SelectiveDownloadRequest),
+    Find(IdsDownloadRequest),
 }
 
 /// Called with a run's status whenever it changes (throttled while downloading).
@@ -524,6 +528,23 @@ impl Downloads {
         let status = DownloadStatus::queued(0, RunKind::Update, None, label);
         self.push(status, Job::Update(request), |run| {
             (run.kind == RunKind::Update).then_some("An update is already downloading.")
+        })
+    }
+
+    /// Queue map sets picked from a search. A second run of the same search
+    /// (its folder) waits for the first to finish. Must run inside a Tokio
+    /// runtime.
+    pub fn enqueue_find(&self, request: IdsDownloadRequest) -> Result<DownloadId> {
+        if request.beatmapset_ids.is_empty() {
+            return Err(AppError::other(
+                "Nothing to download: no map sets are picked.",
+            ));
+        }
+        let label = request.label.clone();
+        let status = DownloadStatus::queued(0, RunKind::Find, None, &label);
+        self.push(status, Job::Find(request), |run| {
+            (run.kind == RunKind::Find && run.name == label)
+                .then_some("That search is already downloading.")
         })
     }
 
@@ -638,6 +659,7 @@ impl Downloads {
         let handle = match request {
             Job::Collection(request) => spawn_download(id, request, tx),
             Job::Update(request) => spawn_selective_download(id, request, tx),
+            Job::Find(request) => spawn_ids_download(id, request, tx),
         };
         if let Some(run) = self.inner.lock().expect("downloads lock").runs.get_mut(&id) {
             run.handle = Some(handle);
