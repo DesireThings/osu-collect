@@ -1,5 +1,8 @@
 # Installation
 
+> [!NOTE]
+> This fork hasn't published a release yet, so the installers, prebuilt binaries and self-updating below have nothing to fetch. Until the first release, [install from source](#install-from-source).
+
 ## One-line install (recommended)
 
 **Linux x64 / macOS Apple Silicon**:
@@ -29,11 +32,32 @@ osu-collect runs in a terminal. On Windows a double click usually opens it too, 
 
 ## Install from source
 
-Requires Rust 1.85+ (edition 2024):
+You need:
+
+- a current stable Rust (tested with 1.99; anything older than 1.88 won't build),
+- CMake and a C++17 compiler, for the bundled realm library osu-collect uses to read osu!lazer's database,
+- git.
+
+Then:
 
 ```bash
 cargo install --git https://github.com/DesireThings/osu-collect
 ```
+
+This installs the terminal app as `osu-collect`. The first build takes a while because it compiles realm.
+
+## Desktop app from source
+
+The desktop app has no packaged build yet. To run it from a clone you also need Node.js and pnpm, plus on Linux the WebKitGTK 4.1 development package (`webkit2gtk-4.1` on Arch, `libwebkit2gtk-4.1-dev` on Debian/Ubuntu; see [Tauri's prerequisites](https://v2.tauri.app/start/prerequisites/) for the full list):
+
+```bash
+git clone --recurse-submodules https://github.com/DesireThings/osu-collect
+cd osu-collect/gui
+pnpm install
+pnpm tauri dev
+```
+
+It's been run on Linux only so far. See [Desktop app](Desktop-App) for how to use it.
 
 ## Self-updating
 

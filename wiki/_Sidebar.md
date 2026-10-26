@@ -2,7 +2,8 @@
 
 **Getting started**
 - [Installation](Installation)
-- [Usage](Usage)
+- [Desktop app](Desktop-App)
+- [Usage (terminal)](Usage)
 
 **Guides**
 - [Finding maps](Finding-Maps)
