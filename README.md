@@ -16,7 +16,7 @@
 osu-collect is a terminal app that **downloads osu! beatmap collections from [osu!collector](https://osucollector.com)**. Paste a collection link, pick a folder, and every map batch-downloads using multiple mirrors in rotation with automatic failover. You also get a ready-to-import `collection.db` and ability to update the collections later.
 
 > [!NOTE]
-> This is a personal fork of [uwuclxdy/osu-collect](https://github.com/uwuclxdy/osu-collect) by DesireThings, and it has been changed from the original: it adds a desktop window and a one-pass osu!lazer import, and it has no osu! login. Report problems with this fork [here](https://github.com/DesireThings/osu-collect/issues), not upstream. Both projects are licensed MIT OR Apache-2.0; see [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).
+> This is a personal fork of [uwuclxdy/osu-collect](https://github.com/uwuclxdy/osu-collect) by DesireThings, and it has been changed from the original: it adds a desktop window and a one-pass osu!lazer import, and it has no osu! login. Report problems with this fork [here](https://github.com/DesireThings/osu-collect/issues), not upstream. Both projects are licensed MIT OR Apache-2.0; see [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE). Each release also has a `THIRD-PARTY-LICENSES.txt` with the licences of everything built into the binary.
 >
 > osu-collect is an unofficial community tool. It isn't made, endorsed or supported by ppy (the makers of osu!) or by osu!Collector; their names are used only to say what this tool works with.
 

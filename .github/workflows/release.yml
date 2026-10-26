@@ -29,6 +29,31 @@ jobs:
         with:
           generate_release_notes: false
 
+  # The licences of everything built into the binary, attached to the release
+  # next to it (Apache-2.0 / BSD / MIT notices travel with redistributed
+  # binaries). realm-core is C++, so the script appends its notices by hand.
+  licences:
+    name: Third-party licences
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-about
+        run: cargo install cargo-about --version 0.9.2 --locked --features cli
+
+      - name: Build THIRD-PARTY-LICENSES.txt
+        run: scripts/third-party-licenses.sh THIRD-PARTY-LICENSES.txt
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: THIRD-PARTY-LICENSES.txt
+
   # Each target builds on its NATIVE runner so realm-cpp (vendored C++ submodule)
   # links against the platform's own toolchain — windows is MSVC, no cross-build.
   build:

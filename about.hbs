@@ -1,0 +1,24 @@
+THIRD-PARTY LICENCES FOR OSU-COLLECT
+====================================
+
+osu-collect itself is licensed MIT OR Apache-2.0 (LICENSE-MIT,
+LICENSE-APACHE in the source repository). This file lists the licences of
+the Rust crates built into it, followed by the notices for realm-core, the
+C++ database library it links to read osu!lazer's library.
+
+The source code of every crate listed is on crates.io:
+https://crates.io/crates/<name>/<version>
+
+Licences used:
+{{#each overview}}
+  {{{name}}} ({{count}})
+{{/each}}
+{{#each licenses}}
+
+================================================================================
+{{{name}}}
+Used by: {{#each used_by}}{{crate.name}} {{crate.version}}{{#unless @last}}, {{/unless}}{{/each}}
+================================================================================
+
+{{{text}}}
+{{/each}}

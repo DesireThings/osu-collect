@@ -11,3 +11,4 @@ testing-db
 /gui/src-tauri/gen
 .claude/
 .mcp.json
+/THIRD-PARTY-LICENSES.txt
