@@ -5,7 +5,7 @@ use super::super::{
     update_source::{MissingBeatmapset, MissingStatus, ScanStatus, extract_collection_id},
 };
 use crate::{
-    config::constants::{CONCURRENT_REQUESTS, USER_AGENT},
+    config::constants::{COLLECTOR_CONCURRENT_REQUESTS, USER_AGENT},
     core::collection::{Collection, api_client},
     osu_db::{
         BeatmapReader, LazerReader, LocalBeatmapset, LocalCollection, Md5, OsuClient, StableReader,
@@ -824,7 +824,7 @@ pub async fn fetch_missing_beatmapsets(
 
     let t_api = std::time::Instant::now();
 
-    // Fetch all collections concurrently, then process results sequentially
+    // Fetch a few collections at a time, then process results sequentially
     let fetched: Vec<Result<(u32, Collection), String>> = stream::iter(collection_ids)
         .map(|collection_id| {
             let client = client.clone();
@@ -835,7 +835,7 @@ pub async fn fetch_missing_beatmapsets(
                     .map_err(|e| e.to_string())
             }
         })
-        .buffer_unordered(CONCURRENT_REQUESTS)
+        .buffer_unordered(COLLECTOR_CONCURRENT_REQUESTS)
         .collect()
         .await;
 
