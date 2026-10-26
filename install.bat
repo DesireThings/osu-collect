@@ -180,7 +180,7 @@ powershell -NoProfile -Command ^
   "$ws = New-Object -ComObject WScript.Shell; " ^
   "$q = [char]34; " ^
   "$bang = [char]33; " ^
-  "$name = 'osu-collect.lnk'; " ^
+  "$name = 'osu-collect (terminal).lnk'; " ^
   "$wt = [System.IO.Path]::Combine($env:LOCALAPPDATA, 'Microsoft\WindowsApps\wt.exe'); " ^
   "$useWt = Test-Path $wt; " ^
   "$icon = ''; " ^
@@ -201,7 +201,7 @@ powershell -NoProfile -Command ^
   "  } " ^
   "  if ($icon) { $lnk.IconLocation = $icon; } " ^
   "  $lnk.WorkingDirectory = $env:USERPROFILE; " ^
-  "  $lnk.Description = 'download osu' + $bang + ' collections (TUI)'; " ^
+  "  $lnk.Description = 'osu-collect terminal app'; " ^
   "  $lnk.Save() " ^
   "}"
 if errorlevel 1 (
@@ -231,12 +231,15 @@ if not exist "%INSTALL_DIR%\uninstall.ps1" (
 )
 
 :: 2. register under HKCU with reg.exe (native, reliable). delayed expansion is
-::    off in this block so the literal "!" in the display name is not stripped
+::    off in this block so a "!" in a value is not stripped. The key and the
+::    shortcut names say "terminal": the desktop app's installer registers
+::    "osu-collect" and makes osu-collect.lnk, and the two must not overwrite
+::    or uninstall each other.
 setlocal disabledelayedexpansion
-set "UNKEY=HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect"
+set "UNKEY=HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal"
 set "UNVER=%LATEST_TAG%"
 if "%UNVER:~0,1%"=="v" set "UNVER=%UNVER:~1%"
-reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu-collect" /f >nul
+reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu-collect (terminal app)" /f >nul
 reg add "%UNKEY%" /v DisplayVersion        /t REG_SZ   /d "%UNVER%" /f >nul
 reg add "%UNKEY%" /v DisplayIcon           /t REG_SZ   /d "%INSTALL_BIN%" /f >nul
 reg add "%UNKEY%" /v Publisher             /t REG_SZ   /d "DesireThings" /f >nul
@@ -248,7 +251,7 @@ reg add "%UNKEY%" /v NoModify              /t REG_DWORD /d 1 /f >nul
 reg add "%UNKEY%" /v NoRepair              /t REG_DWORD /d 1 /f >nul
 endlocal
 
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect" /v UninstallString >nul 2>&1
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal" /v UninstallString >nul 2>&1
 if errorlevel 1 (
   echo error: could not register uninstaller in the Installed apps list
 ) else (
@@ -274,11 +277,10 @@ Write-Host 'Uninstalling osu-collect ...'
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\osu-collect'
 $desktop    = [Environment]::GetFolderPath('Desktop')
 $startMenu  = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+# only the terminal app's own shortcuts: osu-collect.lnk is the desktop app's
 $shortcuts  = @(
-    Join-Path $desktop   'osu-collect.lnk'
-    Join-Path $startMenu 'osu-collect.lnk'
-    Join-Path $desktop   'osu-collect.lnk'
-    Join-Path $startMenu 'osu-collect.lnk'
+    Join-Path $desktop   'osu-collect (terminal).lnk'
+    Join-Path $startMenu 'osu-collect (terminal).lnk'
 )
 foreach ($lnk in $shortcuts) { Remove-Item -LiteralPath $lnk -Force }
 
@@ -290,7 +292,7 @@ if ($userPath) {
 }
 
 # drop the "Installed apps" registry entry
-Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect' -Recurse -Force
+Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal' -Recurse -Force
 
 Write-Host 'osu-collect has been uninstalled.'
 Start-Sleep -Seconds 2

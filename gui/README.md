@@ -29,6 +29,6 @@ pnpm install
 pnpm tauri dev
 ```
 
-`pnpm tauri build` makes a release AppImage under `target/release/bundle/`.
+`pnpm tauri build` makes an AppImage and a .deb under `target/release/bundle/`. Releases are built by `.github/workflows/desktop.yml`, which also bundles the licence list (`--config src-tauri/tauri.release.conf.json`) and makes the Windows and macOS installers.
 
 `pnpm check` type-checks the frontend.
