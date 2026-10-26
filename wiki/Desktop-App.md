@@ -2,9 +2,9 @@
 
 The desktop app is a window with buttons and text boxes instead of keyboard shortcuts. It uses the same download engine, mirrors and `config.toml` as the terminal app, so settings changed in one show up in the other.
 
-Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections and getting them into osu!lazer. **find** and **update** are still terminal-only.
+Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections, updating the ones you downloaded, and getting them into osu!lazer. **find** is still terminal-only.
 
-The sidebar has three steps, plus Settings. You can go back to any step at any time.
+The sidebar has three steps, then **Update collections** and Settings. You can go back to any of them at any time.
 
 ## 1. Set up
 
@@ -37,6 +37,19 @@ Downloads keep running while you look at other steps.
 Running **Prepare import folder** again after more downloads only adds what's new. Delete the folder once osu! says the import finished. This is the same folder `osu-collect lazer-import` builds; see [Importing into osu!](Importing-into-osu#several-collections-at-once).
 
 **osu! stable**: not automatic yet. Drag the downloaded `.osz` files into osu!, then merge each folder's `collection.db` with [Collection Manager](https://github.com/Piotrekol/CollectionManager).
+
+## Update collections
+
+Checks the collections you downloaded with osu-collect for maps added on osu!collector since, and downloads only those. It reads the osu! install from **Set up**.
+
+1. **Check for new maps** reads your osu! library, finds the collections osu-collect downloaded (their names end in the osu!collector number, like `Tiebreakers-18951`), and looks each one up on osu!collector.
+2. Every collection with something new is ticked. Its card shows how many maps are new, how many it holds in osu!, and how many osu!collector removed. **Show maps** lists the missing map sets; each one opens its osu! page.
+3. **Download N map sets** fetches the new maps of the ticked collections, each map set once even if several collections miss it. The download shows the same progress, waiting and skip controls as a collection.
+4. Then import as usual (step 3) and **Check again**.
+
+A map set you deleted from osu! after downloading stays left out, so it doesn't come back on its own. Its row in **Show maps** says so; tick **Download it again** to include it in this download.
+
+Map sets that failed to download before are left out too. The terminal app's update view can recheck those, and mark a map you already have as installed when the check keeps calling it missing; see [Updating collections](Updating-Collections). A check doesn't change anything in osu!; it only saves what it saw, so the next check can tell which maps you deleted.
 
 ## Settings
 

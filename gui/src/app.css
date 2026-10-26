@@ -143,6 +143,13 @@ code {
 .settings-link {
   margin-top: 14px;
 }
+.group-label {
+  margin: 18px 8px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
 .text {
   display: grid;
 }
@@ -396,6 +403,8 @@ button.link {
 
 .actions {
   display: flex;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-end;
   margin-top: 8px;
 }

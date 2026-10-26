@@ -90,9 +90,14 @@ export interface Failure {
   reason: string;
 }
 
+/** A whole collection, or the missing sets an update scan found. */
+export type RunKind = "collection" | "update";
+
 export interface DownloadStatus {
   id: number;
-  collection_id: number;
+  kind: RunKind;
+  /** Set for a collection run; null for an update, which can span several. */
+  collection_id: number | null;
   name: string;
   phase: Phase;
   total: number;
@@ -122,3 +127,50 @@ export const skipWaiting = (id: number) => invoke<void>("skip_waiting", { id });
 export const listDownloads = () => invoke<DownloadStatus[]>("list_downloads");
 export const onDownloadStatus = (handler: (status: DownloadStatus) => void) =>
   listen<DownloadStatus>("download-status", (event) => handler(event.payload));
+
+export interface MissingSet {
+  beatmapset_id: number;
+  /** Deleted from osu! after downloading; held back unless picked again. */
+  previously_deleted: boolean;
+}
+
+export interface UpdateCollection {
+  id: number;
+  /** The name on osu!collector, else the name in osu!. */
+  name: string;
+  /** Maps the collection holds in osu!. */
+  local_maps: number;
+  missing: MissingSet[];
+  /** Maps in osu! the collection on osu!collector no longer has. */
+  removed_upstream: number;
+}
+
+export interface UpdateReport {
+  client: OsuClient;
+  library: string;
+  local_sets: number;
+  collections: UpdateCollection[];
+  /** Sets left out because downloading them failed before. */
+  known_bad: number;
+  added_since_last_scan: number;
+}
+
+export type ScanProgress =
+  | { step: "reading_library" }
+  | { step: "checking"; local_sets: number; collections: number };
+
+/** A previously deleted set picked again, in one collection. */
+export interface SetRef {
+  collection_id: number;
+  beatmapset_id: number;
+}
+
+export interface UpdatePick {
+  collection_ids: number[];
+  reincluded: SetRef[];
+}
+
+export const scanUpdates = () => invoke<UpdateReport>("scan_updates");
+export const downloadUpdates = (pick: UpdatePick) => invoke<number>("download_updates", { pick });
+export const onScanProgress = (handler: (progress: ScanProgress) => void) =>
+  listen<ScanProgress>("update-scan-progress", (event) => handler(event.payload));

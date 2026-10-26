@@ -2,9 +2,10 @@
 //!
 //! Builds the same request the TUI's form does, but from the shared config,
 //! runs it on the download pipeline, and folds the pipeline's event stream into
-//! one serialisable [`DownloadStatus`] per collection. Collections queue and
-//! download one at a time: each run already uses every configured thread, and
-//! ten runs at once would hit the mirrors ten times as hard.
+//! one serialisable [`DownloadStatus`] per run. A run is a whole collection or
+//! the missing sets an update scan found. Runs queue and download one at a
+//! time: each already uses every configured thread, and ten runs at once would
+//! hit the mirrors ten times as hard.
 
 use super::{NOT_A_COLLECTION_LINK, Settings};
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
     config::{Config, MirrorConfig, load_config_or_default},
     download::{
         BeatmapStage, DownloadConfig, DownloadEvent, DownloadHandle, DownloadId, DownloadRequest,
-        DownloadStage, spawn_download,
+        DownloadStage, SelectiveDownloadRequest, spawn_download, spawn_selective_download,
     },
     mirrors::{Mirror, MirrorKind},
     osu_db::{BeatmapReader, LazerReader, OsuClient, StableReader},
@@ -52,6 +53,16 @@ impl Phase {
     }
 }
 
+/// What a run downloads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RunKind {
+    /// A whole osu!collector collection.
+    Collection,
+    /// The missing sets an update scan found, across the collections picked.
+    Update,
+}
+
 /// One map set that couldn't be downloaded.
 #[derive(Debug, Clone, Serialize)]
 pub struct Failure {
@@ -64,8 +75,12 @@ pub struct Failure {
 #[derive(Debug, Clone, Serialize)]
 pub struct DownloadStatus {
     pub id: DownloadId,
-    pub collection_id: u32,
-    /// Collection name once fetched; the pasted link until then.
+    pub kind: RunKind,
+    /// The collection a [`RunKind::Collection`] run downloads; `None` for an
+    /// update, which can span several.
+    pub collection_id: Option<u32>,
+    /// Collection name once fetched; the pasted link (or the update's label)
+    /// until then.
     pub name: String,
     pub phase: Phase,
     /// Map sets in the collection.
@@ -111,11 +126,12 @@ pub struct DownloadStatus {
 }
 
 impl DownloadStatus {
-    fn queued(id: DownloadId, collection_id: u32, input: &str) -> Self {
+    fn queued(id: DownloadId, kind: RunKind, collection_id: Option<u32>, name: &str) -> Self {
         Self {
             id,
+            kind,
             collection_id,
-            name: input.to_string(),
+            name: name.to_string(),
             phase: Phase::Queued,
             total: 0,
             downloaded: 0,
@@ -381,13 +397,21 @@ fn mirror_enabled(mirror: &MirrorConfig, kind: MirrorKind) -> bool {
     }
 }
 
-/// The request for `input`, from the current config and settings.
-fn build_request(input: &str, config: &Config) -> Result<DownloadRequest> {
+/// What every kind of run takes from the config and settings.
+pub(super) struct RunSettings {
+    pub config: DownloadConfig,
+    pub skip_already_imported: bool,
+    pub osu_client: OsuClient,
+    /// The osu! install the run checks for maps you already have.
+    pub osu_path: String,
+}
+
+pub(super) fn run_settings(config: &Config) -> Result<RunSettings> {
     let settings = Settings::from_config(config);
     let mirrors = mirrors_from_config(config);
     if mirrors.is_empty() {
         return Err(AppError::other(
-            "No download mirrors are turned on. Turn one on in the terminal version's config tab.",
+            "No download mirrors are turned on. Turn one on in Settings.",
         ));
     }
     let osu_path = settings
@@ -400,8 +424,7 @@ fn build_request(input: &str, config: &Config) -> Result<DownloadRequest> {
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_default();
 
-    Ok(DownloadRequest {
-        collection_input: input.to_string(),
+    Ok(RunSettings {
         config: DownloadConfig {
             directory: settings.download_dir.to_string_lossy().into_owned(),
             mirrors,
@@ -410,13 +433,31 @@ fn build_request(input: &str, config: &Config) -> Result<DownloadRequest> {
             auto_skip_rate_limited: config.download.auto_skip_rate_limited,
             rate_limit_skip_secs: config.download.rate_limit_skip_secs,
         },
-        auto_overwrite: false,
-        previously_failed_skipped: HashSet::new(),
         skip_already_imported: config.download.skip_already_imported,
         osu_client: settings.client,
         osu_path,
+    })
+}
+
+/// The request for `input`, from the current config and settings.
+fn build_request(input: &str, config: &Config) -> Result<DownloadRequest> {
+    let run = run_settings(config)?;
+    Ok(DownloadRequest {
+        collection_input: input.to_string(),
+        config: run.config,
+        auto_overwrite: false,
+        previously_failed_skipped: HashSet::new(),
+        skip_already_imported: run.skip_already_imported,
+        osu_client: run.osu_client,
+        osu_path: run.osu_path,
         prefetched: None,
     })
+}
+
+/// A queued run's request, by kind.
+enum Job {
+    Collection(DownloadRequest),
+    Update(SelectiveDownloadRequest),
 }
 
 /// Called with a run's status whenever it changes (throttled while downloading).
@@ -425,7 +466,7 @@ pub type OnUpdate = Arc<dyn Fn(&DownloadStatus) + Send + Sync>;
 struct Run {
     status: DownloadStatus,
     /// Built at queue time; taken when the run starts.
-    request: Option<DownloadRequest>,
+    request: Option<Job>,
     handle: Option<DownloadHandle>,
 }
 
@@ -460,29 +501,73 @@ impl Downloads {
             .map_err(|_| AppError::other(NOT_A_COLLECTION_LINK))?;
         let request = build_request(input, &load_config_or_default())?;
 
-        let status = {
+        let status = DownloadStatus::queued(0, RunKind::Collection, Some(collection_id), input);
+        self.push(status, Job::Collection(request), |run| {
+            (run.collection_id == Some(collection_id))
+                .then_some("That collection is already downloading.")
+        })
+    }
+
+    /// Queue the missing sets of an update scan; `label` names the run until
+    /// the pipeline has resolved it. One update downloads at a time. Must run
+    /// inside a Tokio runtime.
+    pub fn enqueue_update(
+        &self,
+        request: SelectiveDownloadRequest,
+        label: &str,
+    ) -> Result<DownloadId> {
+        if request.beatmapset_ids.is_empty() {
+            return Err(AppError::other(
+                "Nothing to download: no missing maps are picked.",
+            ));
+        }
+        let status = DownloadStatus::queued(0, RunKind::Update, None, label);
+        self.push(status, Job::Update(request), |run| {
+            (run.kind == RunKind::Update).then_some("An update is already downloading.")
+        })
+    }
+
+    /// Add a run unless `clash` names an unfinished run it would duplicate,
+    /// then start it if nothing else is downloading.
+    fn push(
+        &self,
+        mut status: DownloadStatus,
+        job: Job,
+        clash: impl Fn(&DownloadStatus) -> Option<&'static str>,
+    ) -> Result<DownloadId> {
+        {
             let mut inner = self.inner.lock().expect("downloads lock");
-            if inner.runs.values().any(|run| {
-                run.status.collection_id == collection_id && !run.status.phase.is_finished()
-            }) {
-                return Err(AppError::other("That collection is already downloading."));
+            if let Some(message) = inner
+                .runs
+                .values()
+                .filter(|run| !run.status.phase.is_finished())
+                .find_map(|run| clash(&run.status))
+            {
+                return Err(AppError::other(message));
             }
-            let id = inner.next_id;
+            status.id = inner.next_id;
             inner.next_id += 1;
-            let status = DownloadStatus::queued(id, collection_id, input);
             inner.runs.insert(
-                id,
+                status.id,
                 Run {
                     status: status.clone(),
-                    request: Some(request),
+                    request: Some(job),
                     handle: None,
                 },
             );
-            status
-        };
+        }
         (self.on_update)(&status);
         self.start_next();
         Ok(status.id)
+    }
+
+    /// Whether any run is queued or downloading.
+    pub fn is_busy(&self) -> bool {
+        let inner = self.inner.lock().expect("downloads lock");
+        inner
+            .runs
+            .values()
+            .any(|run| !run.status.phase.is_finished())
     }
 
     /// Cancel a queued or running download. Finished ones are left alone.
@@ -550,7 +635,10 @@ impl Downloads {
         };
 
         let (tx, rx) = mpsc::unbounded_channel();
-        let handle = spawn_download(id, request, tx);
+        let handle = match request {
+            Job::Collection(request) => spawn_download(id, request, tx),
+            Job::Update(request) => spawn_selective_download(id, request, tx),
+        };
         if let Some(run) = self.inner.lock().expect("downloads lock").runs.get_mut(&id) {
             run.handle = Some(handle);
         }

@@ -1,9 +1,14 @@
-use super::{ABORTED, DownloadStatus, Downloads, PUSH_INTERVAL, Phase, Run, mirrors_from_config};
+use super::{
+    ABORTED, DownloadStatus, Downloads, PUSH_INTERVAL, Phase, Run, RunKind, mirrors_from_config,
+};
 use crate::app::{HomeTab, collection::FailureReason};
 use crate::config::Config;
 use crate::download::{
-    BeatmapStage, DownloadEvent, DownloadHandle, DownloadStage, DownloadSummary, FailedMap,
+    BeatmapStage, DownloadConfig, DownloadEvent, DownloadHandle, DownloadStage, DownloadSummary,
+    FailedMap, SelectiveDownloadRequest,
 };
+use crate::osu_db::OsuClient;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
@@ -40,7 +45,12 @@ fn osu_official_is_never_used_without_the_tui_login() {
 }
 
 fn status() -> DownloadStatus {
-    DownloadStatus::queued(1, 18951, "https://osucollector.com/collections/18951")
+    DownloadStatus::queued(
+        1,
+        RunKind::Collection,
+        Some(18951),
+        "https://osucollector.com/collections/18951",
+    )
 }
 
 fn beatmap(stage: BeatmapStage, set: u32) -> DownloadEvent {
@@ -331,4 +341,135 @@ fn queueing_rejects_something_that_is_not_a_collection_link() {
 
     assert_eq!(err.to_string(), super::NOT_A_COLLECTION_LINK);
     assert!(downloads.list().is_empty());
+}
+
+fn update_request(beatmapset_ids: Vec<u32>) -> SelectiveDownloadRequest {
+    SelectiveDownloadRequest {
+        collection_ids: vec![18951],
+        beatmapset_ids,
+        collections: Vec::new(),
+        config: DownloadConfig {
+            directory: "/dl".into(),
+            mirrors: Vec::new(),
+            concurrent: 1,
+            archive_validation: Default::default(),
+            auto_skip_rate_limited: false,
+            rate_limit_skip_secs: 60,
+        },
+        snapshot_dir: None,
+        snapshots: Vec::new(),
+        skip_already_imported: false,
+        osu_client: OsuClient::Lazer,
+        osu_path: String::new(),
+        prefetched: HashMap::new(),
+    }
+}
+
+fn running(downloads: &Downloads, id: u64, status: DownloadStatus) {
+    let mut status = status;
+    status.id = id;
+    status.phase = Phase::Downloading;
+    let mut inner = downloads.inner.lock().unwrap();
+    inner.next_id = inner.next_id.max(id + 1);
+    inner.runs.insert(
+        id,
+        Run {
+            status,
+            request: None,
+            handle: None,
+        },
+    );
+}
+
+#[test]
+fn an_update_with_nothing_picked_is_refused() {
+    let downloads = Downloads::new(Arc::new(|_| {}));
+
+    let err = downloads
+        .enqueue_update(update_request(Vec::new()), "Update")
+        .unwrap_err();
+
+    assert!(err.to_string().starts_with("Nothing to download"), "{err}");
+    assert!(downloads.list().is_empty());
+}
+
+#[test]
+fn only_one_update_downloads_at_a_time() {
+    let downloads = Downloads::new(Arc::new(|_| {}));
+    running(
+        &downloads,
+        1,
+        DownloadStatus::queued(1, RunKind::Update, None, "Update"),
+    );
+
+    let err = downloads
+        .enqueue_update(update_request(vec![10]), "Update")
+        .unwrap_err();
+
+    assert_eq!(err.to_string(), "An update is already downloading.");
+    assert_eq!(downloads.list().len(), 1);
+    assert!(downloads.is_busy());
+}
+
+#[tokio::test]
+async fn a_running_collection_does_not_block_an_update() {
+    let downloads = Downloads::new(Arc::new(|_| {}));
+    running(&downloads, 1, status());
+    // The collection run holds the download slot, so the update only queues.
+    let (cancel, _) = watch::channel(false);
+    let (defer, _) = watch::channel(0u64);
+    let (skip, _) = watch::channel(0u64);
+    downloads
+        .inner
+        .lock()
+        .unwrap()
+        .runs
+        .get_mut(&1)
+        .unwrap()
+        .handle = Some(DownloadHandle::new(
+        cancel,
+        defer,
+        skip,
+        tokio::spawn(async {}),
+    ));
+
+    let id = downloads
+        .enqueue_update(update_request(vec![10]), "Update (1 collection)")
+        .unwrap();
+
+    let queued = downloads.list().into_iter().find(|s| s.id == id).unwrap();
+    assert_eq!(queued.phase, Phase::Queued);
+    assert_eq!((queued.kind, queued.collection_id), (RunKind::Update, None));
+    assert_eq!(queued.name, "Update (1 collection)");
+}
+
+#[test]
+fn a_finished_update_does_not_block_the_next_one() {
+    let downloads = Downloads::new(Arc::new(|_| {}));
+    let mut done = DownloadStatus::queued(1, RunKind::Update, None, "Update");
+    done.phase = Phase::Done;
+    downloads.inner.lock().unwrap().runs.insert(
+        1,
+        Run {
+            status: done,
+            request: None,
+            handle: None,
+        },
+    );
+
+    assert!(!downloads.is_busy());
+}
+
+#[test]
+fn the_window_sees_the_run_kind() {
+    let update = DownloadStatus::queued(3, RunKind::Update, None, "Update");
+
+    let json = serde_json::to_value(&update).unwrap();
+
+    assert_eq!(json["kind"], "update");
+    assert_eq!(json["collection_id"], serde_json::Value::Null);
+    assert_eq!(
+        serde_json::to_value(status()).unwrap()["kind"],
+        "collection"
+    );
 }
