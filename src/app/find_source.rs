@@ -1241,6 +1241,24 @@ enum SizeState {
     Missing,
 }
 
+/// The chip positions of a [`FindSource`] as plain numbers, for a frontend with
+/// its own controls (the desktop app's dropdowns). Each indexes the same label
+/// table the TUI's chip cycles through. Rank and played are left out: they need
+/// an osu!supporter login, which osu-collect doesn't do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FindChoices {
+    pub preset: usize,
+    pub special: usize,
+    pub mode: usize,
+    pub status: usize,
+    pub sort: usize,
+    pub explicit: usize,
+    pub genre: usize,
+    pub language: usize,
+    /// Picked `extra` chips, by position.
+    pub extra: Vec<usize>,
+}
+
 /// The Get Maps `Find` source: one union criteria form plus its results browse.
 /// Kept on `HomeTab` so its state survives source-strip / backend-chip switches
 /// (keep-both).
@@ -1408,6 +1426,61 @@ impl FindSource {
     pub fn clear_supporter_facets(&mut self) {
         self.played_idx = 0;
         self.rank.clear();
+    }
+
+    // ── frontend access ───────────────────────────────────────────────────────
+
+    pub(crate) fn choices(&self) -> FindChoices {
+        FindChoices {
+            preset: self.preset_idx,
+            special: self.special_idx,
+            mode: self.mode_idx,
+            status: self.status_idx,
+            sort: self.sort_idx,
+            explicit: self.explicit_idx,
+            genre: self.genre_idx,
+            language: self.language_idx,
+            extra: self.extra.picked().collect(),
+        }
+    }
+
+    /// Set every chip at once. Refuses a position past its label table rather
+    /// than clamping it, so a stale frontend can't search for something else.
+    pub(crate) fn set_choices(&mut self, choices: &FindChoices) -> Result<(), String> {
+        fn check(name: &str, idx: usize, labels: &[&str]) -> Result<usize, String> {
+            (idx < labels.len())
+                .then_some(idx)
+                .ok_or_else(|| format!("{name}: no option {idx}"))
+        }
+        let sort_len = SORT.len();
+        if choices.sort >= sort_len {
+            return Err(format!("sort: no option {}", choices.sort));
+        }
+        self.preset_idx = check("preset", choices.preset, PRESET_LABELS)?;
+        self.special_idx = check("special", choices.special, SPECIAL_LABELS)?;
+        self.mode_idx = check("mode", choices.mode, MODE_LABELS)?;
+        self.status_idx = check("status", choices.status, STATUS_LABELS)?;
+        self.sort_idx = choices.sort;
+        self.explicit_idx = check("explicit", choices.explicit, EXPLICIT_LABELS)?;
+        self.genre_idx = check("genre", choices.genre, GENRE_LABELS)?;
+        self.language_idx = check("language", choices.language, LANGUAGE_LABELS)?;
+        self.extra.clear();
+        for &idx in &choices.extra {
+            check("extra", idx, EXTRA_LABELS)?;
+            self.extra.mask |= 1 << idx;
+        }
+        Ok(())
+    }
+
+    /// A fresh form with preset `idx` applied, as picking it in the TUI does.
+    pub(crate) fn with_preset(idx: usize) -> Result<Self, String> {
+        if idx >= PRESET_LABELS.len() {
+            return Err(format!("preset: no option {idx}"));
+        }
+        let mut source = Self::new();
+        source.preset_idx = idx;
+        source.apply_preset(idx);
+        Ok(source)
     }
 
     // ── presets ───────────────────────────────────────────────────────────────

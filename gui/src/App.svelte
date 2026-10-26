@@ -5,6 +5,7 @@
   import Import from "./lib/Import.svelte";
   import SettingsPage from "./lib/Settings.svelte";
   import Update from "./lib/Update.svelte";
+  import Find from "./lib/Find.svelte";
   import {
     detectInstalls,
     loadSettings,
@@ -14,7 +15,7 @@
   } from "./lib/api";
   import { initDownloads, store } from "./lib/store.svelte";
 
-  type Page = "setup" | "collections" | "import" | "update" | "settings";
+  type Page = "setup" | "collections" | "import" | "find" | "update" | "settings";
 
   const steps: { id: Page; label: string; hint: string }[] = [
     { id: "setup", label: "Set up", hint: "Your osu! and a download folder" },
@@ -38,6 +39,9 @@
     return `Downloading ${settled}/${running.total}: ${running.name}`;
   }
   const collectionsHint = $derived(downloadingHint("collection"));
+  const findHint = $derived(
+    store.find.searching ? "Searching…" : downloadingHint("find"),
+  );
   const updateHint = $derived(
     store.updates.scanning ? "Checking for new maps…" : downloadingHint("update"),
   );
@@ -79,7 +83,18 @@
         </li>
       {/each}
     </ol>
-    <p class="group-label">Already downloaded some?</p>
+    <p class="group-label">More ways to get maps</p>
+    <button class="step" class:active={page === "find"} onclick={() => (page = "find")}>
+      <span class="num" aria-hidden="true">⌕</span>
+      <span class="text">
+        <span class="label">Find maps</span>
+        {#if findHint}
+          <span class="hint live">{findHint}</span>
+        {:else}
+          <span class="hint">Search by stars, mapper and more</span>
+        {/if}
+      </span>
+    </button>
     <button class="step" class:active={page === "update"} onclick={() => (page = "update")}>
       <span class="num" aria-hidden="true">↻</span>
       <span class="text">
@@ -119,6 +134,8 @@
       <Collections onNext={() => (page = "import")} />
     {:else if page === "import"}
       <Import {settings} />
+    {:else if page === "find"}
+      <Find onSettings={() => (page = "settings")} onImport={() => (page = "import")} />
     {:else if page === "update"}
       <Update {settings} onImport={() => (page = "import")} />
     {:else}
