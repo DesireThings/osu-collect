@@ -1,9 +1,9 @@
 [package]
 name = "osu-collect"
-version = "0.6.1"
+version = "0.1.0-beta.1"
 edition = "2024"
 authors = ["uwuclxdy", "DesireThings"]
-description = "Download and update installed collections from osu!collector (TUI)"
+description = "Download osu!collector collections and import them into osu! (desktop and terminal app)"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/DesireThings/osu-collect"
 autotests = false
@@ -86,8 +86,8 @@ codegen-units = 1
 strip = true
 
 # The GUI lives in its own crate on top of this library. `cargo build` at the
-# root still builds only the CLI/TUI; `osu-downloader` keeps its own lockfile.
+# root still builds only the CLI/TUI. `osu-downloader` is a member too (Cargo
+# adds path dependencies inside the workspace), so it shares Cargo.lock.
 [workspace]
 members = [".", "gui/src-tauri"]
 default-members = ["."]
-exclude = ["osu-downloader"]

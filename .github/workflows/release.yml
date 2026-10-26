@@ -19,11 +19,14 @@ jobs:
     name: Create release
     runs-on: ubuntu-latest
     steps:
+      # vX.Y.Z or vX.Y.Z-beta.N. Betas are published as normal releases (not
+      # GitHub pre-releases): install.sh, install.bat and the default updater
+      # read /releases/latest, which skips pre-releases.
       - name: Validate tag is semver
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::tag '${GITHUB_REF_NAME}' is not vX.Y.Z"; exit 1
+          if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
+            echo "::error::tag '${GITHUB_REF_NAME}' is not vX.Y.Z or vX.Y.Z-beta.N"; exit 1
           fi
       - uses: softprops/action-gh-release@v3
         with:

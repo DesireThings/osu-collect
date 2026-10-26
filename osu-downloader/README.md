@@ -1,5 +1,7 @@
 # osu-downloader
 
+> **Modified copy.** This folder is osu-collect's bundled copy of [uwuclxdy/osu-downloader](https://github.com/uwuclxdy/osu-downloader) (MIT OR Apache-2.0, by uwuclxdy). This fork changed it: every API client can now send a custom `User-Agent` (`with_user_agent` on `CollectionClient`, `SearchClient`, `SizeFetcher` and `FilterClient`). The rest of this README is upstream's and describes the published crate.
+
 A vibecoded Rust library for downloading osu! beatmapsets in bulk from multiple mirrors, with failover, rate-limit backoff, MD5 + ZIP validation, and a streaming event API. Build a `Downloader`, hand it beatmapset IDs and an output directory, then consume `Event`s off the session until it finishes.
 
 ```toml

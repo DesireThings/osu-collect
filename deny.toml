@@ -31,6 +31,9 @@ allow = [
 [bans]
 multiple-versions = "warn"
 wildcards         = "deny"
+# The GUI crate depends on the root crate by path with no version; it isn't
+# published (publish = false), so that path dependency is fine.
+allow-wildcard-paths = true
 deny              = []
 
 [sources]
