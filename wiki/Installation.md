@@ -76,4 +76,4 @@ Settings live in a separate config folder, run history in a data folder; delete 
 cargo build --release
 ```
 
-`build.sh` cross-builds Linux + Windows binaries into `build/`. The bundled `osu-downloader` library is a path dependency, not a workspace member; test it separately with `cargo test --manifest-path osu-downloader/Cargo.toml --all-features`.
+The bundled `osu-downloader` library shares the workspace and its `Cargo.lock`, but `cargo test` at the root doesn't run its tests; run them with `cargo test --manifest-path osu-downloader/Cargo.toml --all-features`.
