@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { getVersion } from "@tauri-apps/api/app";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import {
     loadDownloadOptions,
@@ -7,6 +8,7 @@
     saveApiApp,
     saveDownloadOptions,
     savedApiApp,
+    thirdPartyLicences,
     type ArchiveValidation,
     type DownloadOptions,
   } from "./api";
@@ -133,6 +135,28 @@
   $effect(() => {
     if (dirty) justSaved = false;
   });
+
+  // ── about ─────────────────────────────────────────────────────────────────
+  let version = $state("");
+  let licences = $state<string | null>(null);
+  let showLicences = $state(false);
+  let licencesError = $state<string | null>(null);
+
+  onMount(async () => {
+    version = await getVersion();
+  });
+
+  async function toggleLicences() {
+    showLicences = !showLicences;
+    if (!showLicences || licences !== null) return;
+    licencesError = null;
+    try {
+      licences = await thirdPartyLicences();
+    } catch (e) {
+      licencesError = String(e);
+      showLicences = false;
+    }
+  }
 </script>
 
 <header class="page-head">
@@ -393,6 +417,24 @@
   </div>
 {/if}
 
+<section class="card">
+  <h2>About</h2>
+  <p>osu-collect {version}</p>
+  <p class="muted small">
+    Unofficial tool, not made by ppy (osu!) or osu!Collector. Free software under MIT OR
+    Apache-2.0; source code at github.com/DesireThings/osu-collect.
+  </p>
+  <button class="secondary" onclick={toggleLicences}>
+    {showLicences ? "Hide" : "Show"} third-party licences
+  </button>
+  {#if licencesError}
+    <p class="error-text">{licencesError}</p>
+  {/if}
+  {#if showLicences && licences !== null}
+    <pre class="licences">{licences}</pre>
+  {/if}
+</section>
+
 <style>
   .status-line {
     flex: 1;
@@ -476,6 +518,17 @@
     align-items: center;
     padding: 12px 0;
     background: var(--bg);
+  }
+  .licences {
+    margin: 12px 0 0;
+    max-height: 420px;
+    overflow: auto;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    font-size: 0.78rem;
+    white-space: pre-wrap;
   }
   @media (max-width: 560px) {
     .form-grid {

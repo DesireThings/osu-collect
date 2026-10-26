@@ -70,6 +70,9 @@ export const saveApiApp = (clientId: string, clientSecret: string) =>
   invoke<string>("save_api_app", { clientId, clientSecret });
 export const removeApiApp = () => invoke<void>("remove_api_app");
 
+/** The licence list bundled with release builds; rejects in dev builds. */
+export const thirdPartyLicences = () => invoke<string>("third_party_licences");
+
 export const detectInstalls = () => invoke<Installs>("detect_installs");
 export const loadSettings = () => invoke<Settings>("load_settings");
 export const saveSettings = (settings: Settings) =>

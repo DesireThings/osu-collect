@@ -12,6 +12,24 @@ use tauri::{Emitter, Manager, State};
 /// Event every download status change is pushed to the window under.
 const DOWNLOAD_STATUS_EVENT: &str = "download-status";
 
+/// The licence listing a release bundles with the app (built by
+/// scripts/third-party-licenses.sh --desktop, added by tauri.release.conf.json).
+const LICENCES_FILE: &str = "THIRD-PARTY-LICENSES.txt";
+
+#[tauri::command]
+fn third_party_licences(app: tauri::AppHandle) -> Result<String, String> {
+    let path = app
+        .path()
+        .resolve(LICENCES_FILE, tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+    std::fs::read_to_string(&path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => {
+            "This build doesn't include the licence list; release builds do.".to_string()
+        }
+        _ => format!("Couldn't read the licence list: {e}"),
+    })
+}
+
 #[tauri::command]
 fn detect_installs() -> Installs {
     engine::detect_installs()
@@ -136,6 +154,7 @@ pub fn run() {
             cancel_download,
             skip_waiting,
             list_downloads,
+            third_party_licences,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the osu-collect window");
