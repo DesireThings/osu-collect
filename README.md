@@ -2,7 +2,7 @@
 
 <h1>osu-collect</h1>
 
-<p style="font-size: 22px" ><b>Free osu!collector downloader in your terminal</b></p>
+<p style="font-size: 22px" ><b>An osu!collector collection downloader for your terminal and desktop</b></p>
 
 [![Build](https://img.shields.io/github/actions/workflow/status/DesireThings/osu-collect/release.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=build&color=ff66aa)](https://github.com/DesireThings/osu-collect/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/DesireThings/osu-collect?style=for-the-badge&logo=github&color=ff66aa)](https://github.com/DesireThings/osu-collect/releases/latest)
@@ -29,7 +29,7 @@ osu-collect is a terminal app that **downloads osu! beatmap collections from [os
 
 ## Features
 
-- **Free, no account needed,** whereas the official osu!Collector app is paid.
+- **No account needed:** paste a collection link and go.
 - **Nine mirrors with automatic failover:** osu-collect keeps downloading even when a few mirrors are throttled. See [Mechanics](https://github.com/DesireThings/osu-collect/wiki/Mirrors).
 - **Search for maps without a collection:** per-diff criteria, auto-routed between the osu! api and nzbasic's community database. See [Criteria](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps).
 - **A real osu! collection, verified:** integrity-checked `collection.db`, ready to import directly into your preferred osu! client. See [Verification](https://github.com/DesireThings/osu-collect/wiki/Usage).
@@ -126,7 +126,7 @@ See [config.toml.example](config.toml.example) and [Configuration](https://githu
 
 | Tool | How osu-collect differs |
 |---|---|
-| [osu!Collector desktop client](https://osucollector.com/app) | The official app that needs a paid subscription; osu-collect is free. |
+| [osu!Collector desktop client](https://osucollector.com/app) | osu!Collector's own app, which downloads from its own servers and imports straight into osu!. Its subscription pays for the site that hosts every collection this tool reads; if you use osu!Collector a lot, consider [supporting it](https://osucollector.com/app). |
 | [BatchBeatmapDownloader](https://github.com/nzbasic/batch-beatmap-downloader) | Downloads by filters and criteria rather than osu!collector collections. |
 | [osu-collector-dl](https://github.com/roogue/osu-collector-dl) | A CLI script with no TUI, no `collection.db` generation, and no updater. |
 | [OsuCollectionDownloader](https://github.com/waylaa/OsuCollectionDownloader) | Generates `.osdb` files and needs the .NET runtime. |
@@ -134,8 +134,8 @@ See [config.toml.example](config.toml.example) and [Configuration](https://githu
 
 ## FAQ
 
-**How do I download an osu!collector collection for free?**
-Run osu-collect, paste the collection URL, press <kbd>↵</kbd>. Downloads come from public beatmap mirrors. No subscription needed.
+**How do I download an osu!collector collection?**
+Run osu-collect, paste the collection URL, press <kbd>↵</kbd>. The collection's details come from [osu!Collector](https://osucollector.com); the maps come from public beatmap mirrors.
 
 **Does it work with osu! lazer?**
 Yes. See [Importing into osu!](#importing-into-osu). The generated `collection.db` imports through lazer's "first-time-setup".
