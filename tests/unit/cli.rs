@@ -100,8 +100,8 @@ fn cli_report_counts_hold_nothing_back_without_a_deletion() {
 /// would have left the caller free to skip it with the suite still green.
 #[test]
 fn cli_persisted_baselines_keep_held_back_sets_recorded_as_deleted() {
-    use super::persist_baselines;
     use crate::app::snapshots::{self, CollectionSnapshot, CollectionSnapshotFile, SnapshotDiff};
+    use crate::engine::updates::persist_baselines;
     use crate::osu_db::{Md5, OsuClient, checksum};
 
     fn md5(seed: u8) -> Md5 {
