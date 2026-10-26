@@ -63,7 +63,7 @@ The osu! api route needs an osu! API app of your own; the nzbasic route needs no
 
 1. Open your [osu! account settings](https://osu.ppy.sh/home/account/edit#new-oauth-application), go to **OAuth** and press **New OAuth Application**.
 2. Give it any name. Leave the callback URL blank.
-3. Copy the client ID and the client secret into the **osu! api** section at the top of the config tab, then press **check & save**.
+3. Copy the client ID and the client secret into the **osu! api** section at the top of the config tab, then press **check & save**. In the desktop window it's the **osu! API app** card on the **Settings** page.
 
 osu-collect asks osu! for a token with them and only keeps them if osu! accepts. They're stored in `auth.json` (see [Configuration](Configuration#other-files)), readable by your user only. The token has no account behind it, so supporter-only filters stay off. **remove saved app** deletes it again. If you reset the secret on osu!, searches fail until you save the new one.
 

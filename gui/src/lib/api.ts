@@ -38,6 +38,38 @@ export interface LazerImportResult {
   report: ImportFolderReport;
 }
 
+export interface MirrorSetting {
+  host: string;
+  enabled: boolean;
+  name: string;
+  note: string | null;
+}
+
+export type ArchiveValidation = "off" | "magic" | "eocd";
+
+export interface DownloadOptions {
+  /** Built-in mirrors in the order they're tried. */
+  mirrors: MirrorSetting[];
+  custom_mirrors: string[];
+  video: boolean;
+  /** Maps downloaded at once; null picks default_threads. */
+  threads: number | null;
+  default_threads: number;
+  skip_already_imported: boolean;
+  auto_skip_rate_limited: boolean;
+  rate_limit_secs: number;
+  archive_validation: ArchiveValidation;
+}
+
+export const loadDownloadOptions = () => invoke<DownloadOptions>("load_download_options");
+export const saveDownloadOptions = (options: DownloadOptions) =>
+  invoke<void>("save_download_options", { options });
+/** Client id of the saved osu! API app, or null. */
+export const savedApiApp = () => invoke<string | null>("saved_api_app");
+export const saveApiApp = (clientId: string, clientSecret: string) =>
+  invoke<string>("save_api_app", { clientId, clientSecret });
+export const removeApiApp = () => invoke<void>("remove_api_app");
+
 export const detectInstalls = () => invoke<Installs>("detect_installs");
 export const loadSettings = () => invoke<Settings>("load_settings");
 export const saveSettings = (settings: Settings) =>

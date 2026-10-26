@@ -16,11 +16,16 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub mod download;
+pub mod options;
 
 pub use crate::download::lazer_import::{
     IMPORT_FOLDER_NAME, ImportFolderReport, build_import_folder,
 };
 pub use download::{DownloadStatus, Downloads, Failure, OnUpdate, Phase};
+pub use options::{
+    DownloadOptions, MirrorSetting, load_download_options, remove_api_app, save_api_app,
+    save_download_options, saved_api_app,
+};
 
 /// osu! installs found in their default locations.
 #[derive(Debug, Clone, Serialize)]

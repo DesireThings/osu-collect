@@ -3,10 +3,11 @@
   import Setup from "./lib/Setup.svelte";
   import Collections from "./lib/Collections.svelte";
   import Import from "./lib/Import.svelte";
+  import SettingsPage from "./lib/Settings.svelte";
   import { detectInstalls, loadSettings, type Installs, type Settings } from "./lib/api";
   import { initDownloads, store } from "./lib/store.svelte";
 
-  type Page = "setup" | "collections" | "import";
+  type Page = "setup" | "collections" | "import" | "settings";
 
   const steps: { id: Page; label: string; hint: string }[] = [
     { id: "setup", label: "Set up", hint: "Your osu! and a download folder" },
@@ -67,6 +68,17 @@
         </li>
       {/each}
     </ol>
+    <button
+      class="step settings-link"
+      class:active={page === "settings"}
+      onclick={() => (page = "settings")}
+    >
+      <span class="num" aria-hidden="true">⚙</span>
+      <span class="text">
+        <span class="label">Settings</span>
+        <span class="hint">Mirrors, downloads, osu! API app</span>
+      </span>
+    </button>
     <p class="unofficial">Unofficial tool, not made by ppy (osu!) or osu!Collector.</p>
   </nav>
 
@@ -82,8 +94,10 @@
       <Setup bind:settings {installs} onDone={() => (page = "collections")} />
     {:else if page === "collections"}
       <Collections onNext={() => (page = "import")} />
-    {:else}
+    {:else if page === "import"}
       <Import {settings} />
+    {:else}
+      <SettingsPage />
     {/if}
   </main>
 </div>

@@ -7,7 +7,7 @@ osu-collect reads an optional config file. Every key has a default, so a missing
 | Linux / macOS | `~/.config/osu-collect/config.toml` |
 | Windows | `%APPDATA%\osu-collect\config.toml` |
 
-Most settings are also editable live on the config tab, where changes apply and save immediately. A commented example lives at [`config.toml.example`](https://github.com/DesireThings/osu-collect/blob/main/config.toml.example).
+Most settings are also editable live on the config tab, where changes apply and save immediately. The desktop window's **Settings** page edits the mirrors and download options in the same file. A commented example lives at [`config.toml.example`](https://github.com/DesireThings/osu-collect/blob/main/config.toml.example).
 
 ## `[mirror]`
 

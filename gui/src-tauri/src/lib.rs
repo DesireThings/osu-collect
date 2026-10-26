@@ -2,7 +2,8 @@
 //! with errors flattened to strings the frontend can show as-is.
 
 use osu_collect::engine::{
-    self, CollectionPreview, DownloadStatus, Downloads, ImportFolderReport, Installs, Settings,
+    self, CollectionPreview, DownloadOptions, DownloadStatus, Downloads, ImportFolderReport,
+    Installs, Settings,
 };
 use serde::Serialize;
 use std::{path::PathBuf, sync::Arc};
@@ -24,6 +25,34 @@ fn load_settings() -> Settings {
 #[tauri::command]
 fn save_settings(settings: Settings) -> Result<(), String> {
     engine::save_settings(&settings).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_download_options() -> DownloadOptions {
+    engine::load_download_options()
+}
+
+#[tauri::command]
+fn save_download_options(options: DownloadOptions) -> Result<(), String> {
+    engine::save_download_options(&options).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn saved_api_app() -> Option<String> {
+    engine::saved_api_app()
+}
+
+/// Asks osu! before saving, so it's async; returns the client id as saved.
+#[tauri::command]
+async fn save_api_app(client_id: String, client_secret: String) -> Result<String, String> {
+    engine::save_api_app(&client_id, &client_secret)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn remove_api_app() -> Result<(), String> {
+    engine::remove_api_app().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -91,6 +120,11 @@ pub fn run() {
             detect_installs,
             load_settings,
             save_settings,
+            load_download_options,
+            save_download_options,
+            saved_api_app,
+            save_api_app,
+            remove_api_app,
             preview_collection,
             build_lazer_import,
             start_download,

@@ -1,11 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the main window may do: core IPC, folder pickers, revealing a folder in the file manager.",
+  "description": "What the main window may do: core IPC, folder pickers, revealing a folder in the file manager, and opening the osu! page where an API app is made.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:allow-open",
-    "opener:allow-reveal-item-in-dir"
+    "opener:allow-reveal-item-in-dir",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://osu.ppy.sh/home/account/edit*" }]
+    }
   ]
 }

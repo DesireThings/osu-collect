@@ -78,6 +78,11 @@ code {
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
+  /* Stays put while a long page (Settings) scrolls. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 .unofficial {
   margin: auto 8px 0;
@@ -134,6 +139,9 @@ code {
 .step.active .num {
   background: var(--accent);
   color: var(--accent-text);
+}
+.settings-link {
+  margin-top: 14px;
 }
 .text {
   display: grid;
