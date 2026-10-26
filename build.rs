@@ -141,12 +141,16 @@ fn main() {
     emit_auth_credentials();
 }
 
+/// Builds the osu! API client id/secret (for guest searches) into the binary,
+/// from the environment or a local `.env`. The secret ends up in the binary
+/// as plain text, so a build made this way is for your own use only: never
+/// publish one. CI and release builds don't set these.
 fn emit_auth_credentials() {
     println!("cargo:rerun-if-env-changed=OSU_CLIENT_ID");
     println!("cargo:rerun-if-env-changed=OSU_CLIENT_SECRET");
     println!("cargo:rerun-if-changed=.env");
 
-    // CI sets these directly as environment variables; they take precedence.
+    // Environment variables take precedence over `.env`.
     let id_from_env = env::var("OSU_CLIENT_ID").ok();
     let secret_from_env = env::var("OSU_CLIENT_SECRET").ok();
 

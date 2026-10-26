@@ -53,9 +53,6 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
-    env:
-      OSU_CLIENT_ID: ${{ secrets.OSU_CLIENT_ID }}
-      OSU_CLIENT_SECRET: ${{ secrets.OSU_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -105,9 +102,6 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    env:
-      OSU_CLIENT_ID: ${{ secrets.OSU_CLIENT_ID }}
-      OSU_CLIENT_SECRET: ${{ secrets.OSU_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -150,9 +144,6 @@ jobs:
 
   build-macos:
     runs-on: macos-14
-    env:
-      OSU_CLIENT_ID: ${{ secrets.OSU_CLIENT_ID }}
-      OSU_CLIENT_SECRET: ${{ secrets.OSU_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v7
         with:
