@@ -61,7 +61,7 @@ It installs `osu-collect` to `~/.local/bin` (or `$XDG_BIN_HOME`).
 **Windows x64 (PowerShell)**:
 
 ```powershell
-iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
+iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"; Remove-Item "$env:TEMP\osu-install.bat"
 ```
 
 The Windows installer needs no admin rights. It does the following:

@@ -1,8 +1,14 @@
 @echo off
-setlocal enableextensions enabledelayedexpansion
+setlocal enableextensions disabledelayedexpansion
 
 :: install.bat -- installs or updates osu-collect from the latest GitHub release
 :: requires: Windows 10+ (PowerShell 5.1+ and curl.exe built-in, both preinstalled)
+::
+:: Delayed expansion stays off: with it on, cmd drops every "!" from a line, so a
+:: user folder with a "!" in its name broke every path. Paths reach PowerShell
+:: through environment variables ($env:NAME), never pasted into its code, so a
+:: quote in a folder name cannot break a command. Paths in messages printed
+:: inside ( ) blocks are quoted, so a ")" in a folder name cannot end the block.
 
 set "REPO=DesireThings/osu-collect"
 set "API_URL=https://api.github.com/repos/%REPO%/releases/latest"
@@ -29,9 +35,9 @@ if errorlevel 1 (
 :: "|" delimiters when an asset is missing. The sha256 comes from GitHub's inline
 :: per-asset "digest" ("sha256:<hex>"), so no separate checksum request is needed.
 for /f "tokens=1,2,3 delims=|" %%a in ('powershell -NoProfile -Command ^
-  "$r = Get-Content -LiteralPath '%RELJSON%' -Raw | ConvertFrom-Json; " ^
+  "$r = Get-Content -LiteralPath $env:RELJSON -Raw | ConvertFrom-Json; " ^
   "$t = $r.tag_name; if (-not $t) { $t = 'NULL' }; " ^
-  "$a = $r.assets | Where-Object { $_.name -eq '%ASSET_NAME%' }; " ^
+  "$a = $r.assets | Where-Object { $_.name -eq $env:ASSET_NAME }; " ^
   "$d = $a.browser_download_url; if (-not $d) { $d = 'NULL' }; " ^
   "$h = $a.digest; if ($h -match '^sha256:[0-9a-fA-F]{64}$') { $h = $h.Substring(7).ToLower() } else { $h = 'NULL' }; " ^
   "Write-Output ($t + '|' + $d + '|' + $h)"') do (
@@ -64,7 +70,7 @@ echo ==^> latest release: %LATEST_TAG%
 
 mkdir "%TMPDIR%" 2>nul
 if errorlevel 1 (
-  echo error: could not create temp directory %TMPDIR%
+  echo error: could not create temp directory "%TMPDIR%"
   exit /b 1
 )
 
@@ -74,24 +80,22 @@ set "TMP_BIN=%TMPDIR%\%ASSET_NAME%"
 
 :: -- idempotency check --------------------------------------------------------
 
+:: REMOTE_HASH is already lowercase hex (checked by the release-info step), so
+:: the two hashes compare as plain strings
 set "CURRENT_HASH="
 if exist "%INSTALL_BIN%" (
   for /f "delims=" %%H in ('powershell -NoProfile -Command ^
-    "(Get-FileHash \"%INSTALL_BIN%\" -Algorithm SHA256).Hash.ToLower()"') do (
+    "(Get-FileHash -LiteralPath $env:INSTALL_BIN -Algorithm SHA256).Hash.ToLower()"') do (
     set "CURRENT_HASH=%%H"
   )
 )
 
-if defined CURRENT_HASH (
-  set "REMOTE_LOWER="
-  for /f "delims=" %%H in ('powershell -NoProfile -Command ^
-    "'%REMOTE_HASH%'.ToLower()"') do set "REMOTE_LOWER=%%H"
-
-  if "!CURRENT_HASH!"=="!REMOTE_LOWER!" (
-    echo ==^> already up to date (%LATEST_TAG%^)
-    rmdir /s /q "%TMPDIR%" 2>nul
-    goto :shortcuts
-  )
+:: an up-to-date install still runs the PATH, shortcut and uninstaller steps, so
+:: a rerun repairs any of them that went missing
+if "%CURRENT_HASH%"=="%REMOTE_HASH%" (
+  echo ==^> already up to date ^(%LATEST_TAG%^)
+  rmdir /s /q "%TMPDIR%" 2>nul
+  goto :add_path
 )
 
 :: -- download binary ----------------------------------------------------------
@@ -107,19 +111,16 @@ if errorlevel 1 (
 :: -- verify sha256 ------------------------------------------------------------
 
 echo ==^> verifying checksum...
+set "ACTUAL_HASH="
 for /f "delims=" %%H in ('powershell -NoProfile -Command ^
-  "(Get-FileHash \"%TMP_BIN%\" -Algorithm SHA256).Hash.ToLower()"') do (
+  "(Get-FileHash -LiteralPath $env:TMP_BIN -Algorithm SHA256).Hash.ToLower()"') do (
   set "ACTUAL_HASH=%%H"
 )
 
-set "REMOTE_LOWER="
-for /f "delims=" %%H in ('powershell -NoProfile -Command ^
-  "'%REMOTE_HASH%'.ToLower()"') do set "REMOTE_LOWER=%%H"
-
-if not "!ACTUAL_HASH!"=="!REMOTE_LOWER!" (
+if not "%ACTUAL_HASH%"=="%REMOTE_HASH%" (
   echo error: sha256 mismatch
-  echo   expected: !REMOTE_LOWER!
-  echo   actual:   !ACTUAL_HASH!
+  echo   expected: %REMOTE_HASH%
+  echo   actual:   %ACTUAL_HASH%
   del /f /q "%TMP_BIN%" 2>nul
   rmdir /s /q "%TMPDIR%" 2>nul
   exit /b 1
@@ -130,7 +131,7 @@ if not "!ACTUAL_HASH!"=="!REMOTE_LOWER!" (
 if not exist "%INSTALL_DIR%" (
   mkdir "%INSTALL_DIR%"
   if errorlevel 1 (
-    echo error: could not create install directory %INSTALL_DIR%
+    echo error: could not create install directory "%INSTALL_DIR%"
     rmdir /s /q "%TMPDIR%" 2>nul
     exit /b 1
   )
@@ -138,7 +139,7 @@ if not exist "%INSTALL_DIR%" (
 
 copy /y "%TMP_BIN%" "%INSTALL_BIN%" >nul
 if errorlevel 1 (
-  echo error: could not copy binary to %INSTALL_BIN%
+  echo error: could not copy binary to "%INSTALL_BIN%"
   rmdir /s /q "%TMPDIR%" 2>nul
   exit /b 1
 )
@@ -146,6 +147,9 @@ echo ==^> installed to %INSTALL_BIN%
 
 :: -- add to user PATH if needed -----------------------------------------------
 
+:: the steps from here on only print warnings: the binary is installed and runs,
+:: so a failure here doesn't make the install fail
+:add_path
 :: edit the user PATH in the registry (not the process PATH) instead of with
 :: setx, which cuts values off at 1024 characters. %VAR% entries stay unexpanded
 :: and the value keeps its registry type. INSTALL_DIR reaches PowerShell through
@@ -166,17 +170,16 @@ powershell -NoProfile -Command ^
   "  [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', $null, 'User'); " ^
   "} catch { exit 1 }"
 if errorlevel 2 (
-  echo ==^> %INSTALL_DIR% already in user PATH
+  echo ==^> "%INSTALL_DIR%" already in user PATH
 ) else if errorlevel 1 (
-  echo error: could not update user PATH
+  echo warning: could not update user PATH
 ) else (
-  echo ==^> added %INSTALL_DIR% to user PATH
+  echo ==^> added "%INSTALL_DIR%" to user PATH
   echo     restart your terminal for PATH changes to take effect
 )
 
 :: -- shortcuts ----------------------------------------------------------------
 
-:shortcuts
 echo ==^> creating shortcuts...
 :: if Windows Terminal is present, launch through it so the app opens in wt instead
 :: of the legacy console; the wt.exe alias is a 0-byte stub with no icon, so resolve
@@ -200,9 +203,9 @@ powershell -NoProfile -Command ^
   "  $lnk = $ws.CreateShortcut([System.IO.Path]::Combine($dir, $name)); " ^
   "  if ($useWt) { " ^
   "    $lnk.TargetPath = $wt; " ^
-  "    $lnk.Arguments = $q + '%INSTALL_BIN%' + $q; " ^
+  "    $lnk.Arguments = $q + $env:INSTALL_BIN + $q; " ^
   "  } else { " ^
-  "    $lnk.TargetPath = '%INSTALL_BIN%'; " ^
+  "    $lnk.TargetPath = $env:INSTALL_BIN; " ^
   "  } " ^
   "  if ($icon) { $lnk.IconLocation = $icon; } " ^
   "  $lnk.WorkingDirectory = $env:USERPROFILE; " ^
@@ -210,7 +213,7 @@ powershell -NoProfile -Command ^
   "  $lnk.Save() " ^
   "}"
 if errorlevel 1 (
-  echo error: could not create shortcuts
+  echo warning: could not create shortcuts
 ) else (
   echo ==^> shortcuts created in Desktop and Start Menu
 )
@@ -222,25 +225,24 @@ echo ==^> registering uninstaller...
 :: 1. extract the uninstaller payload (plain PowerShell at the bottom of this file)
 ::    into the install dir. kept separate from the registry writes below so a
 ::    throw here cannot abort registration
+set "INSTALLER_SELF=%~f0"
 powershell -NoProfile -Command ^
   "try { " ^
   "  $marker = '# ::OSU-COLLECT' + '-UNINSTALLER::'; " ^
-  "  $txt = Get-Content -LiteralPath '%~f0' -Raw; " ^
+  "  $txt = Get-Content -LiteralPath $env:INSTALLER_SELF -Raw; " ^
   "  $i = $txt.IndexOf($marker); " ^
-  "  if ($i -ge 0) { Set-Content -LiteralPath '%INSTALL_DIR%\uninstall.ps1' -Value $txt.Substring($i + $marker.Length).TrimStart() -Encoding ASCII; } " ^
+  "  if ($i -ge 0) { Set-Content -LiteralPath (Join-Path $env:INSTALL_DIR 'uninstall.ps1') -Value $txt.Substring($i + $marker.Length).TrimStart() -Encoding ASCII; } " ^
   "} catch { exit 1 }"
 
 if not exist "%INSTALL_DIR%\uninstall.ps1" (
-  echo error: could not write uninstall.ps1 -- skipping uninstaller registration
+  echo warning: could not write uninstall.ps1 -- skipping uninstaller registration
   goto :after_register
 )
 
-:: 2. register under HKCU with reg.exe (native, reliable). delayed expansion is
-::    off in this block so a "!" in a value is not stripped. The key and the
+:: 2. register under HKCU with reg.exe (native, reliable). The key and the
 ::    shortcut names say "terminal": the desktop app's installer registers
 ::    "osu-collect" and makes osu-collect.lnk, and the two must not overwrite
 ::    or uninstall each other.
-setlocal disabledelayedexpansion
 set "UNKEY=HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal"
 set "UNVER=%LATEST_TAG%"
 if "%UNVER:~0,1%"=="v" set "UNVER=%UNVER:~1%"
@@ -254,11 +256,10 @@ reg add "%UNKEY%" /v UninstallString       /t REG_SZ   /d "powershell -NoProfile
 reg add "%UNKEY%" /v QuietUninstallString  /t REG_SZ   /d "powershell -NoProfile -ExecutionPolicy Bypass -File \"%INSTALL_DIR%\uninstall.ps1\"" /f >nul
 reg add "%UNKEY%" /v NoModify              /t REG_DWORD /d 1 /f >nul
 reg add "%UNKEY%" /v NoRepair              /t REG_DWORD /d 1 /f >nul
-endlocal
 
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal" /v UninstallString >nul 2>&1
 if errorlevel 1 (
-  echo error: could not register uninstaller in the Installed apps list
+  echo warning: could not register uninstaller in the Installed apps list
 ) else (
   echo ==^> uninstaller registered; see Settings - Apps - Installed apps
 )
