@@ -15,8 +15,8 @@ but reports are read and answered.
 
 ## Supported versions
 
-Only the newest release gets fixes. osu-collect is in beta, so there are no
-older release lines.
+Only the newest release gets fixes. osu-collect is in early access (version
+0.x), so there are no older release lines.
 
 ## Scope
 

@@ -70,8 +70,8 @@ fn client_chip_renders_after_version() {
 #[test]
 fn client_chip_label_breathes_with_tick() {
     // The label color must respond to the tick (the breathing glow). Read the
-    // `b` of "stable" itself: the brand has no `b`, but a beta version ("v0.1.0-
-    // beta.1", rendered left of the chip) does.
+    // `b` of "stable" itself, found by the whole label, so a `b` elsewhere on
+    // the line (a version is rendered left of the chip) can't match.
     let label_fg = |tick: u64| {
         let tabs: Vec<std::borrow::Cow<'static, str>> =
             ["home"].map(std::borrow::Cow::Borrowed).into();
