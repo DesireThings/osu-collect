@@ -16,16 +16,13 @@ const OSU_TOKEN_URL: &str = "https://osu.ppy.sh/oauth/token";
 /// Base URL for osu! API v2.
 pub const OSU_API_BASE: &str = "https://osu.ppy.sh/api/v2";
 
-/// osu!lazer's first-party OAuth client id. The id/secret are public in the
-/// open-source osu!lazer client (`ppy/osu`, `ProductionEndpointConfiguration.cs`).
-/// Only this first-party client may request the `*` (lazer-tier) scope that
-/// carries beatmap-download privilege, and only via the password (ROPC) grant —
-/// a self-service third-party OAuth app gets `invalid_scope`.
-pub const LAZER_CLIENT_ID: &str = "5";
-/// Public client secret for osu!lazer's first-party client. See [`LAZER_CLIENT_ID`].
-pub const LAZER_CLIENT_SECRET: &str = "FGc9GAtyHzeQDshWP5Ah7dega8hJACAJpQtw6OXk";
-/// Scope requested by the lazer password grant. `*` carries every privilege,
-/// including the beatmap download endpoint.
+/// osu!lazer's own OAuth client id. Earlier builds signed in through it, which
+/// ppy never allowed third-party apps to do; a token stored by one of them is
+/// dropped on load (see [`load`]) and nothing here requests one any more.
+const LAZER_CLIENT_ID: &str = "5";
+/// The `*` scope that carries the beatmap-download privilege. osu! only grants
+/// it to its own lazer client, so no token this app can obtain carries it and
+/// the osu! official mirror stays locked.
 pub const LAZER_SCOPE: &str = "*";
 /// `x-api-version` header value sent on every api v2 request. Any recent
 /// `YYYYMMDD` integer works; this mirrors a known-good osu!lazer build and is
@@ -99,10 +96,21 @@ fn auth_path() -> Option<std::path::PathBuf> {
     dirs::config_dir().map(|d| d.join(CONFIG_SUBDIR).join(AUTH_FILE))
 }
 
+/// The stored token, if any. A token issued to osu!lazer's own client by an
+/// earlier build is deleted rather than used: refreshing it would sign in as
+/// lazer again.
 pub fn load() -> Option<StoredAuth> {
     let path = auth_path()?;
     let contents = std::fs::read_to_string(&path).ok()?;
-    serde_json::from_str(&contents).ok()
+    let auth: StoredAuth = serde_json::from_str(&contents).ok()?;
+    if auth.client_id == LAZER_CLIENT_ID {
+        info!("dropping a login made through osu!lazer's client by an earlier version");
+        if let Err(err) = std::fs::remove_file(&path) {
+            warn!(error = %err, "could not delete the old login");
+        }
+        return None;
+    }
+    Some(auth)
 }
 
 pub fn save(auth: &StoredAuth) -> Result<()> {
@@ -171,132 +179,16 @@ pub fn token_request_failed(operation: &str, status: reqwest::StatusCode) -> App
     AppError::other_dynamic(format!("{operation} failed ({status})").into_boxed_str())
 }
 
-/// Form body for the lazer password (ROPC) grant.
-pub fn password_grant_params<'a>(username: &'a str, password: &'a str) -> [(&'a str, &'a str); 6] {
-    [
-        ("grant_type", "password"),
-        ("client_id", LAZER_CLIENT_ID),
-        ("client_secret", LAZER_CLIENT_SECRET),
-        ("username", username),
-        ("password", password),
-        ("scope", LAZER_SCOPE),
-    ]
-}
-
-/// Exchange an osu! username + password for a `*`-scope (lazer-tier) token via
-/// the ROPC grant, and persist it.
-///
-/// The raw password is sent to `osu.ppy.sh` over TLS but **never stored** — only
-/// the returned access/refresh tokens are saved to `auth.json`.
-pub async fn password_grant(
-    client: &reqwest::Client,
-    username: &str,
-    password: &str,
-) -> Result<StoredAuth> {
-    let params = password_grant_params(username, password);
-
-    let resp = client
-        .post(OSU_TOKEN_URL)
-        .form(&params)
-        .send()
-        .await
-        .map_err(|e| AppError::other_dynamic(format!("login request: {e}").into_boxed_str()))?;
-
-    if !resp.status().is_success() {
-        // The body is intentionally dropped — it may echo the submitted credentials.
-        return Err(token_request_failed("login", resp.status()));
-    }
-
-    let token = resp
-        .json::<TokenResponse>()
-        .await
-        .map_err(|e| AppError::other_dynamic(format!("token parse: {e}").into_boxed_str()))?;
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-
-    let auth = StoredAuth {
-        client_id: LAZER_CLIENT_ID.to_string(),
-        client_secret: LAZER_CLIENT_SECRET.to_string(),
-        redirect_uri: String::new(),
-        access_token: token.access_token,
-        refresh_token: token.refresh_token,
-        expires_at: now + token.expires_in,
-        scopes: vec![LAZER_SCOPE.to_string()],
-        // Not yet known — [`lazer_login`] fills this in from the same `/me`
-        // probe it uses for the verification check.
-        supporter: None,
-    };
-
-    save(&auth)?;
-    Ok(auth)
-}
-
-/// Outcome of a full [`lazer_login`] attempt.
-#[derive(Debug, Clone, Copy)]
-pub struct LazerLoginOutcome {
-    /// osu! requires device (new-IP / 2FA) verification before this token can
-    /// download.
-    pub needs_verification: bool,
-    /// Confirmed osu!supporter status. Only ever `true` when
-    /// `needs_verification` is `false` — a verification-pending `/me` probe
-    /// 401s and carries no supporter data; see [`refresh_supporter_status`].
-    pub supporter: bool,
-}
-
-/// Full lazer login: [`password_grant`] followed by a session-verification
-/// probe.
-///
-/// The same `/me` probe response also carries `is_supporter`: when
-/// verification is *not* required, the response is trusted and cached on the
-/// stored token, so one request covers both signals rather than a second
-/// round-trip just for supporter status.
-pub async fn lazer_login(
-    client: &reqwest::Client,
-    username: &str,
-    password: &str,
-) -> Result<LazerLoginOutcome> {
-    let mut auth = password_grant(client, username, password).await?;
-    let probe = fetch_me(client, auth.bearer_token()).await;
-    let needs_verification = session_verification_required_from(&probe);
-    if !needs_verification {
-        apply_supporter_probe(&mut auth, &probe);
-        if let Err(err) = save(&auth) {
-            warn!(error = %err, "failed to persist supporter status");
-        }
-    }
-    Ok(LazerLoginOutcome {
-        needs_verification,
-        supporter: auth.is_supporter(),
-    })
-}
-
 /// Parsed subset of the osu! `/me` response this module reads.
 #[derive(Debug, Deserialize)]
 struct MeResponse {
     #[serde(default)]
     is_supporter: bool,
-    #[serde(default)]
-    session_verified: Option<bool>,
-    #[serde(default)]
-    session_verification_method: Option<serde_json::Value>,
 }
 
-/// Outcome of a `/me` GET. `Unauthorized` mirrors a 401 (pending device
-/// verification); `Unreachable` covers a network error or an unparseable
-/// body — every reader of this type treats both as "no usable data".
-enum MeProbe {
-    Ok(MeResponse),
-    Unauthorized,
-    Unreachable,
-}
-
-/// Single `/me` GET, shared by [`session_verification_required`] and
-/// [`lazer_login`] / [`refresh_supporter_status`] so a login makes one probe
-/// request rather than a separate one per signal.
-async fn fetch_me(client: &reqwest::Client, access_token: &str) -> MeProbe {
+/// Single `/me` GET. `None` for a network error, a non-success status or an
+/// unparseable body: every caller treats those as "no usable data".
+async fn fetch_me(client: &reqwest::Client, access_token: &str) -> Option<MeResponse> {
     let resp = match client
         .get(format!("{OSU_API_BASE}/me"))
         .bearer_auth(access_token)
@@ -307,58 +199,13 @@ async fn fetch_me(client: &reqwest::Client, access_token: &str) -> MeProbe {
         Ok(resp) => resp,
         Err(err) => {
             warn!(error = %err, "/me probe failed; assuming no usable data");
-            return MeProbe::Unreachable;
+            return None;
         }
     };
-
-    // A pending device verification makes osu! reject `/me` with 401.
-    if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
-        return MeProbe::Unauthorized;
-    }
-
-    match resp.json::<MeResponse>().await {
-        Ok(body) => MeProbe::Ok(body),
-        Err(_) => MeProbe::Unreachable,
-    }
-}
-
-/// Probe whether osu! requires session (device) verification before this token
-/// can download.
-///
-/// **UNVERIFIED against osu-web source.** osu!lazer (`ppy/osu`) is the only
-/// reference and it does not implement ROPC, so the exact `/me` shape for this
-/// gate could not be confirmed offline. This parses the documented signals
-/// defensively — a `401` response, `session_verified == false`, or a non-null
-/// `session_verification_method` — and treats any network/parse error or
-/// unrecognised body as **not required**, so a false positive never blocks an
-/// otherwise-working login. Confirm and adjust against a real account.
-pub async fn session_verification_required(client: &reqwest::Client, access_token: &str) -> bool {
-    session_verification_required_from(&fetch_me(client, access_token).await)
-}
-
-fn session_verification_required_from(probe: &MeProbe) -> bool {
-    match probe {
-        MeProbe::Unauthorized => true,
-        MeProbe::Unreachable => false,
-        MeProbe::Ok(body) => {
-            body.session_verified == Some(false) || body.session_verification_method.is_some()
-        }
-    }
-}
-
-/// Applies a `/me` probe's `is_supporter` to `auth` when the probe carries a
-/// usable body, and reports the CONFIRMED answer.
-///
-/// `Some` only for a body the server actually returned. A failed or
-/// unauthorized probe leaves `auth.supporter` untouched and answers `None` —
-/// fail-soft, and the `Option` is what stops a caller reading silence as a
-/// confirmed `false`.
-fn apply_supporter_probe(auth: &mut StoredAuth, probe: &MeProbe) -> Option<bool> {
-    let MeProbe::Ok(body) = probe else {
+    if !resp.status().is_success() {
         return None;
-    };
-    auth.supporter = Some(body.is_supporter);
-    Some(body.is_supporter)
+    }
+    resp.json::<MeResponse>().await.ok()
 }
 
 /// Re-probes `/me` and persists `is_supporter` on `auth`. `Some` is the answer
@@ -368,58 +215,17 @@ fn apply_supporter_probe(auth: &mut StoredAuth, probe: &MeProbe) -> Option<bool>
 ///
 /// The `Option` is the whole contract: a caller must be able to tell a confirmed
 /// `false` from an unanswered probe, or a flaky network silently revokes a
-/// supporter's features. Fail-soft otherwise — this must never fail an
-/// otherwise-successful verification.
+/// supporter's features.
 pub async fn refresh_supporter_status(
     client: &reqwest::Client,
     auth: &mut StoredAuth,
 ) -> Option<bool> {
-    let probe = fetch_me(client, auth.bearer_token()).await;
-    let confirmed = apply_supporter_probe(auth, &probe)?;
+    let confirmed = fetch_me(client, auth.bearer_token()).await?.is_supporter;
+    auth.supporter = Some(confirmed);
     if let Err(err) = save(auth) {
         warn!(error = %err, "failed to persist supporter status");
     }
     Some(confirmed)
-}
-
-/// Submit the emailed / TOTP session-verification code for the given token.
-pub async fn submit_session_verification(
-    client: &reqwest::Client,
-    access_token: &str,
-    code: &str,
-) -> Result<()> {
-    let resp = client
-        .post(format!("{OSU_API_BASE}/session/verify"))
-        .bearer_auth(access_token)
-        .header("x-api-version", X_API_VERSION)
-        .form(&[("verification_key", code.trim())])
-        .send()
-        .await
-        .map_err(|e| AppError::other_dynamic(format!("verify request: {e}").into_boxed_str()))?;
-
-    if !resp.status().is_success() {
-        return Err(token_request_failed("verification", resp.status()));
-    }
-    Ok(())
-}
-
-/// Ask osu! to re-send (reissue) the session-verification code.
-pub async fn reissue_session_verification(
-    client: &reqwest::Client,
-    access_token: &str,
-) -> Result<()> {
-    let resp = client
-        .post(format!("{OSU_API_BASE}/session/verify/reissue"))
-        .bearer_auth(access_token)
-        .header("x-api-version", X_API_VERSION)
-        .send()
-        .await
-        .map_err(|e| AppError::other_dynamic(format!("reissue request: {e}").into_boxed_str()))?;
-
-    if !resp.status().is_success() {
-        return Err(token_request_failed("code reissue", resp.status()));
-    }
-    Ok(())
 }
 
 pub fn refresh_params<'a>(

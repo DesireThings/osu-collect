@@ -76,11 +76,9 @@ struct Fixture {
     downloads: HashMap<DownloadId, DownloadHandle>,
     download_tx: mpsc::UnboundedSender<DownloadEvent>,
     updates_tx: mpsc::UnboundedSender<UpdatesEvent>,
-    auth_tx: mpsc::UnboundedSender<AuthEvent>,
     update_tx: mpsc::UnboundedSender<UpdateEvent>,
     download_rx: mpsc::UnboundedReceiver<DownloadEvent>,
     updates_rx: mpsc::UnboundedReceiver<UpdatesEvent>,
-    auth_rx: mpsc::UnboundedReceiver<AuthEvent>,
     update_rx: mpsc::UnboundedReceiver<UpdateEvent>,
     home_resolve_rx: mpsc::UnboundedReceiver<HomeResolveEvent>,
     home_search_rx: mpsc::UnboundedReceiver<HomeSearchEvent>,
@@ -117,7 +115,6 @@ impl Fixture {
 
         let (download_tx, download_rx) = mpsc::unbounded_channel::<DownloadEvent>();
         let (updates_tx, updates_rx) = mpsc::unbounded_channel::<UpdatesEvent>();
-        let (auth_tx, auth_rx) = mpsc::unbounded_channel::<AuthEvent>();
         let (update_tx, update_rx) = mpsc::unbounded_channel::<UpdateEvent>();
         let (home_resolve_tx, home_resolve_rx) = mpsc::unbounded_channel::<HomeResolveEvent>();
         let (home_search_tx, home_search_rx) = mpsc::unbounded_channel::<HomeSearchEvent>();
@@ -130,7 +127,6 @@ impl Fixture {
         let (lazer_import_tx, _lazer_import_rx) = mpsc::unbounded_channel::<LazerImportEvent>();
 
         let tasks = BackgroundTasks {
-            login: None,
             resolve: None,
             resolve_cancel: None,
             home_resolve_tx,
@@ -162,11 +158,9 @@ impl Fixture {
             downloads: HashMap::new(),
             download_tx,
             updates_tx,
-            auth_tx,
             update_tx,
             download_rx,
             updates_rx,
-            auth_rx,
             update_rx,
             home_resolve_rx,
             home_search_rx,
@@ -187,7 +181,6 @@ impl Fixture {
             &mut self.app,
             &self.download_tx,
             &self.updates_tx,
-            &self.auth_tx,
             &self.update_tx,
             &mut self.downloads,
             &mut self.tasks,
@@ -322,81 +315,6 @@ async fn skip_rate_limited_bumps_the_skip_generation() {
 }
 
 // ── auth ───────────────────────────────────────────────────────────────────
-
-#[tokio::test]
-async fn lazer_login_stores_a_task_handle() {
-    let mut fx = Fixture::new();
-    assert!(fx.tasks.login.is_none());
-    assert!(!fx.dispatch(Some(AppCommand::LazerLogin {
-        username: "user".to_string(),
-        password: "pass".to_string(),
-    })));
-    assert!(
-        fx.tasks.login.is_some(),
-        "login task handle stored for cancellation"
-    );
-}
-
-#[tokio::test]
-async fn submit_verification_stores_a_task_handle() {
-    let mut fx = Fixture::new();
-    assert!(fx.tasks.login.is_none());
-    assert!(!fx.dispatch(Some(AppCommand::SubmitVerification {
-        code: "123456".to_string(),
-    })));
-    assert!(
-        fx.tasks.login.is_some(),
-        "verification task stored in the login slot"
-    );
-}
-
-#[tokio::test]
-async fn reissue_verification_fires_forget_event_on_auth_channel() {
-    let mut fx = Fixture::new();
-    assert!(fx.tasks.login.is_none(), "reissue is fire-and-forget");
-    assert!(!fx.dispatch(Some(AppCommand::ReissueVerification)));
-    let event = tokio::time::timeout(Duration::from_secs(10), fx.auth_rx.recv())
-        .await
-        .expect("reissue sent an AuthEvent before the timeout");
-    assert!(
-        event.is_some(),
-        "ReissueComplete arrived (fails fast: no stored auth to load)"
-    );
-    assert!(
-        fx.tasks.login.is_none(),
-        "reissue did not occupy the login slot"
-    );
-}
-
-#[tokio::test]
-async fn cancel_login_aborts_the_stored_handle() {
-    let mut fx = Fixture::new();
-    // Seed the login slot the way LazerLogin would.
-    fx.dispatch(Some(AppCommand::LazerLogin {
-        username: "u".to_string(),
-        password: "p".to_string(),
-    }));
-    assert!(fx.tasks.login.is_some());
-
-    assert!(!fx.dispatch(Some(AppCommand::CancelLogin)));
-    assert!(
-        fx.tasks.login.is_none(),
-        "cancel_login aborted + cleared the handle"
-    );
-}
-
-#[tokio::test]
-async fn logout_fires_event_on_auth_channel() {
-    let mut fx = Fixture::new();
-    assert!(!fx.dispatch(Some(AppCommand::Logout)));
-    let event = tokio::time::timeout(Duration::from_secs(10), fx.auth_rx.recv())
-        .await
-        .expect("logout sent an AuthEvent before the timeout");
-    assert!(
-        event.is_some(),
-        "LogoutComplete arrived (delete() no-ops on a nonexistent file)"
-    );
-}
 
 // ── resolve ────────────────────────────────────────────────────────────────
 
@@ -899,10 +817,7 @@ async fn none_command_is_a_noop_returning_false() {
         "None left the downloads map untouched"
     );
     assert!(
-        fx.tasks.login.is_none()
-            && fx.tasks.resolve.is_none()
-            && fx.tasks.search.is_none()
-            && fx.tasks.filter.is_none(),
+        fx.tasks.resolve.is_none() && fx.tasks.search.is_none() && fx.tasks.filter.is_none(),
         "None left every task slot empty"
     );
 }

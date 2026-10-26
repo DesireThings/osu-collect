@@ -1,25 +1,14 @@
-use std::borrow::Cow;
-
 use crate::{
     app::runtime::ProbeResult,
-    app::{AuthLoginState, ConfigField, ConfigTab},
+    app::{ConfigField, ConfigTab},
     config::{LogFormat, LogLevel, RetryFailedOnDownload, ThemeMode},
     download::ArchiveValidation,
 };
-use ratatui::{
-    Frame,
-    layout::Rect,
-    style::{Style, Stylize},
-    text::{Line, Span},
-    widgets::ListItem,
-};
+use ratatui::{Frame, layout::Rect, style::Stylize, text::Span};
 use std::collections::HashMap;
 
 use super::widgets;
-use super::{
-    HELP_CUSTOM_MIRROR, HELP_OSU_OFFICIAL_LOCKED, accent, bg_hover, bg_raised, danger,
-    mirror_label, success, text, text_dim, warning,
-};
+use super::{HELP_CUSTOM_MIRROR, danger, mirror_label, success, text_dim};
 use osu_downloader::MirrorKind;
 
 const PANEL_TITLE: &str = " CONFIG ";
@@ -46,15 +35,6 @@ const LABEL_LOGGING_LEVEL: &str = "log level";
 const LABEL_LOGGING_FORMAT: &str = "log format";
 const LABEL_AUTO_UPDATE: &str = "auto-update";
 const LABEL_PRERELEASES: &str = "prerelease channel";
-
-const CHIP_LOGGED_OUT: &str = " logged out";
-const CHIP_LOGGED_IN: &str = " logged in";
-const CHIP_SUPPORTER: &str = " · supporter";
-const CHIP_ACTION_LOGIN: &str = "log in";
-const CHIP_ACTION_MANAGE: &str = "manage";
-const CHIP_ACTION_VIEW: &str = "view";
-const CHIP_LOGGING_IN: &str = " logging in… ";
-const CHIP_LOGIN_HINT: &str = "opens login to enable the osu! official mirror";
 
 const THEME_MODE_LABELS: &[&str] = &["full", "compatible"];
 
@@ -137,7 +117,7 @@ pub fn render(
         None,
         items,
         focused_index,
-        form.focus != ConfigField::AuthChip,
+        true,
         cursor_col,
         true,
         true,
@@ -182,12 +162,7 @@ fn build_config_items(
     let active_section = focus_section(focus);
     let mut items = widgets::FormItems::new(focus);
 
-    items.push_focusable(ConfigField::AuthChip, auth_chip_item(form));
-    if show_chrome && focus == ConfigField::AuthChip {
-        items.push(widgets::help_item(CHIP_LOGIN_HINT));
-    }
     if show_chrome {
-        items.push(widgets::spacer());
         items.push(widgets::section_header(
             SECTION_DISPLAY,
             active_section == Some(SECTION_DISPLAY),
@@ -239,39 +214,21 @@ fn build_config_items(
         ));
     }
 
-    let logged_in = matches!(form.login_state, AuthLoginState::LoggedIn);
     // Rows follow the configured try-order (`ordered_mirror_rows`), matching the
     // nav order and the pipeline so what the user reorders is what gets tried.
     for (kind, field, on) in form.ordered_mirror_rows() {
         // Host is an informational hint, not a configurable value, so it is NOT
         // column-aligned (label_width 0) — it trails the mirror name.
-        let item = if kind == MirrorKind::OsuApi && !logged_in {
-            // osu! official needs a login: greyed + inert when logged out.
-            widgets::disabled_toggle_row(
-                mirror_label(kind),
-                Some(kind.host()),
-                on,
-                focus == field,
-                0,
-            )
-        } else {
-            let latency = mirror_latency.get(&kind).copied();
-            widgets::row_item_with_suffix(
-                mirror_label(kind),
-                Some(kind.host()),
-                on,
-                focus == field,
-                latency_span(latency),
-                0,
-            )
-        };
+        let latency = mirror_latency.get(&kind).copied();
+        let item = widgets::row_item_with_suffix(
+            mirror_label(kind),
+            Some(kind.host()),
+            on,
+            focus == field,
+            latency_span(latency),
+            0,
+        );
         items.push_focusable(field, item);
-        // The locked hint rides under the osu!official row itself, not the
-        // loop's tail: the try-order is user-reorderable, so a tail slot can
-        // land it under a different mirror.
-        if show_chrome && field == ConfigField::MirrorOsuOfficial && !logged_in {
-            items.push(widgets::help_item(HELP_OSU_OFFICIAL_LOCKED));
-        }
     }
     for (idx, row) in form.custom_mirrors.rows().iter().enumerate() {
         let field = ConfigField::MirrorCustomUrl(idx);
@@ -461,15 +418,15 @@ fn build_config_items(
 }
 
 /// The section a focused field belongs to, driving the active-section header
-/// cue. `AuthChip` sits above every header, so it maps to no section.
+/// cue.
 fn focus_section(field: ConfigField) -> Option<&'static str> {
     use ConfigField::*;
     Some(match field {
-        AuthChip => return None,
         Theme | VimKeys | JumpToDownloads => SECTION_DISPLAY,
         MirrorOsuDirect | MirrorNerinyan | MirrorSayobot | MirrorNekoha | MirrorBeatconnect
-        | MirrorOsudl | MirrorCatboy | MirrorHinamizawa | MirrorOsuOfficial | MirrorNzbasic
-        | MirrorCustomUrl(_) => SECTION_MIRRORS,
+        | MirrorOsudl | MirrorCatboy | MirrorHinamizawa | MirrorNzbasic | MirrorCustomUrl(_) => {
+            SECTION_MIRRORS
+        }
         DownloadThreads
         | DownloadVideo
         | DownloadArchiveValidation
@@ -480,71 +437,6 @@ fn focus_section(field: ConfigField) -> Option<&'static str> {
         LoggingEnabled | LoggingLevel | LoggingFormat | LoggingDirectory => SECTION_LOGGING,
         AutoUpdate | Prereleases => SECTION_UPDATE,
     })
-}
-
-/// Renders the auth state chip: a single styled row at the top of the config
-/// tab. The action segment opens the login split (which owns the actual
-/// login / verify / logout flow); the state segment mirrors `login_state`
-/// (plus a supporter badge appended only when logged in and confirmed).
-///
-/// - Logged in, supporter:     ` logged in · supporter   manage`
-/// - Logged in, no supporter:  ` logged in   manage`
-/// - Logged out:                ` logged out   log in`
-/// - In progress:                ` logging in…   view`
-fn auth_chip_item(form: &ConfigTab) -> ListItem<'static> {
-    let focused = form.focus == ConfigField::AuthChip;
-    let chip_bg = Style::default().bg(bg_raised());
-
-    // State segment (semantic when charged, TEXT_DIM neutral) then a 2-space
-    // gap on the chip fill, then the action segment — no mid-dot separator
-    // between state and action (the supporter badge's own mid-dot, inside the
-    // state segment, is a different join and unaffected by that rule).
-    let (mut spans, action_label) = match &form.login_state {
-        AuthLoginState::LoggedOut => (
-            vec![Span::styled(CHIP_LOGGED_OUT, chip_bg.fg(text_dim()))],
-            CHIP_ACTION_LOGIN,
-        ),
-        AuthLoginState::InProgress(step) => {
-            let label: Cow<'static, str> = if step.is_empty() {
-                CHIP_LOGGING_IN.into()
-            } else {
-                format!(" {step} ").into()
-            };
-            // No italic — italic is reserved for panel/modal titles.
-            (
-                vec![Span::styled(label, chip_bg.fg(warning()))],
-                CHIP_ACTION_VIEW,
-            )
-        }
-        AuthLoginState::LoggedIn => {
-            let mut spans = vec![Span::styled(CHIP_LOGGED_IN, chip_bg.fg(success()))];
-            // Absence, not a "no" label, marks the non-supporter case — same
-            // idiom as the mirror latency suffix (`latency_span`).
-            if form.supporter() {
-                spans.push(Span::styled(CHIP_SUPPORTER, chip_bg.fg(accent())));
-            }
-            (spans, CHIP_ACTION_MANAGE)
-        }
-    };
-
-    spans.push(Span::styled("  ", chip_bg));
-    spans.push(chip_action_span(action_label, focused, chip_bg));
-
-    ListItem::new(Line::from(spans))
-}
-
-/// The chip's inline action segment.
-///
-/// Focused: highlighted like a selected row — `TEXT + bold` on `BG_HOVER` (the
-/// row-selection tint), 1-space inset. The auth action reads as the focused row,
-/// not an inverse accent block. Blurred: `TEXT_DIM` on the chip's `BG_RAISED`
-/// fill with a trailing pad cell, no bold.
-fn chip_action_span(label: &'static str, focused: bool, chip_bg: Style) -> Span<'static> {
-    if focused {
-        format!(" {label} ").fg(text()).bg(bg_hover()).bold()
-    } else {
-        Span::styled(format!("{label} "), chip_bg.fg(text_dim()))
-    }
 }
 
 fn log_level_label(level: LogLevel) -> &'static str {
@@ -586,7 +478,3 @@ fn theme_mode_label(mode: ThemeMode) -> &'static str {
         ThemeMode::Compatible => "compatible",
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/tui_config.rs"]
-mod tests;

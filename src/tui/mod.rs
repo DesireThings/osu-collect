@@ -9,7 +9,6 @@ mod find_source;
 mod footer;
 mod header;
 mod home;
-mod login;
 mod master_detail;
 pub(crate) mod modal;
 mod set_browse;
@@ -23,7 +22,7 @@ use crate::app::{App, Tab, system_banners};
 use osu_downloader::MirrorKind;
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Layout},
     style::{Color, Style, Stylize},
     widgets::Block,
 };
@@ -181,8 +180,6 @@ pub(crate) fn format_free_space(bytes: u64) -> String {
 }
 
 pub const HELP_CUSTOM_MIRROR: &str = "url must contain {id}";
-/// Focus tooltip / locked-row reason for the osu! official mirror when logged out.
-pub const HELP_OSU_OFFICIAL_LOCKED: &str = "log in to enable the osu! official mirror";
 
 pub fn eyebrow() -> Style {
     // Eyebrow / column-header style: TEXT_DIM (sanctioned bold variant),
@@ -197,33 +194,6 @@ pub fn focused_label(focused: bool) -> Style {
         // Blurred form-row label sits in TEXT_DIM (one of the three text tiers).
         Style::default().fg(text_dim())
     }
-}
-
-/// Split the Config body when the login panel is open: the login form docks on
-/// the right (~40 %, clamped to a legible width), the config form keeps the left
-/// with a 1-col gutter between the two panels. Returns `(config_area,
-/// login_area)`, each `None` when that panel should not render.
-///
-/// Below `MIN_SPLIT_WIDTH` a side-by-side split would crush the config form, so
-/// the login panel claims the whole area and config is not drawn — rather than
-/// collapse the form to an unreadable sliver.
-fn login_split(area: Rect, open: bool) -> (Option<Rect>, Option<Rect>) {
-    if !open {
-        return (Some(area), None);
-    }
-    const MIN_SPLIT_WIDTH: u16 = 60;
-    if area.width < MIN_SPLIT_WIDTH {
-        return (None, Some(area));
-    }
-    // Divide before multiply so the intermediate never overflows u16.
-    let login_w = (area.width / 5 * 2).clamp(34, 52);
-    let [config_area, _gutter, login_area] = Layout::horizontal([
-        Constraint::Fill(1),
-        Constraint::Length(1),
-        Constraint::Length(login_w),
-    ])
-    .areas(area);
-    (Some(config_area), Some(login_area))
 }
 
 /// Render one full frame.
@@ -306,28 +276,14 @@ pub fn draw(frame: &mut Frame, app: &App) {
             )
             .display()
             .to_string();
-            // The login panel docks on the right as a focus-trap split; the
-            // config form keeps the left (frozen while it is open).
-            let (config_area, login_area) = login_split(body_area, app.login.is_some());
-            if let Some(config_area) = config_area {
-                config::render(
-                    frame,
-                    config_area,
-                    &app.config,
-                    editing,
-                    &library_db_hint,
-                    &app.home.mirror_latency,
-                );
-            }
-            if let (Some(login_tab), Some(login_area)) = (app.login.as_ref(), login_area) {
-                login::render(
-                    frame,
-                    login_area,
-                    login_tab,
-                    &app.config.login_state,
-                    editing,
-                );
-            }
+            config::render(
+                frame,
+                body_area,
+                &app.config,
+                editing,
+                &library_db_hint,
+                &app.home.mirror_latency,
+            );
         }
         Tab::Downloads => downloads::render(frame, body_area, app, app.tick_count),
     }
@@ -366,7 +322,6 @@ pub fn draw(frame: &mut Frame, app: &App) {
             area,
             app.help_scroll.get(),
             app.active_tab(),
-            app.login_open(),
             app.config.vim_keys,
         );
         app.help_scroll.set(clamped);

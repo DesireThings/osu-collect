@@ -37,17 +37,3 @@ fn a_confirmed_lapse_closes_the_supporter_gate() {
         "supporter expires; the gate follows"
     );
 }
-
-/// The probe answer is scoped to the token it was made against. A logout that
-/// landed first already zeroed the flag, and the stale answer must not undo it.
-#[test]
-fn a_probe_landing_after_a_logout_is_ignored() {
-    let mut app = app_logged_in(true);
-    handle_auth_event(AuthEvent::LogoutComplete(Ok(())), &mut app);
-    assert!(!app.config.supporter());
-    handle_auth_event(AuthEvent::SupporterRefreshed(true), &mut app);
-    assert!(
-        !app.config.supporter(),
-        "a logged-out session must not be re-granted by an in-flight probe"
-    );
-}

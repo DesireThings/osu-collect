@@ -18,11 +18,11 @@ Rows group under `preset`, `filters` and `results` headings; the `advanced filte
 
 ## Supporter-only filters
 
-Two filters, `rank` and `played`, appear at the top of `advanced filters` only when you're logged in with osu!supporter; osu! ignores them without a token. The other osu!-website facets, `explicit` in the filters block plus `genre`, `language`, `extra` at the top of `advanced filters`, work without supporter and always render.
+osu! has two more filters, `rank` and `played`, that only work for a logged-in osu!supporter account. osu!collect has no osu! login, so they don't appear. The other osu!-website facets, `explicit` in the filters block plus `genre`, `language`, `extra` at the top of `advanced filters`, work without supporter and always render.
 
-`extra` and `rank` take several values at once. Each of their chips shows `[x]` when picked and `[ ]` when not. Press <kbd>↵</kbd> or <kbd>space</kbd> to open the row: its gutter mark turns `✎` and a `❯` caret picks out one chip. <kbd>←</kbd> / <kbd>→</kbd> then walk the caret, <kbd>space</kbd> toggles the chip under it. <kbd>↵</kbd>, <kbd>esc</kbd> or <kbd>q</kbd> close the row again; <kbd>↑</kbd> / <kbd>↓</kbd> close it on the way to another row. With the row closed, <kbd>←</kbd> / <kbd>→</kbd> switch tabs as everywhere else.
+`extra` takes several values at once. Each of their chips shows `[x]` when picked and `[ ]` when not. Press <kbd>↵</kbd> or <kbd>space</kbd> to open the row: its gutter mark turns `✎` and a `❯` caret picks out one chip. <kbd>←</kbd> / <kbd>→</kbd> then walk the caret, <kbd>space</kbd> toggles the chip under it. <kbd>↵</kbd>, <kbd>esc</kbd> or <kbd>q</kbd> close the row again; <kbd>↑</kbd> / <kbd>↓</kbd> close it on the way to another row. With the row closed, <kbd>←</kbd> / <kbd>→</kbd> switch tabs as everywhere else.
 
-All six facets force the osu! api route. Losing supporter status resets `rank` and `played` to their defaults.
+All four facets force the osu! api route.
 
 ## Numeric filter syntax
 
@@ -54,7 +54,6 @@ One form, two backends: the osu! api v2 search and nzbasic's [batch-beatmap-down
 | Sort `bpm ↓` or `length ↑` | Sort `relevance`, `title ↑`, `artist ↑` |
 | Category `unranked` | Category `qualified` |
 | | A keys, favourites, or ranked-date range |
-| | Any supporter-only filter set |
 
 Everything else runs on either backend; the default is the osu! api. Category `approved` works on both.
 

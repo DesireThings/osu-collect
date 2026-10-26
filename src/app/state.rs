@@ -2,7 +2,7 @@ use super::{
     banner::BannerRecency,
     collection::CollectionPage,
     collection_state::{self, CollectionStateFile},
-    config::{AuthLoginState, ConfigField, ConfigTab},
+    config::{AuthLoginState, ConfigTab},
     covers::Covers,
     download_history::{DownloadHistory, HistoryRecord},
     downloads_tab::{DownloadsRow, DownloadsTab},
@@ -11,7 +11,6 @@ use super::{
     home::{FindBackend, GetMapsSource, HomeField, HomeTab},
     ignored_maps,
     library::LibraryState,
-    login::{LoginField, LoginPhase, LoginTab},
     runtime, snapshots,
     tab::Tab,
     toast::{Toast, Toasts},
@@ -73,11 +72,6 @@ pub struct App {
     /// source's path field. Hoisted off `update` so one value backs all readers.
     pub library: LibraryState,
     pub config: ConfigTab,
-    /// The login panel. `Some` only while the login split is open on the Config
-    /// tab (opened from the auth chip, closed with `esc`/`q` or a tab switch).
-    /// Rendered as a focus-trap panel docked on the right of the Config body;
-    /// while it is open the config form is frozen and all input routes here.
-    pub login: Option<LoginTab>,
     pub downloads: Vec<CollectionPage>,
     /// Downloads-tab view state (list cursor + pane focus). The rows it points
     /// into are built per frame from `downloads` + `history`.
@@ -203,19 +197,6 @@ pub enum AppCommand {
     SkipRateLimited {
         id: DownloadId,
     },
-    /// Start an osu!lazer password (ROPC) login with the entered credentials.
-    LazerLogin {
-        username: String,
-        password: String,
-    },
-    /// Submit the session-verification code osu! emailed for a new device.
-    SubmitVerification {
-        code: String,
-    },
-    /// Ask osu! to re-send the session-verification code.
-    ReissueVerification,
-    CancelLogin,
-    Logout,
     ScanLocalDatabase,
     RecheckFailedMaps,
     /// Retry all retryable failed maps for a download page (excludes NotFound).
@@ -379,7 +360,6 @@ impl App {
             home: HomeTab::new(&config),
             library: LibraryState::from_config(&config),
             config: ConfigTab::new(&config),
-            login: None,
             downloads: Vec::new(),
             downloads_tab: DownloadsTab::default(),
             history: DownloadHistory::default(),
@@ -414,8 +394,9 @@ impl App {
 
     /// Whether the osu! official mirror can be used: requires a logged-in
     /// session whose stored token carries the `*` (lazer-tier) scope. The
-    /// greyed-out toggle, the "log in first" notice, the mirror count and the
-    /// built list all read this so they match what the pipeline will try.
+    /// mirror count and the built list read this so they match what the
+    /// pipeline will try. No token this app can obtain carries that scope, so
+    /// it is `false` in practice; the gate stays for a future login.
     ///
     /// This is a synchronous gate over the cached scope + login-state facts on
     /// [`ConfigTab`]. It cannot prove the token is still valid at request time
@@ -426,22 +407,6 @@ impl App {
     /// survives.
     pub fn osu_official_unlocked(&self) -> bool {
         matches!(self.config.login_state, AuthLoginState::LoggedIn) && self.config.lazer_scope
-    }
-
-    /// When the focused field is the osu! official mirror toggle and the user is
-    /// logged out, surface a "log in first" toast and return `true` so the caller
-    /// skips the toggle. The mirror cannot be enabled without a `*` token.
-    fn block_osu_official_if_logged_out(&mut self) -> bool {
-        let focused_osu_official =
-            self.active_tab() == Tab::Config && self.config.focus == ConfigField::MirrorOsuOfficial;
-        if focused_osu_official && !self.osu_official_unlocked() {
-            self.push_toast(
-                Toast::warning("log in to enable the osu! official mirror")
-                    .with_detail("open login from the config tab"),
-            );
-            return true;
-        }
-        false
     }
 
     /// Whether any download page is in a non-terminal stage (preparing,
@@ -515,8 +480,6 @@ impl App {
     pub fn next_tab(&mut self) -> Option<AppCommand> {
         // Commit a mid-edit config field before the tab (and its focus) changes.
         self.commit_field_edit();
-        // Switching tabs closes the login split (it lives only on Config).
-        self.close_login();
         let total = self.total_tabs();
         self.active_tab = Tab::from_index((self.active_tab.to_index() + 1) % total);
         self.editing = false;
@@ -525,7 +488,6 @@ impl App {
 
     pub fn prev_tab(&mut self) -> Option<AppCommand> {
         self.commit_field_edit();
-        self.close_login();
         let total = self.total_tabs();
         let idx = self.active_tab.to_index();
         self.active_tab = Tab::from_index(if idx == 0 { total - 1 } else { idx - 1 });
@@ -663,10 +625,7 @@ impl App {
         if !self.editing {
             return;
         }
-        if self.active_tab() == Tab::Config
-            && self.login.is_none()
-            && self.config.focus.is_text_input()
-        {
+        if self.active_tab() == Tab::Config && self.config.focus.is_text_input() {
             self.apply_config_change();
         } else if self.home_update_path_editing() {
             self.persist_osu_path_inputs();
@@ -676,10 +635,6 @@ impl App {
     fn focus_next_field(&mut self) {
         self.commit_field_edit();
         self.editing = false;
-        if let Some(login) = self.login.as_mut() {
-            login.next_field();
-            return;
-        }
         match self.active_tab() {
             Tab::Home => self.home.next_field(self.config.supporter()),
             Tab::Config => self.config.next_field(),
@@ -690,10 +645,6 @@ impl App {
     fn focus_prev_field(&mut self) {
         self.commit_field_edit();
         self.editing = false;
-        if let Some(login) = self.login.as_mut() {
-            login.prev_field();
-            return;
-        }
         match self.active_tab() {
             Tab::Home => self.home.prev_field(self.config.supporter()),
             Tab::Config => self.config.prev_field(),
@@ -704,10 +655,6 @@ impl App {
     fn focus_first_field(&mut self) {
         self.commit_field_edit();
         self.editing = false;
-        if let Some(login) = self.login.as_mut() {
-            login.first_field();
-            return;
-        }
         match self.active_tab() {
             Tab::Home => self.home.first_field(self.config.supporter()),
             Tab::Config => self.config.first_field(),
@@ -718,10 +665,6 @@ impl App {
     fn focus_last_field(&mut self) {
         self.commit_field_edit();
         self.editing = false;
-        if let Some(login) = self.login.as_mut() {
-            login.last_field();
-            return;
-        }
         match self.active_tab() {
             Tab::Home => self.home.last_field(self.config.supporter()),
             Tab::Config => self.config.last_field(),
@@ -892,126 +835,8 @@ impl App {
         self.settle_find_route();
     }
 
-    /// Whether a login / verification request is currently in flight.
-    fn login_in_flight(&self) -> bool {
-        matches!(self.config.login_state, AuthLoginState::InProgress(_))
-    }
-
-    /// Enter on the login panel. Text-input rows toggle edit mode in the caller
-    /// (via `focused_text_input`); this handles the action chips.
-    fn login_enter(&mut self) -> Option<AppCommand> {
-        match self.login.as_ref()?.focus {
-            LoginField::Submit => self.login_chip_enter(),
-            LoginField::Resend => self.request_reissue(),
-            _ => None,
-        }
-    }
-
-    /// Enter on the login panel's primary action chip. Cancels a running request,
-    /// else branches on the phase: log in / verify / log out.
-    fn login_chip_enter(&mut self) -> Option<AppCommand> {
-        if self.login_in_flight() {
-            // Drop the in-progress state (phase is preserved, so cancelling a
-            // mid-verification request keeps the code field) and abort the task.
-            self.set_login_failed();
-            self.toast_info("login cancelled");
-            return Some(AppCommand::CancelLogin);
-        }
-        match self.login.as_ref()?.phase {
-            LoginPhase::Credentials => self.request_lazer_login(),
-            LoginPhase::NeedsVerification => self.request_verification(),
-            LoginPhase::LoggedIn => self.request_logout(),
-        }
-    }
-
-    /// Start the lazer password grant from the entered username + password.
-    fn request_lazer_login(&mut self) -> Option<AppCommand> {
-        let (username, password) = {
-            let login = self.login.as_ref()?;
-            (
-                login.username.value.trim().to_string(),
-                login.password.value.clone(),
-            )
-        };
-        if username.is_empty() || password.is_empty() {
-            self.toast_warn("enter your osu! username and password");
-            return None;
-        }
-        // Wipe the password from the field the moment it is handed off, so the
-        // secret never lingers in the UI buffer.
-        if let Some(login) = self.login.as_mut() {
-            login.clear_password();
-        }
-        self.config.set_loading("signing in…");
-        Some(AppCommand::LazerLogin { username, password })
-    }
-
-    /// Submit the entered session-verification code.
-    fn request_verification(&mut self) -> Option<AppCommand> {
-        let code = self.login.as_ref()?.code.value.trim().to_string();
-        if code.is_empty() {
-            self.toast_warn("enter the verification code");
-            return None;
-        }
-        self.config.set_loading("verifying…");
-        Some(AppCommand::SubmitVerification { code })
-    }
-
-    /// Ask osu! to re-send the verification code (no login-state change).
-    fn request_reissue(&mut self) -> Option<AppCommand> {
-        if self.login_in_flight() {
-            return None;
-        }
-        self.toast_info("resending code…");
-        Some(AppCommand::ReissueVerification)
-    }
-
-    fn request_logout(&mut self) -> Option<AppCommand> {
-        match self.config.login_state {
-            AuthLoginState::LoggedIn => {
-                self.config.set_loading("logging out…");
-                Some(AppCommand::Logout)
-            }
-            AuthLoginState::LoggedOut => {
-                self.toast_info("already logged out");
-                None
-            }
-            AuthLoginState::InProgress(_) => None,
-        }
-    }
-
     fn total_tabs(&self) -> usize {
         STATIC_TABS
-    }
-
-    /// Whether the login split is open. While it is, the active tab stays on
-    /// Config, the config form is frozen, and all field input routes to the
-    /// login panel (a focus trap).
-    pub fn login_open(&self) -> bool {
-        self.login.is_some()
-    }
-
-    /// Open the login split on the Config tab (or leave it open if already
-    /// shown). The active tab stays on Config; the phase is seeded from the
-    /// current login state so a logged-in user lands on the account view rather
-    /// than the credentials form.
-    fn open_login(&mut self) {
-        if self.login.is_none() {
-            let logged_in = matches!(self.config.login_state, AuthLoginState::LoggedIn);
-            self.login = Some(LoginTab::new(logged_in));
-        }
-        self.editing = false;
-    }
-
-    /// Close the login split and hand focus back to the config auth chip (which
-    /// stays focused underneath while the panel is open). An in-flight login
-    /// keeps running — its result updates the chip in the background.
-    fn close_login(&mut self) {
-        if self.login.take().is_none() {
-            return;
-        }
-        self.editing = false;
-        self.config.focus = ConfigField::AuthChip;
     }
 
     /// Persist the current collection and download-directory inputs to the
@@ -1587,22 +1412,6 @@ impl App {
         }
     }
 
-    /// One-shot "searching as guest" nudge: fires once per logged-out session
-    /// after a guest search actually returns, inviting login for the
-    /// supporter-only filters. Called from `handle_home_search_event` so it only
-    /// shows when a guest search succeeded (never in a no-creds build that errors).
-    pub(crate) fn nudge_guest_search_if_logged_out(&mut self) {
-        let logged_in = matches!(self.config.login_state, AuthLoginState::LoggedIn);
-        if logged_in || self.home.find.login_nudged {
-            return;
-        }
-        self.home.find.login_nudged = true;
-        self.push_toast(
-            Toast::info("searching as guest")
-                .with_detail("log in from the config tab for more filters"),
-        );
-    }
-
     /// Character keys inside a flat set browse: `a`/`A` select-all/clear on the
     /// list pane, `m` loads more (next osu results page, or the next osu-batch
     /// enrichment page for id-only rows).
@@ -1968,10 +1777,6 @@ impl App {
         if self.help_open {
             return false;
         }
-        // The login split traps focus while open, regardless of active tab.
-        if let Some(login) = self.login.as_ref() {
-            return login.focus.is_text_input();
-        }
         match self.active_tab() {
             // While browsing (update or a flat set browse) the browse keys own
             // input, so no field is a text input even if `home.focus` names one.
@@ -1989,10 +1794,6 @@ impl App {
     /// re-resolve the collection (the value is unchanged), so unlike typing they
     /// return no command.
     fn caret_left_focused(&mut self) {
-        if let Some(login) = self.login.as_mut() {
-            login.caret_left();
-            return;
-        }
         match self.active_tab() {
             Tab::Home if self.home_update_path_editing() => self.library.caret_left(),
             Tab::Home => self.home.caret_left(),
@@ -2002,10 +1803,6 @@ impl App {
     }
 
     fn caret_right_focused(&mut self) {
-        if let Some(login) = self.login.as_mut() {
-            login.caret_right();
-            return;
-        }
         match self.active_tab() {
             Tab::Home if self.home_update_path_editing() => self.library.caret_right(),
             Tab::Home => self.home.caret_right(),
@@ -2015,10 +1812,6 @@ impl App {
     }
 
     fn caret_home_focused(&mut self) {
-        if let Some(login) = self.login.as_mut() {
-            login.caret_home();
-            return;
-        }
         match self.active_tab() {
             Tab::Home if self.home_update_path_editing() => self.library.caret_home(),
             Tab::Home => self.home.caret_home(),
@@ -2028,10 +1821,6 @@ impl App {
     }
 
     fn caret_end_focused(&mut self) {
-        if let Some(login) = self.login.as_mut() {
-            login.caret_end();
-            return;
-        }
         match self.active_tab() {
             Tab::Home if self.home_update_path_editing() => self.library.caret_end(),
             Tab::Home => self.home.caret_end(),
@@ -2043,10 +1832,6 @@ impl App {
     /// Delete the char at the caret in the focused text field (`Delete` key).
     /// On the home collection field this re-resolves, matching backspace.
     fn delete_forward_focused(&mut self) -> Option<AppCommand> {
-        if let Some(login) = self.login.as_mut() {
-            login.delete_forward();
-            return None;
-        }
         match self.active_tab() {
             Tab::Home if self.home_update_path_editing() => {
                 self.library.delete_forward();
@@ -2065,10 +1850,6 @@ impl App {
     /// ctrl+w). No-op when focus is not on a text input. On the home collection
     /// field this re-resolves, matching plain backspace.
     fn backspace_word_focused(&mut self) -> Option<AppCommand> {
-        if let Some(login) = self.login.as_mut() {
-            login.backspace_word();
-            return None;
-        }
         match self.active_tab() {
             Tab::Home if self.home_update_path_editing() => {
                 self.library.backspace_word();
@@ -2416,18 +2197,12 @@ impl App {
                     self.editing = false;
                     // Committing a config text edit applies it immediately. Login
                     // fields hold their own value and persist nothing on exit.
-                    if self.active_tab() == Tab::Config && self.login.is_none() {
+                    if self.active_tab() == Tab::Config {
                         self.apply_config_change();
                     }
                     return None;
                 }
                 if self.close_modal() {
-                    return None;
-                }
-                // The login split is a focus-trap panel: esc/q (non-typing) close
-                // it in place and hand focus back to the config auth chip.
-                if self.login.is_some() {
-                    self.close_login();
                     return None;
                 }
                 // In a browse, esc ascends one level (preview → list → form)
@@ -2595,16 +2370,12 @@ impl App {
                     // Leaving edit mode commits: config rows flush to disk, the
                     // update source's osu! path persists to `[recent]`. Login
                     // fields hold their own value and persist nothing on exit.
-                    if was_editing && self.active_tab() == Tab::Config && self.login.is_none() {
+                    if was_editing && self.active_tab() == Tab::Config {
                         self.apply_config_change();
                     } else if was_editing && was_update_path {
                         self.persist_osu_path_inputs();
                     }
                     return None;
-                }
-                // The login split traps activation while open (before the tab match).
-                if self.login.is_some() {
-                    return self.login_enter();
                 }
                 match self.active_tab() {
                     Tab::Home => {
@@ -2709,19 +2480,11 @@ impl App {
                         }
                     }
                     Tab::Config => match self.config.focus {
-                        ConfigField::AuthChip => {
-                            // The chip is a navigation affordance: open the login
-                            // split on the right, which owns the login flow.
-                            self.open_login();
-                            return None;
-                        }
                         field if field.is_text_input() || field.is_stepper() => {}
                         // toggle / cycle fields (space also works) — applied live
                         _ => {
-                            if !self.block_osu_official_if_logged_out() {
-                                self.config.toggle_current();
-                                self.apply_config_change();
-                            }
+                            self.config.toggle_current();
+                            self.apply_config_change();
                         }
                     },
                     Tab::Downloads => {
@@ -2742,12 +2505,6 @@ impl App {
             // checkbox / list selection but never activates buttons, opens lists,
             // or confirms the auth chip. In a text input it types a literal
             // space instead.
-            KeyCode::Char(' ') if self.login.is_some() => {
-                // Login split: chips trigger on enter only; space just types.
-                if typing && let Some(login) = self.login.as_mut() {
-                    login.handle_char(' ');
-                }
-            }
             KeyCode::Char(' ') => match self.active_tab() {
                 Tab::Home => {
                     if typing {
@@ -2799,13 +2556,10 @@ impl App {
                 }
                 Tab::Config => match self.config.focus {
                     _ if typing => self.config.handle_char(' '),
-                    ConfigField::AuthChip => {}
                     field if field.is_text_input() || field.is_stepper() => {}
                     _ => {
-                        if !self.block_osu_official_if_logged_out() {
-                            self.config.toggle_current();
-                            self.apply_config_change();
-                        }
+                        self.config.toggle_current();
+                        self.apply_config_change();
                     }
                 },
                 _ => {
@@ -2819,7 +2573,7 @@ impl App {
             // not auto-scan; the user scans manually from the update form.
             // Suppressed while typing so `c` types a literal char, and while the
             // login split is open (it traps every field key).
-            KeyCode::Char('c') if !typing && self.login.is_none() => {
+            KeyCode::Char('c') if !typing => {
                 self.library.switch_client();
                 self.home.update.reset_for_client_switch();
                 self.persist_osu_path_inputs();
@@ -2830,12 +2584,6 @@ impl App {
                         .with_detail("scan to find updates"),
                 );
                 return None;
-            }
-            // Login split traps chars: no non-typing hotkeys, just type the field.
-            KeyCode::Char(ch) if self.login.is_some() => {
-                if typing && let Some(login) = self.login.as_mut() {
-                    login.handle_char(ch);
-                }
             }
             KeyCode::Char(ch) => match self.active_tab() {
                 Tab::Home => {
@@ -2951,9 +2699,7 @@ impl App {
                 {
                     return self.backspace_word_focused();
                 }
-                if let Some(login) = self.login.as_mut() {
-                    login.backspace();
-                } else if self.home_update_path_editing() {
+                if self.home_update_path_editing() {
                     self.library.backspace();
                 } else {
                     match self.active_tab() {
@@ -2982,10 +2728,6 @@ impl App {
     /// typing into it does.
     pub fn handle_paste(&mut self, text: String) -> Option<AppCommand> {
         if !(self.editing && self.focused_text_input()) {
-            return None;
-        }
-        if let Some(login) = self.login.as_mut() {
-            login.handle_paste(&text);
             return None;
         }
         if self.home_update_path_editing() {
@@ -3339,9 +3081,6 @@ impl App {
         if self.active_tab != Tab::Downloads {
             self.downloads_tab.preview_focused = false;
             if self.config.jump_to_downloads {
-                // Writes active_tab without close_login(): safe because the
-                // login focus-trap intercepts every queue keypress first.
-                debug_assert!(self.login.is_none());
                 self.active_tab = Tab::Downloads;
             }
         }

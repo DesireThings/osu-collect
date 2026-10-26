@@ -68,7 +68,7 @@ fn the_help_overlay_advertises_the_preview_scroll() {
     // `↑ ↓` step the difficulty in a focused browse preview, so the page keys are
     // the only way to reach the rows past its bottom edge. With no footer hint
     // for them, the overlay is where that key is discoverable at all.
-    let global: String = super::build_help_lines(crate::app::Tab::Home, false, false)
+    let global: String = super::build_help_lines(crate::app::Tab::Home, false)
         .iter()
         .map(joined)
         .collect::<Vec<_>>()

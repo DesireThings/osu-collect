@@ -471,57 +471,6 @@ fn paste_outside_edit_mode_is_inert() {
 // the enabled-mirror count.
 
 #[test]
-fn osu_official_toggle_blocked_and_notifies_when_logged_out() {
-    use osu_collect::app::Tab;
-    use osu_collect::app::{AuthLoginState, ConfigField};
-    let mut app = make_app();
-    app.config.login_state = AuthLoginState::LoggedOut;
-    app.config.osu_official = false;
-    app.active_tab = Tab::Config;
-    app.config.focus = ConfigField::MirrorOsuOfficial;
-
-    app.handle_key(press(KeyCode::Enter));
-    assert!(
-        !app.config.osu_official,
-        "osu! official must not be enablable while logged out"
-    );
-    assert!(
-        !app.toasts.is_empty(),
-        "a logged-out enable attempt must notify the user to log in"
-    );
-
-    // `space` is gated the same way.
-    app.handle_key(press(KeyCode::Char(' ')));
-    assert!(!app.config.osu_official, "space must not enable it either");
-}
-
-#[test]
-fn osu_official_toggle_works_when_logged_in() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
-    // Sandbox the config path so the toggle's auto-save never touches the real
-    // user config.
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("config.toml");
-    let _env = osu_collect::test_env::TempEnvVar::set("OSU_COLLECT_CONFIG", path.to_str().unwrap());
-
-    let mut app = make_app();
-    // Through the writer the login path uses, so the fixture cannot describe a
-    // login state no transition produces.
-    app.set_login_complete(false);
-    app.config.osu_official = false;
-    app.active_tab = Tab::Config;
-    app.config.focus = ConfigField::MirrorOsuOfficial;
-
-    app.handle_key(press(KeyCode::Enter));
-
-    assert!(
-        app.config.osu_official,
-        "logged in, the osu! official toggle works normally"
-    );
-}
-
-#[test]
 fn enter_on_home_mirrors_summary_jumps_to_config_mirrors() {
     use osu_collect::app::Tab;
     use osu_collect::app::{ConfigField, HomeField};
@@ -667,111 +616,6 @@ fn enter_on_collection_field_does_not_start_download() {
 }
 
 // ── config tab key bindings ───────────────────────────────────────────────────
-
-/// Move focus to the config auth chip, ready to open the login split. Pins a
-/// logged-out state so the panel opens on the credentials phase regardless of
-/// any osu! token stored on the host running the tests.
-fn focus_config_auth_chip() -> osu_collect::app::App {
-    use osu_collect::app::Tab;
-    use osu_collect::app::{AuthLoginState, ConfigField, HomeField};
-
-    let mut app = make_app();
-    app.config.login_state = AuthLoginState::LoggedOut;
-    // Focus a non-text field so Right switches tabs rather than moving the caret.
-    app.home.focus = HomeField::Video;
-    // Three static tabs: home → downloads → config.
-    app.handle_key(press(KeyCode::Right));
-    app.handle_key(press(KeyCode::Right));
-    assert_eq!(app.active_tab(), Tab::Config);
-    app.config.focus = ConfigField::AuthChip;
-    app
-}
-
-#[test]
-fn enter_on_config_chip_opens_login_split() {
-    use osu_collect::app::Tab;
-
-    let mut app = focus_config_auth_chip();
-
-    // The chip opens the login split on the right and dispatches no command
-    // (the panel owns the login flow). The active tab stays on Config — the
-    // login split is a focus-trap panel, not a tab.
-    let cmd = app.handle_key(press(KeyCode::Enter));
-    assert!(
-        cmd.is_none(),
-        "opening the login split dispatches no command"
-    );
-    assert!(app.login_open(), "login split must open");
-    assert_eq!(
-        app.active_tab(),
-        Tab::Config,
-        "active tab stays on config while the login split is open"
-    );
-}
-
-#[test]
-fn esc_closes_login_split_and_stays_on_config() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
-
-    let mut app = focus_config_auth_chip();
-    app.handle_key(press(KeyCode::Enter));
-    assert!(app.login_open());
-
-    // esc closes the split in place and hands focus back to the auth chip.
-    app.handle_key(press(KeyCode::Esc));
-    assert!(!app.login_open(), "esc closes the login split");
-    assert_eq!(app.active_tab(), Tab::Config);
-    assert_eq!(app.config.focus, ConfigField::AuthChip);
-}
-
-#[test]
-fn switching_tabs_closes_login_split() {
-    let mut app = focus_config_auth_chip();
-    app.handle_key(press(KeyCode::Enter));
-    assert!(app.login_open());
-
-    // A tab switch closes the split (it lives only on Config).
-    app.handle_key(press(KeyCode::Right));
-    assert!(!app.login_open(), "switching tabs closes the login split");
-}
-
-#[test]
-fn typing_routes_to_login_field_while_split_open() {
-    let mut app = focus_config_auth_chip();
-    app.handle_key(press(KeyCode::Enter));
-    // The username field is focused on open; enter descends into edit mode.
-    app.handle_key(press(KeyCode::Enter));
-    app.handle_key(press(KeyCode::Char('a')));
-    app.handle_key(press(KeyCode::Char('b')));
-    assert_eq!(
-        app.login.as_ref().map(|l| l.username.value.as_str()),
-        Some("ab"),
-        "chars route into the focused login field while the split is open"
-    );
-}
-
-#[test]
-fn space_on_auth_chip_does_nothing() {
-    use osu_collect::app::Tab;
-    use osu_collect::app::{ConfigField, HomeField};
-
-    let mut app = make_app();
-    // Focus a non-text field so Right switches tabs rather than moving the caret.
-    app.home.focus = HomeField::Video;
-    // Three static tabs: home → downloads → config.
-    app.handle_key(press(KeyCode::Right));
-    app.handle_key(press(KeyCode::Right));
-    assert_eq!(app.active_tab(), Tab::Config);
-    app.config.focus = ConfigField::AuthChip;
-
-    // space must not trigger any action on the chip — enter is the confirm key
-    let cmd = app.handle_key(press(KeyCode::Char(' ')));
-    assert!(
-        cmd.is_none(),
-        "space on auth chip must not issue any command"
-    );
-}
 
 // ── help overlay ─────────────────────────────────────────────────────────────
 
@@ -948,7 +792,7 @@ fn vim_gg_and_capital_g_jump_to_ends() {
     app.handle_key(press(KeyCode::Char('g')));
     assert_eq!(
         app.config.focus,
-        ConfigField::AuthChip,
+        ConfigField::Theme,
         "gg jumps to the first field"
     );
     app.handle_key(press(KeyCode::Char('G')));

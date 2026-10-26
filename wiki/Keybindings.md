@@ -53,7 +53,6 @@ Press <kbd>?</kbd> anywhere in the app for the in-app overlay. It carries the ke
 
 | Keys | Action |
 |---|---|
-| <kbd>↵</kbd> on the account row | Open the login panel (<kbd>esc</kbd> / <kbd>q</kbd> closes it) |
 | <kbd>⇧</kbd>+<kbd>↑</kbd> / <kbd>⇧</kbd>+<kbd>↓</kbd> | Reorder the focused built-in mirror |
 | <kbd>r</kbd> | Re-probe mirror latency |
 

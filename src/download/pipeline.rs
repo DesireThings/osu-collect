@@ -785,7 +785,7 @@ async fn build_osu_auth_headers() -> Option<HeaderMap> {
 async fn resolve_osu_bearer() -> Option<String> {
     let mut auth = crate::auth::load()?;
     if !auth.has_lazer_scope() {
-        warn!("stored osu! token lacks the '*' scope; re-login to enable the official mirror");
+        warn!("stored osu! token lacks the '*' scope; the official mirror stays off");
         return None;
     }
     let client = reqwest::Client::new();

@@ -29,7 +29,6 @@ pub enum AuthLoginState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigField {
-    AuthChip,
     Theme,
     VimKeys,
     JumpToDownloads,
@@ -41,7 +40,6 @@ pub enum ConfigField {
     MirrorOsudl,
     MirrorCatboy,
     MirrorHinamizawa,
-    MirrorOsuOfficial,
     MirrorNzbasic,
     /// One custom-mirror URL row, indexed into [`CustomMirrorList`]. The last
     /// index is always the empty "add new" entry slot.
@@ -62,13 +60,12 @@ pub enum ConfigField {
 }
 
 // Navigation order — must mirror the render order in `tui::config`
-// (`build_config_items`): auth · display · mirrors · download · logging,
+// (`build_config_items`): display · mirrors · download · logging,
 // matching the home tab's mirrors-before-download flow. The built-in mirror
 // rows sit between this head slice and the dynamic custom-mirror rows, in the
 // configured try-order (`ConfigTab::ordered_mirror_rows`), so they are not
 // listed here.
 const CONFIG_FIELDS_HEAD: &[ConfigField] = &[
-    ConfigField::AuthChip,
     ConfigField::Theme,
     ConfigField::VimKeys,
     ConfigField::JumpToDownloads,
@@ -208,8 +205,6 @@ impl ConfigTab {
             auto_update: config.update.auto_update,
             prereleases: config.update.prereleases,
             mirror_order: config.mirror.ordered_builtins(),
-            // Start focus one row below the auth chip so an accidental enter
-            // never opens login on entry.
             focus: ConfigField::Theme,
             message: None,
             default_threads: default_threads(),
@@ -463,7 +458,6 @@ impl ConfigTab {
             ConfigField::MirrorOsudl => self.osudl = !self.osudl,
             ConfigField::MirrorCatboy => self.catboy = !self.catboy,
             ConfigField::MirrorHinamizawa => self.hinamizawa = !self.hinamizawa,
-            ConfigField::MirrorOsuOfficial => self.osu_official = !self.osu_official,
             ConfigField::MirrorNzbasic => self.nzbasic = !self.nzbasic,
             ConfigField::DownloadVideo => self.video = !self.video,
             ConfigField::DownloadArchiveValidation => self.cycle_archive_validation(),
@@ -479,8 +473,7 @@ impl ConfigTab {
             ConfigField::LoggingFormat => self.cycle_logging_format(),
             ConfigField::AutoUpdate => self.auto_update = !self.auto_update,
             ConfigField::Prereleases => self.prereleases = !self.prereleases,
-            ConfigField::AuthChip
-            | ConfigField::MirrorCustomUrl(_)
+            ConfigField::MirrorCustomUrl(_)
             | ConfigField::DownloadThreads
             | ConfigField::DownloadRateLimitSkipSecs
             | ConfigField::LoggingDirectory => {}
@@ -593,7 +586,9 @@ impl ConfigTab {
     pub fn set_login_complete(&mut self, supporter: bool) {
         self.login_state = AuthLoginState::LoggedIn;
         self.supporter = supporter;
-        // A completed password grant always produces a `*`-scope token.
+        // Earlier builds' lazer login always produced a `*`-scope token. Nothing
+        // signs in today, so only tests reach this; a future login must set the
+        // scope its token really carries.
         self.lazer_scope = true;
         clear_app_message(&mut self.message);
     }
@@ -728,9 +723,9 @@ fn mirror_config_field(kind: MirrorKind) -> Option<ConfigField> {
         MirrorKind::Osudl => ConfigField::MirrorOsudl,
         MirrorKind::Catboy => ConfigField::MirrorCatboy,
         MirrorKind::Hinamizawa => ConfigField::MirrorHinamizawa,
-        MirrorKind::OsuApi => ConfigField::MirrorOsuOfficial,
         MirrorKind::Nzbasic => ConfigField::MirrorNzbasic,
-        MirrorKind::Custom => return None,
+        // osu! official needs a login this app can't make; its row is hidden.
+        MirrorKind::OsuApi | MirrorKind::Custom => return None,
     })
 }
 
@@ -746,7 +741,6 @@ fn mirror_kind_of(field: ConfigField) -> Option<MirrorKind> {
         ConfigField::MirrorOsudl => MirrorKind::Osudl,
         ConfigField::MirrorCatboy => MirrorKind::Catboy,
         ConfigField::MirrorHinamizawa => MirrorKind::Hinamizawa,
-        ConfigField::MirrorOsuOfficial => MirrorKind::OsuApi,
         ConfigField::MirrorNzbasic => MirrorKind::Nzbasic,
         _ => return None,
     })

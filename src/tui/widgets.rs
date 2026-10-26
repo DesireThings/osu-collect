@@ -652,35 +652,6 @@ pub fn input_item(
     ListItem::new(Line::from(spans))
 }
 
-/// A text-input row whose value renders masked (`•`), for password fields.
-///
-/// Mirrors [`input_item`] exactly except the value glyphs are hidden. The
-/// placeholder still shows while empty, and the caret column is unaffected:
-/// the caret is a char index and the mask is one `•` per source char, so
-/// [`input_cursor_col`] lands on the right cell.
-pub fn password_input_item(
-    field: &InputField,
-    focused: bool,
-    editing: bool,
-    label_width: usize,
-) -> ListItem<'static> {
-    let value = if field.value.is_empty() {
-        field.placeholder.clone().fg(text_faint())
-    } else {
-        "•".repeat(field.value.chars().count()).fg(accent())
-    };
-
-    let spans = vec![
-        input_focus_span(focused, editing),
-        Span::styled(
-            label_cell(&field.label.to_lowercase(), label_width),
-            focused_label(focused),
-        ),
-        value,
-    ];
-    ListItem::new(Line::from(spans))
-}
-
 /// Left inset of the boxed search input, matching [`FOCUS_PAD`] on every other
 /// form row.
 const SEARCH_BOX_INSET: usize = 2;
@@ -1141,40 +1112,6 @@ pub fn row_item_with_suffix(
     }
     if let Some(s) = suffix {
         spans.push(s);
-    }
-    ListItem::new(Line::from(spans))
-}
-
-/// A toggle row rendered **disabled** (inert): the toggle glyph, label, and
-/// detail are all `text_faint`, signalling the row can't be activated. The focus
-/// caret still shows (the row is focusable so the user sees where they are), but
-/// the caller must skip activation and surface a reason — pair it with a
-/// `help_item` tooltip on focus (cloudy-tui disabled-row pattern).
-pub fn disabled_toggle_row(
-    label: &str,
-    detail: Option<&str>,
-    state: bool,
-    focused: bool,
-    label_width: usize,
-) -> ListItem<'static> {
-    let faint = Style::default().fg(text_faint());
-    // The toggle glyph is rendered faint too (not the live accent/line colors),
-    // so the whole control reads as disabled.
-    let toggle: Vec<Span<'static>> = match theme().tier() {
-        Tier::Full if state => vec![Span::styled("─●", faint)],
-        Tier::Full => vec![Span::styled("○─", faint)],
-        Tier::Compatible if state => vec![Span::styled("[on]", faint)],
-        Tier::Compatible => vec![Span::styled("[off]", faint)],
-    };
-
-    let mut spans = vec![focus_span(focused)];
-    spans.extend(toggle);
-    spans.push(Span::styled(
-        format!(" {}", label_cell(label, label_width)),
-        faint,
-    ));
-    if let Some(d) = detail {
-        spans.push(Span::styled(d.to_string(), faint));
     }
     ListItem::new(Line::from(spans))
 }

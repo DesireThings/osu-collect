@@ -1288,9 +1288,6 @@ pub struct FindSource {
     /// Cursor for the next osu page (`load more`); `None` = first page not yet
     /// run, the last page reached, or the last run was nzbasic (no cursor).
     pub next_cursor: Option<String>,
-    /// One-shot login-nudge gate: the guest-search nudge toast fires at most once
-    /// per logged-out session.
-    pub login_nudged: bool,
     /// Per-set download-size cache, session-lived (a set id's size is stable, so
     /// it outlives a re-search). `Known` feeds the download button's `· ~X` size
     /// suffix and seeds a run so the pipeline re-fetches nothing already here.
@@ -1342,7 +1339,6 @@ impl FindSource {
             status_msg: FindStatusMsg::Idle,
             advanced_filters_open: false,
             next_cursor: None,
-            login_nudged: false,
             size_cache: HashMap::new(),
             results_inputs: None,
             results_backend: None,

@@ -663,8 +663,8 @@ fn config_tab_with_stored_auth(auth_json: Option<&str>) -> String {
 }
 
 /// Built through `StoredAuth` rather than a JSON literal so a field rename is a
-/// compile error instead of a silently logged-out render.
-fn stored_auth_json() -> String {
+/// compile error instead of a silently ignored file.
+fn lazer_login_json() -> String {
     let auth = osu_collect::auth::StoredAuth {
         client_id: "5".to_string(),
         client_secret: "secret".to_string(),
@@ -673,62 +673,30 @@ fn stored_auth_json() -> String {
         refresh_token: None,
         expires_at: u64::MAX,
         scopes: vec!["*".to_string()],
-        // No badge, so the assertions below can pin the chip's exact two
-        // segments. The supporter-badge render is pinned in `tui_config`.
-        supporter: None,
+        supporter: Some(true),
     };
     serde_json::to_string(&auth).unwrap()
 }
 
+/// There is no login any more: no account row, and no osu! official mirror row
+/// (it needs a login) — not even when an earlier version left a lazer login on
+/// disk.
 #[test]
-fn config_tab_auth_chip_reads_logged_out_without_stored_auth() {
-    let content = config_tab_with_stored_auth(None);
-    assert!(
-        content.contains(" logged out  log in"),
-        "no stored auth must render the logged-out chip beside its `log in` action: {content}"
-    );
-    assert!(
-        !content.contains(" logged in"),
-        "no stored auth must not render the logged-in chip: {content}"
-    );
-}
-
-#[test]
-fn config_tab_auth_chip_reads_logged_in_with_stored_auth() {
-    let content = config_tab_with_stored_auth(Some(&stored_auth_json()));
-    assert!(
-        content.contains(" logged in  manage"),
-        "stored auth must render the logged-in chip beside its `manage` action: {content}"
-    );
-    assert!(
-        !content.contains(" logged out"),
-        "stored auth must not render the logged-out chip: {content}"
-    );
-}
-
-/// `InProgress` is a transient in-memory phase that no stored file can produce,
-/// so this leg sets it directly. The two above drive the real store instead.
-#[test]
-fn config_tab_auth_chip_reads_an_in_flight_login() {
-    use osu_collect::app::AuthLoginState;
-    let mut app = make_app();
-    app.next_tab();
-    app.next_tab(); // home → downloads → config
-    app.config.login_state = AuthLoginState::InProgress(String::new());
-    let content = render_content(&app, 120, 40);
-    // CHIP_LOGGING_IN carries its own trailing space, then the chip's 2-cell gap.
-    assert!(
-        content.contains(" logging in\u{2026}   view"),
-        "an in-flight login must render the logging-in chip beside its `view` action: {content}"
-    );
-    assert!(
-        !content.contains(" logged out"),
-        "an in-flight login must not render the logged-out chip: {content}"
-    );
-    assert!(
-        !content.contains(" logged in "),
-        "an in-flight login must not render the logged-in chip: {content}"
-    );
+fn config_tab_has_no_account_row_or_official_mirror() {
+    for stored in [None, Some(lazer_login_json())] {
+        let content = config_tab_with_stored_auth(stored.as_deref());
+        for gone in ["log in", "logged", "osu! official", "supporter"] {
+            assert!(
+                !content.contains(gone),
+                "config must not show {gone:?} (stored login: {}): {content}",
+                stored.is_some()
+            );
+        }
+        assert!(
+            content.contains("theme"),
+            "the config form still renders: {content}"
+        );
+    }
 }
 
 // ── error / message footer ───────────────────────────────────────────────────
@@ -1228,78 +1196,6 @@ fn help_overlay_hidden_when_closed() {
 
 // ── login split ───────────────────────────────────────────────────────────────
 
-#[test]
-fn login_split_docks_login_on_the_right_of_config() {
-    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
-    use osu_collect::app::{AuthLoginState, ConfigField};
-
-    let mut app = make_app();
-    // Pin logged-out so the panel opens on the credentials phase regardless of
-    // any osu! token on the host.
-    app.config.login_state = AuthLoginState::LoggedOut;
-    app.next_tab();
-    app.next_tab(); // home → downloads → config
-    app.config.focus = ConfigField::AuthChip;
-    app.handle_key(KeyEvent {
-        code: KeyCode::Enter,
-        modifiers: KeyModifiers::empty(),
-        kind: KeyEventKind::Press,
-        state: KeyEventState::empty(),
-    });
-    assert!(
-        app.login_open(),
-        "enter on the auth chip opens the login split"
-    );
-
-    let (w, h) = (120u16, 30u16);
-    let buf = render_to_buffer(&app, w, h);
-    let cells = buf.content();
-    let mut config_x = None;
-    let mut login_x = None;
-    for y in 0..h {
-        let row: String = (0..w)
-            .map(|x| cells[(y * w + x) as usize].symbol())
-            .collect();
-        if let Some(i) = row.find("CONFIG") {
-            config_x.get_or_insert(i as u16);
-        }
-        if let Some(i) = row.find("LOGIN") {
-            login_x.get_or_insert(i as u16);
-        }
-    }
-    let config_x = config_x.expect("config panel still renders on the left");
-    let login_x = login_x.expect("login panel renders");
-    assert!(config_x < w / 2, "config panel keeps the left half");
-    assert!(login_x > w / 2, "login panel docks on the right half");
-}
-
-#[test]
-fn login_split_info_lines_wrap_instead_of_clipping() {
-    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
-    use osu_collect::app::{AuthLoginState, ConfigField};
-
-    let mut app = make_app();
-    app.config.login_state = AuthLoginState::LoggedOut;
-    app.next_tab();
-    app.next_tab(); // home → downloads → config
-    app.config.focus = ConfigField::AuthChip;
-    app.handle_key(KeyEvent {
-        code: KeyCode::Enter,
-        modifiers: KeyModifiers::empty(),
-        kind: KeyEventKind::Press,
-        state: KeyEventState::empty(),
-    });
-    assert!(app.login_open());
-
-    // At 120 cols the login panel is ~48 wide, so the credentials note (62
-    // chars) used to hard-clip at the border. Wrapped, its tail survives.
-    let content = render_content(&app, 120, 24);
-    assert!(
-        content.contains("stored locally"),
-        "the credentials note must wrap, not clip: {content}"
-    );
-}
-
 // ── config item order ─────────────────────────────────────────────────────────
 
 #[test]
@@ -1323,47 +1219,6 @@ fn config_tab_shows_mirrors_section_before_download() {
     let m = mir_pos.expect("mirrors section header must render at 120x60");
     let d = dl_pos.expect("download section header must render at 120x60");
     assert!(m < d, "mirrors section should render before download");
-}
-
-/// The "log in to enable" hint rides under the osu! official row itself, not
-/// under the loop's tail. The try-order is user-reorderable, so a tail slot
-/// lands the hint under whichever mirror happens to be last — useless to a
-/// user sat on osu! official two rows up. Default order has osu! official last,
-/// which is exactly why the bug was invisible without a reorder.
-#[test]
-fn mirror_locked_hint_sits_under_osu_official_when_it_is_not_last() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::mirrors::MirrorKind;
-
-    let mut app = make_app();
-    app.config.set_login_failed();
-    app.next_tab();
-    app.next_tab(); // home → downloads → config
-
-    // Move osu! official off the tail by swapping it with the mirror above it
-    // (nzbasic by default). `mirror_order` is the single source for both nav
-    // and render, so a swap here is exactly what `⇧↓` on nzbasic does in
-    // production.
-    let order = &mut app.config.mirror_order;
-    let api_idx = order
-        .iter()
-        .position(|&k| k == MirrorKind::OsuApi)
-        .expect("osu! official is a built-in mirror");
-    assert!(
-        api_idx > 0,
-        "osu! official must not already be first; the test needs room to move it up"
-    );
-    order.swap(api_idx, api_idx - 1);
-
-    app.config.focus = ConfigField::MirrorOsuOfficial;
-    let rows = render_rows(&app, 120, 60);
-    let hint_row = row_of(&rows, "log in to enable");
-    let official_row = row_of(&rows, "osu! official");
-    assert_eq!(
-        hint_row,
-        official_row + 1,
-        "the locked hint must sit directly under osu! official: {rows:?}"
-    );
 }
 
 // ── enrichment loading cues ──────────────────────────────────────────────────

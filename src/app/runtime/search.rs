@@ -147,9 +147,6 @@ pub fn handle_home_search_event(event: HomeSearchEvent, app: &mut App) -> Option
                 // Open the results immediately on a fresh search.
                 app.open_find_browse();
             }
-            // A search came back, so the token resolved. If that was a guest
-            // token (logged out), nudge once toward login for the extra filters.
-            app.nudge_guest_search_if_logged_out();
             // Backfill sizes for whatever is checked (carried-over selections on a
             // fresh page, the full page on `load more`); these rows are always osu.
             Some(AppCommand::ProbeFindSizes)

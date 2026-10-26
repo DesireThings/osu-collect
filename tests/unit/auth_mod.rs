@@ -1,8 +1,8 @@
 use super::{
-    LAZER_CLIENT_ID, LAZER_CLIENT_SECRET, LAZER_SCOPE, MeProbe, MeResponse, StoredAuth,
-    X_API_VERSION, apply_supporter_probe, client_credentials_params, password_grant_params,
-    refresh_params, session_verification_required_from, token_request_failed,
+    AUTH_ENV_PATH, LAZER_CLIENT_ID, LAZER_SCOPE, MeResponse, StoredAuth, X_API_VERSION,
+    client_credentials_params, load, refresh_params, token_request_failed,
 };
+use crate::test_env::TempEnvVar;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Look up a form param's value by key.
@@ -11,19 +11,7 @@ fn value<'a>(params: &'a [(&'a str, &'a str)], key: &str) -> Option<&'a str> {
 }
 
 #[test]
-fn password_grant_body_includes_required_fields() {
-    let params = password_grant_params("player", "hunter2");
-    assert_eq!(value(&params, "grant_type"), Some("password"));
-    assert_eq!(value(&params, "client_id"), Some(LAZER_CLIENT_ID));
-    assert_eq!(value(&params, "client_secret"), Some(LAZER_CLIENT_SECRET));
-    assert_eq!(value(&params, "username"), Some("player"));
-    assert_eq!(value(&params, "password"), Some("hunter2"));
-    // `scope=*` is what carries beatmap-download privilege.
-    assert_eq!(value(&params, "scope"), Some(LAZER_SCOPE));
-}
-
-#[test]
-fn lazer_constants_are_well_formed() {
+fn api_constants_are_well_formed() {
     assert_eq!(LAZER_CLIENT_ID, "5");
     assert_eq!(LAZER_SCOPE, "*");
     // x-api-version must be a recent YYYYMMDD integer.
@@ -61,8 +49,8 @@ fn token_request_error_omits_body() {
 #[test]
 fn has_lazer_scope_gates_official_mirror() {
     let mut auth = StoredAuth {
-        client_id: LAZER_CLIENT_ID.into(),
-        client_secret: LAZER_CLIENT_SECRET.into(),
+        client_id: "own-app".into(),
+        client_secret: "secret".into(),
         redirect_uri: String::new(),
         access_token: "tok".into(),
         refresh_token: Some("rt".into()),
@@ -115,8 +103,8 @@ fn token_persistence_roundtrip() {
     let path = dir.path().join("auth.json");
 
     let auth = StoredAuth {
-        client_id: LAZER_CLIENT_ID.into(),
-        client_secret: LAZER_CLIENT_SECRET.into(),
+        client_id: "own-app".into(),
+        client_secret: "secret".into(),
         redirect_uri: String::new(),
         access_token: "access".into(),
         refresh_token: Some("refresh".into()),
@@ -157,8 +145,8 @@ fn stored_auth_deserializes_without_supporter_field() {
 #[test]
 fn is_supporter_gates_conservatively() {
     let mut auth = StoredAuth {
-        client_id: LAZER_CLIENT_ID.into(),
-        client_secret: LAZER_CLIENT_SECRET.into(),
+        client_id: "own-app".into(),
+        client_secret: "secret".into(),
         redirect_uri: String::new(),
         access_token: "tok".into(),
         refresh_token: None,
@@ -183,8 +171,6 @@ fn me_response_parses_is_supporter_from_fixture() {
     let json = r#"{"id":1,"username":"someone","is_supporter":true}"#;
     let body: MeResponse = serde_json::from_str(json).unwrap();
     assert!(body.is_supporter);
-    assert_eq!(body.session_verified, None);
-    assert!(body.session_verification_method.is_none());
 }
 
 #[test]
@@ -194,107 +180,43 @@ fn me_response_defaults_is_supporter_false_when_field_absent() {
     assert!(!body.is_supporter);
 }
 
+fn stored(client_id: &str) -> StoredAuth {
+    StoredAuth {
+        client_id: client_id.into(),
+        client_secret: "secret".into(),
+        redirect_uri: String::new(),
+        access_token: "tok".into(),
+        refresh_token: Some("rt".into()),
+        expires_at: u64::MAX,
+        scopes: vec![LAZER_SCOPE.into()],
+        supporter: Some(true),
+    }
+}
+
+/// Earlier builds signed in through osu!lazer's own client. Such a token must
+/// never be used again (refreshing it would sign in as lazer), so `load`
+/// deletes it and reports no login.
 #[test]
-fn session_verification_required_from_covers_every_probe_outcome() {
-    let clear = MeProbe::Ok(MeResponse {
-        is_supporter: false,
-        session_verified: None,
-        session_verification_method: None,
-    });
-    assert!(!session_verification_required_from(&clear));
+fn load_drops_a_login_made_through_the_lazer_client() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("auth.json");
+    std::fs::write(&path, serde_json::to_string(&stored("5")).unwrap()).unwrap();
+    let _auth = TempEnvVar::set(AUTH_ENV_PATH, path.to_str().unwrap());
 
-    let session_not_verified = MeProbe::Ok(MeResponse {
-        is_supporter: false,
-        session_verified: Some(false),
-        session_verification_method: None,
-    });
-    assert!(session_verification_required_from(&session_not_verified));
-
-    let has_method = MeProbe::Ok(MeResponse {
-        is_supporter: true,
-        session_verified: None,
-        session_verification_method: Some(serde_json::json!("totp")),
-    });
-    assert!(session_verification_required_from(&has_method));
-
-    assert!(session_verification_required_from(&MeProbe::Unauthorized));
-    assert!(
-        !session_verification_required_from(&MeProbe::Unreachable),
-        "a network error or unparseable body must never block an otherwise-working login"
-    );
+    assert!(load().is_none());
+    assert!(!path.exists(), "the old login is deleted, not kept around");
 }
 
 #[test]
-fn apply_supporter_probe_is_fail_soft() {
-    let mut auth = StoredAuth {
-        client_id: LAZER_CLIENT_ID.into(),
-        client_secret: LAZER_CLIENT_SECRET.into(),
-        redirect_uri: String::new(),
-        access_token: "tok".into(),
-        refresh_token: None,
-        expires_at: 0,
-        scopes: vec![],
-        supporter: None,
-    };
+fn load_keeps_a_login_from_any_other_client() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("auth.json");
+    std::fs::write(&path, serde_json::to_string(&stored("own-app")).unwrap()).unwrap();
+    let _auth = TempEnvVar::set(AUTH_ENV_PATH, path.to_str().unwrap());
 
     assert_eq!(
-        apply_supporter_probe(&mut auth, &MeProbe::Unreachable),
-        None,
-        "an unreachable probe answers nothing, not a confirmed false"
+        load().map(|auth| auth.client_id).as_deref(),
+        Some("own-app")
     );
-    assert_eq!(
-        auth.supporter, None,
-        "an unreachable probe must not claim a status"
-    );
-
-    assert_eq!(
-        apply_supporter_probe(&mut auth, &MeProbe::Unauthorized),
-        None,
-        "a pending-verification probe answers nothing"
-    );
-    assert_eq!(
-        auth.supporter, None,
-        "a pending-verification probe must not claim a status"
-    );
-
-    assert_eq!(
-        apply_supporter_probe(
-            &mut auth,
-            &MeProbe::Ok(MeResponse {
-                is_supporter: true,
-                session_verified: None,
-                session_verification_method: None,
-            }),
-        ),
-        Some(true)
-    );
-    assert_eq!(auth.supporter, Some(true));
-
-    assert_eq!(
-        apply_supporter_probe(&mut auth, &MeProbe::Unreachable),
-        None,
-        "silence after a confirmed true is still silence — a caller acting on \
-         this would revoke supporter features on a flaky network"
-    );
-    assert_eq!(
-        auth.supporter,
-        Some(true),
-        "a later failed probe must not overwrite a previously confirmed status"
-    );
-
-    // A server that answers `false` IS an answer: supporter expires, and the
-    // gate has to close for a real revocation as well as open for a real grant.
-    assert_eq!(
-        apply_supporter_probe(
-            &mut auth,
-            &MeProbe::Ok(MeResponse {
-                is_supporter: false,
-                session_verified: None,
-                session_verification_method: None,
-            }),
-        ),
-        Some(false),
-        "a confirmed false must be distinguishable from an unanswered probe"
-    );
-    assert_eq!(auth.supporter, Some(false));
+    assert!(path.exists());
 }

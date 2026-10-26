@@ -658,24 +658,6 @@ fn config_render_shows_strict_help_only_when_strict_selected() {
 }
 
 #[test]
-fn config_render_shows_auth_chip() {
-    let mut app = App::new(Config::default());
-    app.active_tab = Tab::Config;
-    app.config.focus = ConfigField::AuthChip;
-
-    let output = render_app(&app, 80, 24);
-
-    assert!(
-        output.contains("logged out")
-            || output.contains("logged in")
-            || output.contains("login unavailable"),
-        "auth chip must render auth state: {output}"
-    );
-    assert!(!output.contains("client id:"));
-    assert!(!output.contains("client secret:"));
-}
-
-#[test]
 fn download_render_shows_status_metrics_and_results() {
     let mut app = App::new(Config::default());
     let mut page = CollectionPage::new(1, "ranked maps".to_string(), 2);
@@ -933,7 +915,6 @@ fn letter_key_on_config_toggle_row_is_inert() {
 
     let mut app = App::new(Config::default());
     app.active_tab = Tab::Config;
-    // focus is a mirror toggle by default — not the auth chip.
     let key = KeyEvent {
         code: KeyCode::Char('l'),
         modifiers: KeyModifiers::empty(),
@@ -944,56 +925,6 @@ fn letter_key_on_config_toggle_row_is_inert() {
     assert!(
         cmd.is_none(),
         "a letter on a config toggle row issues no command"
-    );
-    assert!(app.login.is_none(), "a letter must not open the login tab");
-}
-
-#[test]
-fn auth_chip_is_reachable_via_focus_cycle() {
-    use crate::app::ConfigField;
-    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
-
-    let mut app = App::new(Config::default());
-    app.active_tab = Tab::Config;
-
-    let down = KeyEvent {
-        code: KeyCode::Down,
-        modifiers: KeyModifiers::empty(),
-        kind: KeyEventKind::Press,
-        state: KeyEventState::empty(),
-    };
-
-    // cycle through all fields and check that AuthChip is reachable
-    // (bound is comfortably above the field count; the loop breaks on reach)
-    let mut found_chip = false;
-    for _ in 0..50 {
-        if app.config.focus == ConfigField::AuthChip {
-            found_chip = true;
-            break;
-        }
-        app.handle_key(down);
-    }
-    assert!(
-        found_chip,
-        "AuthChip field must be reachable via down-arrow navigation"
-    );
-}
-
-#[test]
-fn auth_chip_renders_when_focused() {
-    use crate::app::ConfigField;
-
-    let mut app = App::new(Config::default());
-    app.active_tab = Tab::Config;
-    app.config.focus = ConfigField::AuthChip;
-
-    let output = render_app(&app, 120, 30);
-    assert!(
-        output.contains("logged out")
-            || output.contains("logged in")
-            || output.contains("logging in")
-            || output.contains("login unavailable"),
-        "AuthChip must render a visible auth state label"
     );
 }
 
@@ -2140,12 +2071,10 @@ fn compact_config_renders_without_panic() {
         !output.contains("DISPLAY"),
         "section headers must be hidden in compact config"
     );
-    // auth chip still visible
+    // the focused first row still renders
     assert!(
-        output.contains("logged out")
-            || output.contains("logged in")
-            || output.contains("login unavailable"),
-        "auth chip must still appear in compact config: {output}"
+        output.contains("theme"),
+        "the theme row must still appear in compact config: {output}"
     );
 }
 

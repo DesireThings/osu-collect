@@ -1,6 +1,6 @@
 use crate::app::{
-    App, ConfigField, ConfigTab, EnrichSink, FindBackend, GetMapsSource, HomeField, HomeTab,
-    LoginField, Tab, messages::AppMessage,
+    App, ConfigTab, EnrichSink, FindBackend, GetMapsSource, HomeField, HomeTab, Tab,
+    messages::AppMessage,
 };
 use crate::download::DownloadStage;
 use crate::osu_db::OsuClient;
@@ -30,9 +30,6 @@ const QUIT_PROMPT_TEXT_DOWNLOADS: &str = "press [q] again to quit · active down
 /// Downloads preview, run still in flight: `q` cancels it (esc/← only ascend).
 /// Must stay advertised — `q` is destructive here.
 const HINT_CANCEL: &str = "q cancel";
-/// `esc`/`q` close key for the login split. `x` stays toast-only (a
-/// notification key, not a page action) so it isn't a back key.
-const HINT_CLOSE: &str = "esc / q close";
 const HINT_RETRY: &str = "r retry failed";
 /// `d` deletes the highlighted Downloads entry (history record or settled run).
 const HINT_DELETE: &str = "d delete";
@@ -73,7 +70,6 @@ const HINT_FIND: &str = "↵ find";
 const HINT_MORE: &str = "m more";
 const HINT_ENTER_TOGGLE: &str = "↵ toggle";
 const HINT_ENTER_OPEN: &str = "↵ open";
-const HINT_ENTER_CONFIRM: &str = "↵ confirm";
 const HINT_ENTER_DOWNLOAD: &str = "↵ download";
 /// Update source's scan CTA (form focus): run the scan / descend into the browse.
 const HINT_SCAN: &str = "↵ scan";
@@ -207,8 +203,6 @@ fn current_message(app: &App) -> Option<&AppMessage> {
         // sources use the shared home message.
         Tab::Home if app.home.source == GetMapsSource::Update => app.home.update.message.as_ref(),
         Tab::Home => app.home.message.as_ref(),
-        // The login split lives on Config and surfaces its in-progress status
-        // via `config.message`, so the Config arm covers it too.
         Tab::Config => app.config.message.as_ref(),
         Tab::Downloads => None,
     }
@@ -239,12 +233,8 @@ fn hint_segments(app: &App) -> Vec<HintSegment> {
     let (context, back) = tab_hints(app);
     let mut segments: Vec<HintSegment> = context.into_iter().map(HintSegment::context).collect();
     // App-global hints sit in the middle, ahead of the universal tail: `c`
-    // (any tab), `u` (an update is pending), `x` (a toast is visible). `c` is
-    // suppressed while the login split traps focus — it is gated
-    // `login.is_none()` there, so advertising it would promise a dead key.
-    if !app.login_open() {
-        segments.push(HintSegment::global(HINT_SWITCH_CLIENT, RANK_SWITCH_CLIENT));
-    }
+    // (any tab), `u` (an update is pending), `x` (a toast is visible).
+    segments.push(HintSegment::global(HINT_SWITCH_CLIENT, RANK_SWITCH_CLIENT));
     if app.available_update.is_some() && !app.home.update.is_browsing() {
         segments.push(HintSegment::global(HINT_UPDATE, RANK_UPDATE));
     }
@@ -345,27 +335,11 @@ fn trim_to_fit(segments: &mut Vec<HintSegment>, budget: usize) {
 /// and the global hints are layered on by [`hint_for`]; this returns only the
 /// tab-specific action segments and which back/quit key (if any) trails the bar.
 fn tab_hints(app: &App) -> (Vec<&'static str>, Option<&'static str>) {
-    // The login split traps focus while open; its keys own the bar (esc/q close).
-    if app.login_open() {
-        return (login_hints(app), Some(HINT_CLOSE));
-    }
     match app.active_tab() {
         Tab::Home => home_tab_hints(app),
         Tab::Config => (config_hints(&app.config), Some(HINT_QUIT)),
         Tab::Downloads => downloads_hints(app),
     }
-}
-
-fn login_hints(app: &App) -> Vec<&'static str> {
-    let mut segments = vec![HINT_MOVE];
-    if let Some(login) = app.login.as_ref() {
-        match login.focus {
-            LoginField::Submit | LoginField::Resend => segments.push(HINT_ENTER_CONFIRM),
-            field if field.is_text_input() => segments.push(HINT_EDIT),
-            _ => {}
-        }
-    }
-    segments
 }
 
 /// Downloads-tab middle hints + trailing back key.
@@ -599,7 +573,6 @@ fn update_source_hints(form: &HomeTab) -> (Vec<&'static str>, Option<&'static st
 fn config_hints(config: &ConfigTab) -> Vec<&'static str> {
     let mut segments = vec![HINT_MOVE];
     match config.focus {
-        ConfigField::AuthChip => segments.push(HINT_ENTER_CONFIRM),
         field if field.is_stepper() => segments.push(HINT_PLUS_MINUS),
         field if field.is_text_input() => segments.push(HINT_EDIT),
         _ => segments.push(HINT_ENTER_TOGGLE),

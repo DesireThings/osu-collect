@@ -69,7 +69,7 @@ impl HttpSearchService {
         // this grant ("client is missing owner", probed live 2026-07-05).
         let (Some(client_id), Some(client_secret)) = (OSU_CLIENT_ID, OSU_CLIENT_SECRET) else {
             return Err(AppError::api(
-                "log in to search (no search credentials in this build)",
+                "osu! search needs API credentials, which this build doesn't have",
             ));
         };
 

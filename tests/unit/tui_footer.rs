@@ -1,8 +1,7 @@
 use super::super::{SPINNER_FRAMES_PADDED, spinner_str};
 use super::{hint_for, hint_line};
 use crate::app::{
-    App, ConfigField, HomeField, LoginTab, Tab, collection::CollectionPage,
-    collection::FailureReason,
+    App, ConfigField, HomeField, Tab, collection::CollectionPage, collection::FailureReason,
 };
 use crate::config::Config;
 use crate::download::{DownloadId, DownloadStage, FailedMap};
@@ -304,26 +303,6 @@ fn config_footer_advertises_reorder_only_on_a_builtin_mirror_row() {
         !hint_for(&app).contains("reorder"),
         "a non-mirror row must not advertise reorder, got: {}",
         hint_for(&app)
-    );
-}
-
-#[test]
-fn footer_hint_drops_switch_client_while_login_split_is_open() {
-    let mut app = App::new(Config::default());
-    app.active_tab = Tab::Config;
-    app.login = Some(LoginTab::new(false));
-
-    let hint = hint_for(&app);
-    // `c` is gated `login.is_none()` while the login split traps focus, so the
-    // bar must not promise it. The close and help affordances still apply.
-    assert!(
-        !hint.contains("switch client"),
-        "login split must not advertise `c switch client`, got: {hint}"
-    );
-    assert!(hint.contains("close"), "login must advertise close: {hint}");
-    assert!(
-        hint.contains("? help"),
-        "login must still advertise help: {hint}"
     );
 }
 

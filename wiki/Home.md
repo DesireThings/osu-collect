@@ -13,4 +13,4 @@ New here? Start with [Installation](Installation), then [Usage](Usage).
 | [Importing into osu!](Importing-into-osu) | Getting the maps + `collection.db` into lazer or stable |
 | [Keybindings](Keybindings) | Every key, including the vim keymap |
 | [Configuration](Configuration) | `config.toml` locations, every key with its default |
-| [Mirrors](Mirrors) | Built-in mirror list, rate-limit handling, custom mirrors, osu! login |
+| [Mirrors](Mirrors) | Built-in mirror list, rate-limit handling, custom mirrors |

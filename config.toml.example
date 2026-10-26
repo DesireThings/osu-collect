@@ -14,7 +14,7 @@ osudl = true
 catboy = true
 # server-side cascade that races the other mirrors; redundant alongside them
 hinamizawa = false
-# needs a logged-in osu! account (config tab); 10–20 downloads/hour
+# unused: osu! only lets its own lazer client download, so this stays off
 osu_official = false
 # a solo dev's free instance; coverage is what its backend has cached
 nzbasic = false
@@ -27,9 +27,6 @@ nzbasic = false
 # easier edited on the config tab (shift+up/down) — unknown keys are dropped,
 # missing built-ins appended, so it can never hide a mirror
 # order = ["osu.direct", "api.nerinyan.moe"]
-
-# login credentials for the official mirror are stored in auth.json next to
-# this file, not here
 
 [download]
 # parallel downloads; defaults to your CPU core count when unset

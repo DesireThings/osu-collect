@@ -38,10 +38,7 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tracing::{debug, info, trace, warn};
 
-use auth::{
-    AuthEvent, handle_auth_event, spawn_lazer_login_task, spawn_logout_task, spawn_reissue_task,
-    spawn_supporter_refresh_task, spawn_verification_task,
-};
+use auth::{AuthEvent, handle_auth_event, spawn_supporter_refresh_task};
 use cover::schedule_cover_fetch;
 use details::{HomeDetailsEvent, handle_home_details_event, schedule_details};
 use enrich::{enrich_sink_mut, schedule_enrichment};
@@ -328,7 +325,6 @@ pub async fn run(
     let mut should_quit = false;
     let mut active_downloads: HashMap<DownloadId, DownloadHandle> = HashMap::new();
     let mut tasks = BackgroundTasks {
-        login: None,
         resolve: None,
         resolve_cancel: None,
         home_resolve_tx,
@@ -414,7 +410,6 @@ pub async fn run(
             &mut app,
             &download_tx,
             &updates_tx,
-            &auth_tx,
             &update_tx,
             &mut active_downloads,
             &mut tasks,
@@ -448,7 +443,6 @@ pub async fn run(
                 &mut app,
                 &download_tx,
                 &updates_tx,
-                &auth_tx,
                 &update_tx,
                 &mut active_downloads,
                 &mut tasks,
@@ -456,9 +450,6 @@ pub async fn run(
         }
     }
 
-    if let Some(handle) = tasks.login.take() {
-        handle.abort();
-    }
     if let Some(handle) = tasks.resolve.take() {
         handle.abort();
     }
@@ -521,7 +512,6 @@ fn apply_event(
     app: &mut App,
     download_tx: &mpsc::UnboundedSender<DownloadEvent>,
     updates_tx: &mpsc::UnboundedSender<UpdatesEvent>,
-    auth_tx: &mpsc::UnboundedSender<AuthEvent>,
     update_tx: &mpsc::UnboundedSender<UpdateEvent>,
     downloads: &mut HashMap<DownloadId, DownloadHandle>,
     tasks: &mut BackgroundTasks,
@@ -553,7 +543,6 @@ fn apply_event(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -561,15 +550,6 @@ fn apply_event(
         }
         LoopEvent::Auth(event) => {
             trace!(?event, "Received auth event");
-            // Clear the stored handle once its task reports completion.
-            // Reissue + logout are fire-and-forget (never stored), so a
-            // queued ReissueComplete must not wipe a live login/verify handle.
-            if matches!(
-                event,
-                AuthEvent::LazerLoginComplete(_) | AuthEvent::VerificationComplete(_)
-            ) {
-                tasks.login = None;
-            }
             handle_auth_event(event, app);
         }
         LoopEvent::Input(input) => {
@@ -579,7 +559,6 @@ fn apply_event(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -599,7 +578,6 @@ fn apply_event(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -615,7 +593,6 @@ fn apply_event(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -636,7 +613,6 @@ fn apply_event(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -672,7 +648,6 @@ fn handle_input(
     app: &mut App,
     download_tx: &mpsc::UnboundedSender<DownloadEvent>,
     updates_tx: &mpsc::UnboundedSender<UpdatesEvent>,
-    auth_tx: &mpsc::UnboundedSender<AuthEvent>,
     update_tx: &mpsc::UnboundedSender<UpdateEvent>,
     downloads: &mut HashMap<DownloadId, DownloadHandle>,
     tasks: &mut BackgroundTasks,
@@ -683,7 +658,6 @@ fn handle_input(
             app,
             download_tx,
             updates_tx,
-            auth_tx,
             update_tx,
             downloads,
             tasks,
@@ -695,7 +669,6 @@ fn handle_input(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -713,7 +686,6 @@ fn handle_input(
                 app,
                 download_tx,
                 updates_tx,
-                auth_tx,
                 update_tx,
                 downloads,
                 tasks,
@@ -728,7 +700,6 @@ fn handle_key_event(
     app: &mut App,
     download_tx: &mpsc::UnboundedSender<DownloadEvent>,
     updates_tx: &mpsc::UnboundedSender<UpdatesEvent>,
-    auth_tx: &mpsc::UnboundedSender<AuthEvent>,
     update_tx: &mpsc::UnboundedSender<UpdateEvent>,
     downloads: &mut HashMap<DownloadId, DownloadHandle>,
     tasks: &mut BackgroundTasks,
@@ -746,7 +717,6 @@ fn handle_key_event(
         app,
         download_tx,
         updates_tx,
-        auth_tx,
         update_tx,
         downloads,
         tasks,
@@ -762,7 +732,6 @@ fn dispatch_command(
     app: &mut App,
     download_tx: &mpsc::UnboundedSender<DownloadEvent>,
     updates_tx: &mpsc::UnboundedSender<UpdatesEvent>,
-    auth_tx: &mpsc::UnboundedSender<AuthEvent>,
     update_tx: &mpsc::UnboundedSender<UpdateEvent>,
     downloads: &mut HashMap<DownloadId, DownloadHandle>,
     tasks: &mut BackgroundTasks,
@@ -815,32 +784,6 @@ fn dispatch_command(
                 handle.skip_rate_limited();
                 info!(download_id = id, "Dropping rate-limited maps");
             }
-        }
-        Some(AppCommand::LazerLogin { username, password }) => {
-            if let Some(prev) = tasks.login.take() {
-                prev.abort();
-            }
-            tasks.login = Some(spawn_lazer_login_task(username, password, auth_tx.clone()));
-        }
-        Some(AppCommand::SubmitVerification { code }) => {
-            if let Some(prev) = tasks.login.take() {
-                prev.abort();
-            }
-            tasks.login = Some(spawn_verification_task(code, auth_tx.clone()));
-        }
-        Some(AppCommand::ReissueVerification) => {
-            // Fire-and-forget: do not occupy `tasks.login`, so it can't clobber
-            // or be clobbered by an in-flight login / verify handle.
-            spawn_reissue_task(auth_tx.clone());
-        }
-        Some(AppCommand::CancelLogin) => {
-            if let Some(handle) = tasks.login.take() {
-                handle.abort();
-                info!("Login cancelled by user");
-            }
-        }
-        Some(AppCommand::Logout) => {
-            spawn_logout_task(auth_tx.clone());
         }
         Some(AppCommand::CancelResolve) => {
             cancel_resolve(&mut tasks.resolve, &mut tasks.resolve_cancel);
@@ -1084,7 +1027,6 @@ pub enum InputEvent {
 
 /// Background task handles and their associated channels, kept by the runtime loop.
 struct BackgroundTasks {
-    login: Option<tokio::task::JoinHandle<()>>,
     resolve: Option<tokio::task::JoinHandle<()>>,
     resolve_cancel: Option<tokio::sync::watch::Sender<bool>>,
     home_resolve_tx: mpsc::UnboundedSender<HomeResolveEvent>,

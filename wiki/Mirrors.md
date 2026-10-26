@@ -15,7 +15,6 @@ Downloads rotate across every enabled mirror.
 | catboy.best | `catboy.best` | on | |
 | Hinamizawa | `mirror.hinamizawa.ai` | off | Races the other mirrors server-side, enable if you're hitting rate limits |
 | nzbasic CDN | `direct.nzbasic.com` | off | A solo developer's free instance; coverage is what its backend has cached |
-| osu! official | `osu.ppy.sh` | off | Needs osu! login (below) |
 
 ## Managing mirrors
 
@@ -32,13 +31,6 @@ The config tab is the mirror editor: toggle each built-in on or off, reorder the
 
 Add your own on the config tab: each URL template must contain the `{id}` placeholder (for example `https://example.com/d/{id}`). A new empty row appears as you type; clearing a row removes it. Custom mirrors are tried after the built-ins, in list order. The matching config key is `mirror.urls` ([Configuration](Configuration#mirror)).
 
-## Logging in with your osu! account
+## osu! official
 
-Logging in is optional. It enables the **osu! official** mirror, plus the supporter-only find filters when the account carries osu!supporter ([Finding maps](Finding-Maps#supporter-only-filters)). The account row on the config tab opens a login panel docked on the right, where you enter your osu! username and password (masked). It closes on <kbd>esc</kbd> or a tab switch.
-
-Once logged in the account row reads `logged in`, with `· supporter` appended when the account has it. The status is re-checked in the background each launch, so gaining or losing supporter shows up without logging out.
-
-The login goes through osu!lazer's first-party client, the only client allowed to request beatmap-download privilege. If osu! needs to verify a new device, the panel prompts for the emailed code. Your password is sent only to `osu.ppy.sh` and never stored; only the resulting token lives in a local `auth.json`.
-
-> [!WARNING]
-> osu!lazer's first-party login is an unofficial grey area. The osu! official mirror is rate-limited (roughly 10 to 20 downloads per hour) and stays off by default; keep it as a last resort. Requests to osu! are throttled automatically (about one per second, shared across all download threads), but the hourly download cap still applies and shows up as a temporary rate-limit when reached.
+osu!collect doesn't download from osu!'s own servers and never asks for your osu! login. osu! only lets its own lazer client download beatmaps, and osu! hasn't given other apps permission to sign in as that client. Earlier versions did; if one of them left a login behind, it is deleted on the next start.

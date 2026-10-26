@@ -24,7 +24,7 @@ Built-in mirror toggles. Hosts and what each mirror is good at: [Mirrors](Mirror
 | `catboy` | `true` | |
 | `hinamizawa` | `false` | |
 | `nzbasic` | `false` | |
-| `osu_official` | `false` | Needs osu! login ([Mirrors](Mirrors#logging-in-with-your-osu-account)) |
+| `osu_official` | `false` | Unused; see [Mirrors](Mirrors#osu-official) |
 | `urls` | `[]` | Custom mirror URL templates, each containing `{id}`. Tried after the built-ins, in list order |
 | `order` | `[]` | Try-order for the built-ins as host keys (reorder on the config tab with <kbd>⇧</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd>). Unknown keys are dropped, missing built-ins are appended |
 

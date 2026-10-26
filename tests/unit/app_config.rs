@@ -144,38 +144,6 @@ fn logout_sets_loading_message() {
 }
 
 #[test]
-fn next_field_cycles_through_auth_chip() {
-    let mut tab = tab_logged_in();
-    tab.focus = ConfigField::Prereleases;
-    tab.next_field();
-    assert_eq!(tab.focus, ConfigField::AuthChip);
-    tab.next_field();
-    assert_eq!(tab.focus, ConfigField::Theme);
-    tab.next_field();
-    assert_eq!(tab.focus, ConfigField::VimKeys);
-    tab.next_field();
-    assert_eq!(tab.focus, ConfigField::JumpToDownloads);
-    tab.next_field();
-    assert_eq!(tab.focus, ConfigField::MirrorOsuDirect);
-}
-
-#[test]
-fn prev_field_cycles_through_auth_chip() {
-    let mut tab = tab_logged_in();
-    tab.focus = ConfigField::MirrorOsuDirect;
-    tab.prev_field();
-    assert_eq!(tab.focus, ConfigField::JumpToDownloads);
-    tab.prev_field();
-    assert_eq!(tab.focus, ConfigField::VimKeys);
-    tab.prev_field();
-    assert_eq!(tab.focus, ConfigField::Theme);
-    tab.prev_field();
-    assert_eq!(tab.focus, ConfigField::AuthChip);
-    tab.prev_field();
-    assert_eq!(tab.focus, ConfigField::Prereleases);
-}
-
-#[test]
 fn jump_to_downloads_defaults_on_and_round_trips() {
     let mut tab = tab_logged_in();
     assert!(tab.jump_to_downloads, "default is jump to downloads");
@@ -190,16 +158,6 @@ fn jump_to_downloads_defaults_on_and_round_trips() {
         ConfigTab::new(&Config::default()).jump_to_downloads,
         "absent config key stays on"
     );
-}
-
-#[test]
-fn auth_chip_present_when_logged_out() {
-    let mut tab = tab_logged_out();
-    tab.focus = ConfigField::AuthChip;
-    tab.next_field();
-    assert_eq!(tab.focus, ConfigField::Theme);
-    tab.prev_field();
-    assert_eq!(tab.focus, ConfigField::AuthChip);
 }
 
 #[test]

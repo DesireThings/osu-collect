@@ -15,7 +15,6 @@ pub mod home;
 pub mod ignored_maps;
 pub mod library;
 pub mod library_cache;
-pub mod login;
 pub mod messages;
 pub mod runtime;
 pub mod snapshots;
@@ -38,7 +37,6 @@ pub use find_source::{
 };
 pub use home::{FindBackend, GetMapsSource, HomeField, HomeTab, InputField, ResolveState};
 pub use library::LibraryState;
-pub use login::{LoginField, LoginPhase, LoginTab};
 pub use runtime::run as run_app;
 pub use state::{App, AppCommand, UpdateIndicator};
 pub use tab::Tab;

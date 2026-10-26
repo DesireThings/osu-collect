@@ -129,12 +129,7 @@ const HOME_TAB: &[HelpRow] = &[
     HelpRow::new("r", "recheck failed (update)"),
 ];
 
-const CONFIG_TAB: &[HelpRow] = &[HelpRow::new("↵ (account row)", "open login")];
-
-const LOGIN_TAB: &[HelpRow] = &[
-    HelpRow::new("↵", "edit field / submit"),
-    HelpRow::new("esc / q", "close login"),
-];
+const CONFIG_TAB: &[HelpRow] = &[];
 
 const DOWNLOADS_TAB: &[HelpRow] = &[
     HelpRow::new("↵", "open run / expand failed"),
@@ -173,10 +168,9 @@ pub(crate) fn render_help_overlay(
     area: Rect,
     scroll: usize,
     active_tab: Tab,
-    login_open: bool,
     vim_keys: bool,
 ) -> usize {
-    let lines = build_help_lines(active_tab, login_open, vim_keys);
+    let lines = build_help_lines(active_tab, vim_keys);
     let content_w = lines.iter().map(line_width).max().unwrap_or(0);
     let items: Vec<ListItem<'static>> = lines.into_iter().map(ListItem::new).collect();
 
@@ -430,15 +424,11 @@ fn button_spans(buttons: &[&'static str], focus: usize) -> Vec<Span<'static>> {
 
 /// Builds the help rows as measurable [`Line`]s: the always-shown `global`
 /// section plus only the section for the currently active tab.
-fn build_help_lines(active_tab: Tab, login_open: bool, vim_keys: bool) -> Vec<Line<'static>> {
-    let (heading, rows) = if login_open {
-        ("login", LOGIN_TAB)
-    } else {
-        match active_tab {
-            Tab::Home => ("get maps", HOME_TAB),
-            Tab::Downloads => ("downloads", DOWNLOADS_TAB),
-            Tab::Config => ("config", CONFIG_TAB),
-        }
+fn build_help_lines(active_tab: Tab, vim_keys: bool) -> Vec<Line<'static>> {
+    let (heading, rows) = match active_tab {
+        Tab::Home => ("get maps", HOME_TAB),
+        Tab::Downloads => ("downloads", DOWNLOADS_TAB),
+        Tab::Config => ("config", CONFIG_TAB),
     };
 
     let mut lines = Vec::new();
@@ -447,10 +437,13 @@ fn build_help_lines(active_tab: Tab, login_open: bool, vim_keys: bool) -> Vec<Li
         lines.push(Line::from(""));
         push_section(&mut lines, "vim", VIM);
     }
-    lines.push(Line::from(""));
-    push_section(&mut lines, heading, rows);
+    // Config has no keys of its own beyond the global ones.
+    if !rows.is_empty() {
+        lines.push(Line::from(""));
+        push_section(&mut lines, heading, rows);
+    }
     // The numeric filter grammar is Get Maps-only, so it rides the home section.
-    if active_tab == Tab::Home && !login_open {
+    if active_tab == Tab::Home {
         lines.push(Line::from(""));
         push_section(&mut lines, "filter syntax", FILTER_SYNTAX);
     }

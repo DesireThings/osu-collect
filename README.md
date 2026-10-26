@@ -132,13 +132,13 @@ See [config.toml.example](config.toml.example) and [Configuration](https://githu
 ## FAQ
 
 **How do I download an osu!collector collection for free?**
-Run osu!collect, paste the collection URL, press <kbd>↵</kbd>. Downloads come from public beatmap mirrors, or the official servers if you log in. No subscription needed.
+Run osu!collect, paste the collection URL, press <kbd>↵</kbd>. Downloads come from public beatmap mirrors. No subscription needed.
 
 **Does it work with osu! lazer?**
 Yes. See [Importing into osu!](#importing-into-osu). The generated `collection.db` imports through lazer's "first-time-setup".
 
 **Do I need an osu! account?**
-No. Logging in is optional; it adds the official osu! servers and unlocks two find filters osu! only honors for supporter accounts (achieved rank, played).
+No. osu!collect never asks for your osu! login.
 
 ## Documentation
 

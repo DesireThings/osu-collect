@@ -39,7 +39,7 @@ bash tests/api-scripts/test_osucollector.sh
 | nekoha | `https://mirror.nekoha.moe/api/download/{id}` | same |
 | beatconnect | `https://beatconnect.io/b/{id}/` | same (anon, 301 → CDN) |
 | hinamizawa | `https://mirror.hinamizawa.ai/api/v1/hinai/d/{id}` | same (cascade) |
-| osu! official | `https://osu.ppy.sh/api/v2/beatmapsets/{id}/download` | n/a — needs a `lazer`-scope user token (see `test_osu_official.sh`) |
+| osu! official | `https://osu.ppy.sh/api/v2/beatmapsets/{id}/download` | n/a — only osu!lazer's own client can download; not used by this app |
 
 ## fixture data
 
@@ -51,4 +51,4 @@ bash tests/api-scripts/test_osucollector.sh
 - mirrors that return `429` (rate limited) or `502/503/504` (server error) are skipped, not failed — these are transient upstream conditions
 - sayobot intermittently returns 504; this is a known upstream issue
 - beatconnect downloads anonymously via `/b/{id}/` (301 → CDN); its JSON API is patreon-gated and not used by the program
-- `test_osu_official.sh` SKIPs unless `OSU_CLIENT_ID` / `OSU_CLIENT_SECRET` are exported. It asserts the download endpoint stays gated (401/403) for a `client_credentials` token — the program can only download from osu! official with a user `lazer`-scope token (interactive OAuth login)
+- `test_osu_official.sh` SKIPs unless `OSU_CLIENT_ID` / `OSU_CLIENT_SECRET` are exported. It asserts the download endpoint stays gated (401/403) for a `client_credentials` token — only osu!lazer's own client gets a token that can download, and this app doesn't use it

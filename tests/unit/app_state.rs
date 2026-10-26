@@ -662,7 +662,7 @@ fn osu_official_stays_dead_with_a_narrow_scope_token() {
     // A token that loads fine but carries only `public` scope — no download
     // privilege. Built through `StoredAuth` so a field rename is a compile error.
     let narrow = StoredAuth {
-        client_id: "5".to_string(),
+        client_id: "own-app".to_string(),
         client_secret: "secret".to_string(),
         redirect_uri: String::new(),
         access_token: "token".to_string(),
