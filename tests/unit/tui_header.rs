@@ -69,8 +69,9 @@ fn client_chip_renders_after_version() {
 
 #[test]
 fn client_chip_label_breathes_with_tick() {
-    // The label color must respond to the tick (the breathing glow). The `b` of
-    // "stable" is unique in the header, so it isolates the label from the brand.
+    // The label color must respond to the tick (the breathing glow). Read the
+    // `b` of "stable" itself: the brand has no `b`, but a beta version ("v0.1.0-
+    // beta.1", rendered left of the chip) does.
     let label_fg = |tick: u64| {
         let tabs: Vec<std::borrow::Cow<'static, str>> =
             ["home"].map(std::borrow::Cow::Borrowed).into();
@@ -94,10 +95,11 @@ fn client_chip_label_breathes_with_tick() {
             })
             .expect("render");
         let buf = terminal.backend().buffer().clone();
+        let label = ["s", "t", "a", "b", "l", "e"];
         buf.content
-            .iter()
-            .find(|c| c.symbol() == "b")
-            .and_then(|c| c.style().fg)
+            .windows(label.len())
+            .find(|cells| cells.iter().map(|c| c.symbol()).eq(label))
+            .and_then(|cells| cells[3].style().fg)
     };
     // A quarter-period apart (period is 80 ticks) → different breath depth.
     let a = label_fg(0);
