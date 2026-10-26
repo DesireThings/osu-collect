@@ -1,9 +1,11 @@
 // App-wide state that outlives a screen: the collections the user added, the
-// last update scan and what's picked from it, and the downloads the backend is
-// running. Switching pages in the sidebar keeps all of it.
+// last update scan and what's picked from it, the last search and its picks,
+// and the downloads the backend is running. Switching pages in the sidebar keeps all of it.
 import {
   cancelDownload,
+  downloadFound,
   downloadUpdates,
+  findMaps,
   listDownloads,
   onDownloadStatus,
   onScanProgress,
@@ -12,6 +14,9 @@ import {
   startDownload,
   type CollectionPreview,
   type DownloadStatus,
+  type FindCriteria,
+  type FindRoute,
+  type FindRow,
   type ScanProgress,
   type UpdateReport,
 } from "./api";
@@ -39,6 +44,21 @@ export const store = $state({
     downloadError: null as string | null,
     /** A download was started from this scan; check again before the next. */
     downloaded: false,
+  },
+  find: {
+    /** The form as edited; null until the options load. */
+    criteria: null as FindCriteria | null,
+    searching: false,
+    loadingMore: false,
+    error: null as string | null,
+    /** The form as it was when the shown results were searched. */
+    searched: null as FindCriteria | null,
+    route: null as FindRoute | null,
+    rows: [] as FindRow[],
+    total: 0,
+    nextCursor: null as string | null,
+    picked: [] as number[],
+    downloadError: null as string | null,
   },
 });
 
@@ -184,5 +204,77 @@ export async function downloadPickedUpdates() {
     u.downloaded = true;
   } catch (e) {
     u.downloadError = String(e);
+  }
+}
+
+/** The newest find download, if any. */
+export function latestFindRun(): DownloadStatus | undefined {
+  let latest: DownloadStatus | undefined;
+  for (const status of Object.values(store.downloads)) {
+    if (status.kind === "find" && (!latest || status.id > latest.id)) latest = status;
+  }
+  return latest;
+}
+
+/** Search with the form as it is. Results start unticked: a search can match
+ * thousands of map sets, and the user picks what they want. */
+export async function search() {
+  const f = store.find;
+  if (!f.criteria || f.searching) return;
+  const criteria = $state.snapshot(f.criteria);
+  f.searching = true;
+  f.error = null;
+  f.downloadError = null;
+  try {
+    const page = await findMaps(criteria);
+    f.searched = criteria;
+    f.route = page.route;
+    f.rows = page.rows;
+    f.total = page.total;
+    f.nextCursor = page.next_cursor;
+    f.picked = [];
+  } catch (e) {
+    f.error = String(e);
+  } finally {
+    f.searching = false;
+  }
+}
+
+/** The next page of the shown results (osu! API only). */
+export async function loadMore() {
+  const f = store.find;
+  if (!f.searched || !f.nextCursor || f.loadingMore) return;
+  f.loadingMore = true;
+  f.error = null;
+  try {
+    const page = await findMaps(f.searched, f.nextCursor);
+    const known = new Set(f.rows.map((r) => r.id));
+    const fresh = page.rows.filter((r) => !known.has(r.id));
+    f.rows = [...f.rows, ...fresh];
+    f.nextCursor = page.next_cursor;
+  } catch (e) {
+    f.error = String(e);
+  } finally {
+    f.loadingMore = false;
+  }
+}
+
+export async function downloadPicked() {
+  const f = store.find;
+  if (!f.searched || !f.route) return;
+  f.downloadError = null;
+  const sizes: Record<number, number> = {};
+  for (const row of f.rows) {
+    if (row.size !== null && f.picked.includes(row.id)) sizes[row.id] = row.size;
+  }
+  try {
+    await downloadFound({
+      criteria: f.searched,
+      route: f.route,
+      beatmapset_ids: f.rows.filter((r) => f.picked.includes(r.id)).map((r) => r.id),
+      sizes,
+    });
+  } catch (e) {
+    f.downloadError = String(e);
   }
 }

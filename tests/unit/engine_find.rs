@@ -90,7 +90,11 @@ fn criteria_that_need_both_services_name_the_clash() {
     assert_eq!(result.route, None);
     let problem = result.problem.unwrap();
     assert!(
-        problem.contains("stream") && problem.contains("free text"),
+        problem.starts_with("Stream only works with nzbasic"),
+        "{problem}"
+    );
+    assert!(
+        problem.contains("free text only with the osu! API"),
         "{problem}"
     );
 }

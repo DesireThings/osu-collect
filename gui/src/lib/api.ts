@@ -90,13 +90,13 @@ export interface Failure {
   reason: string;
 }
 
-/** A whole collection, or the missing sets an update scan found. */
-export type RunKind = "collection" | "update";
+/** A whole collection, the missing sets an update scan found, or picked search results. */
+export type RunKind = "collection" | "update" | "find";
 
 export interface DownloadStatus {
   id: number;
   kind: RunKind;
-  /** Set for a collection run; null for an update, which can span several. */
+  /** Set for a collection run; null for the other kinds. */
   collection_id: number | null;
   name: string;
   phase: Phase;
@@ -174,3 +174,88 @@ export const scanUpdates = () => invoke<UpdateReport>("scan_updates");
 export const downloadUpdates = (pick: UpdatePick) => invoke<number>("download_updates", { pick });
 export const onScanProgress = (handler: (progress: ScanProgress) => void) =>
   listen<ScanProgress>("update-scan-progress", (event) => handler(event.payload));
+
+/** The find form. Choice fields are positions in the FindOptions lists. */
+export interface FindCriteria {
+  preset: number;
+  special: number;
+  mode: number;
+  status: number;
+  sort: number;
+  explicit: number;
+  genre: number;
+  language: number;
+  extra: number[];
+  query: string;
+  stars: string;
+  ar: string;
+  cs: string;
+  od: string;
+  hp: string;
+  bpm: string;
+  length: string;
+  keys: string;
+  favourites: string;
+  ranked: string;
+  artist: string;
+  creator: string;
+  title: string;
+  limit: string;
+}
+
+export interface FindOptions {
+  presets: string[];
+  specials: string[];
+  modes: string[];
+  statuses: string[];
+  sorts: string[];
+  explicit: string[];
+  genres: string[];
+  languages: string[];
+  extras: string[];
+  defaults: FindCriteria;
+}
+
+/** osu!'s own search (needs the user's API app), or nzbasic's map database. */
+export type FindRoute = "osu" | "nzbasic";
+
+export interface FindCheck {
+  /** null when two criteria need different services. */
+  route: FindRoute | null;
+  problem: string | null;
+}
+
+export interface FindRow {
+  id: number;
+  /** Empty when nothing could be looked up for the set. */
+  title: string;
+  artist: string;
+  creator: string;
+  status: string;
+  stars: [number, number] | null;
+  difficulties: number;
+  favourites: number | null;
+  plays: number | null;
+  size: number | null;
+}
+
+export interface FindPage {
+  route: FindRoute;
+  rows: FindRow[];
+  total: number;
+  next_cursor: string | null;
+}
+
+export interface FindPick {
+  criteria: FindCriteria;
+  route: FindRoute;
+  beatmapset_ids: number[];
+  sizes: Record<number, number>;
+}
+
+export const findOptions = () => invoke<FindOptions>("find_options");
+export const findPreset = (preset: number) => invoke<FindCriteria>("find_preset", { preset });
+export const findCheck = (criteria: FindCriteria) => invoke<FindCheck>("find_check", { criteria });
+export const findMaps = (criteria: FindCriteria, cursor: string | null = null) =>
+  invoke<FindPage>("find_maps", { criteria, cursor });
+export const downloadFound = (pick: FindPick) => invoke<number>("download_found", { pick });

@@ -228,9 +228,9 @@ pub fn check(criteria: &FindCriteria) -> FindCheck {
     match source.resolved_route() {
         FindRoute::Conflict { nzbasic, osu } => FindCheck {
             route: None,
-            problem: Some(format!(
+            problem: Some(capitalise(&format!(
                 "{nzbasic} only works with nzbasic, and {osu} only with the osu! API. Change one of them."
-            )),
+            ))),
         },
         route => FindCheck {
             route: Some(if route == FindRoute::Nzbasic {
@@ -241,6 +241,14 @@ pub fn check(criteria: &FindCriteria) -> FindCheck {
             problem: source.build_plan(None).err(),
         },
     }
+}
+
+fn capitalise(text: &str) -> String {
+    let mut chars = text.chars();
+    chars
+        .next()
+        .map(|first| first.to_uppercase().chain(chars).collect())
+        .unwrap_or_default()
 }
 
 /// One map set in the results.

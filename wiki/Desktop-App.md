@@ -2,9 +2,9 @@
 
 The desktop app is a window with buttons and text boxes instead of keyboard shortcuts. It uses the same download engine, mirrors and `config.toml` as the terminal app, so settings changed in one show up in the other.
 
-Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections, updating the ones you downloaded, and getting them into osu!lazer. **find** is still terminal-only.
+Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections, finding maps without a collection, updating the collections you downloaded, and getting them into osu!lazer.
 
-The sidebar has three steps, then **Update collections** and Settings. You can go back to any of them at any time.
+The sidebar has three steps, then **Find maps**, **Update collections** and Settings. You can go back to any of them at any time.
 
 ## 1. Set up
 
@@ -38,6 +38,17 @@ Running **Prepare import folder** again after more downloads only adds what's ne
 
 **osu! stable**: not automatic yet. Drag the downloaded `.osz` files into osu!, then merge each folder's `collection.db` with [Collection Manager](https://github.com/Piotrekol/CollectionManager).
 
+## Find maps
+
+Searches for maps without a collection, like the terminal app's find; the two share their search rules, presets and download folders.
+
+1. Type a name (artist, title, mapper, tags) and/or set the dropdowns: **Preset**, **Mode**, **Status**, **Sort**. **More filters** has stars, AR, CS, OD, HP, BPM, length, keys, favourites, ranked date, artist, mapper, title and more. Numbers take `7`, `7+`, `<7` or a range like `5.5..7`.
+2. The line under the dropdowns says where the search goes. Most searches go to osu!, which needs your own osu! API app (**Settings → osu! API app**; see [Finding maps](Finding-Maps#your-osu-api-app)). With **Special** (farm, stream, ranked mapper) or sorting by BPM or length, it goes to nzbasic's map database, which needs nothing. When two filters need different services, the line says which and **Find** stays off.
+3. **Find** lists the results with their covers, stars, mapper and, on nzbasic, size. Nothing is ticked at first: tick what you want (or **Tick all**). On osu!, **Load more** fetches the next page.
+4. **Download N map sets** in the bar at the bottom downloads the ticked ones into `search-…` (osu!) or `filter-…` (nzbasic) inside your download folder, then import as usual.
+
+A preset (all ranked, loved, farm, stream, 7★+) resets the form and fills in its own filters, as in the terminal app.
+
 ## Update collections
 
 Checks the collections you downloaded with osu-collect for maps added on osu!collector since, and downloads only those. It reads the osu! install from **Set up**.
@@ -57,7 +68,7 @@ Mirror and download changes apply once you press **Save changes**; **Undo change
 
 | Card | What's in it |
 |---|---|
-| osu! API app | Your own osu! OAuth app (client ID and secret), only needed for the terminal app's find. Collections never need it. See [Finding maps](Finding-Maps#your-osu-api-app). |
+| osu! API app | Your own osu! OAuth app (client ID and secret), only needed for finding maps through osu!. Collections, updates and nzbasic searches never need it. See [Finding maps](Finding-Maps#your-osu-api-app). |
 | Mirrors | Turn the built-in mirrors on or off and change the order they're tried in; add your own mirror links (with `{id}` where the map set number goes). osu!'s own servers aren't offered: they need a login this app doesn't do. |
 | Downloads | Background videos, skip maps already in osu!, maps at once (automatic or 1–100), how long a map set waits on a busy mirror before it goes back in the queue to try later, and how strictly downloaded files are checked. |
 | About | The app's version, and **Show third-party licences**: the licences of everything built into the app (release builds only). |

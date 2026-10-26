@@ -2,8 +2,9 @@
 //! with errors flattened to strings the frontend can show as-is.
 
 use osu_collect::engine::{
-    self, CollectionPreview, DownloadOptions, DownloadStatus, Downloads, ImportFolderReport,
-    Installs, ScanProgress, Settings, UpdatePick, UpdateReport, Updates,
+    self, CollectionPreview, DownloadOptions, DownloadStatus, Downloads, FindCheck, FindCriteria,
+    FindOptions, FindPage, FindPick, ImportFolderReport, Installs, ScanProgress, Settings,
+    UpdatePick, UpdateReport, Updates,
 };
 use serde::Serialize;
 use std::{path::PathBuf, sync::Arc};
@@ -138,6 +139,35 @@ async fn download_updates(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn find_options() -> FindOptions {
+    engine::find::options()
+}
+
+#[tauri::command]
+fn find_preset(preset: usize) -> Result<FindCriteria, String> {
+    FindCriteria::with_preset(preset).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn find_check(criteria: FindCriteria) -> FindCheck {
+    engine::find::check(&criteria)
+}
+
+/// One page of results; `cursor` asks for the page after a previous one.
+#[tauri::command]
+async fn find_maps(criteria: FindCriteria, cursor: Option<String>) -> Result<FindPage, String> {
+    engine::find::find(&criteria, cursor)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Async so it runs on Tauri's Tokio runtime: queueing can start the pipeline.
+#[tauri::command]
+async fn download_found(pick: FindPick, downloads: State<'_, Downloads>) -> Result<u64, String> {
+    engine::find::download(&downloads, &pick).map_err(|e| e.to_string())
+}
+
 /// Result of building the lazer import folder, plus where it is.
 #[derive(Serialize)]
 struct LazerImportResult {
@@ -193,6 +223,11 @@ pub fn run() {
             list_downloads,
             scan_updates,
             download_updates,
+            find_options,
+            find_preset,
+            find_check,
+            find_maps,
+            download_found,
             third_party_licences,
         ])
         .run(tauri::generate_context!())
