@@ -50,7 +50,7 @@
   <section class="card">
     <h2>Get every collection into osu!lazer in one go</h2>
     <p>
-      osu!collect puts all your downloaded maps and collections into one folder. osu!lazer then
+      osu-collect puts all your downloaded maps and collections into one folder. osu!lazer then
       imports that folder in a single step, however many collections you downloaded.
     </p>
     <p class="muted small">

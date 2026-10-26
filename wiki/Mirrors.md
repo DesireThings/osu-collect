@@ -33,4 +33,4 @@ Add your own on the config tab: each URL template must contain the `{id}` placeh
 
 ## osu! official
 
-osu!collect doesn't download from osu!'s own servers and never asks for your osu! login. osu! only lets its own lazer client download beatmaps, and osu! hasn't given other apps permission to sign in as that client. Earlier versions did; if one of them left a login behind, it is deleted on the next start.
+osu-collect doesn't download from osu!'s own servers and never asks for your osu! login. osu! only lets its own lazer client download beatmaps, and osu! hasn't given other apps permission to sign in as that client. Earlier versions did; if one of them left a login behind, it is deleted on the next start.

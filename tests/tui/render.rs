@@ -161,7 +161,7 @@ fn no_caret_while_help_overlay_open() {
 fn home_renders_without_panic_standard() {
     let app = make_app();
     let content = render_content(&app, 120, 40);
-    assert!(content.contains("osu!collect"));
+    assert!(content.contains("osu-collect"));
 }
 
 #[test]

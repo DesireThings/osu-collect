@@ -25,7 +25,7 @@ The Windows installer needs no admin rights. It does the following:
 
 Download the binary for your OS from [Releases](https://github.com/DesireThings/osu-collect/releases/latest) and run it in a terminal.
 
-osu!collect runs in a terminal. On Windows a double click usually opens it too, though that's not guaranteed; Windows Terminal or PowerShell 7+ are recommended. If it doesn't start, open an [issue](https://github.com/DesireThings/osu-collect/issues/new/choose).
+osu-collect runs in a terminal. On Windows a double click usually opens it too, though that's not guaranteed; Windows Terminal or PowerShell 7+ are recommended. If it doesn't start, open an [issue](https://github.com/DesireThings/osu-collect/issues/new/choose).
 
 ## Install from source
 
@@ -37,11 +37,11 @@ cargo install --git https://github.com/DesireThings/osu-collect
 
 ## Self-updating
 
-osu!collect checks GitHub for a newer release on launch. With `update.auto_update = true` (the default) it downloads the release, verifies its checksum against the published one, then replaces itself. With `auto_update = false` it still checks and only notifies (toast + header indicator); press <kbd>u</kbd> to read the changelog and apply the update when you want. Opt into prerelease builds with `update.prereleases = true`. See [Configuration](Configuration#update).
+osu-collect checks GitHub for a newer release on launch. With `update.auto_update = true` (the default) it downloads the release, verifies its checksum against the published one, then replaces itself. With `auto_update = false` it still checks and only notifies (toast + header indicator); press <kbd>u</kbd> to read the changelog and apply the update when you want. Opt into prerelease builds with `update.prereleases = true`. See [Configuration](Configuration#update).
 
 ## Uninstall
 
-- **Windows**: Settings → Apps → Installed apps → **osu!collect** → Uninstall.
+- **Windows**: Settings → Apps → Installed apps → **osu-collect** → Uninstall.
 - **Linux / macOS**: `rm ~/.local/bin/osu-collect`
 
 Settings live in a separate config folder, run history in a data folder; delete both for a full cleanup (paths in [Configuration](Configuration#other-files)).

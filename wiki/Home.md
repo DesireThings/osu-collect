@@ -1,6 +1,6 @@
-# osu!collect wiki
+# osu-collect wiki
 
-Full reference for [osu!collect](https://github.com/DesireThings/osu-collect#readme), the terminal downloader for osu! beatmap collections.
+Full reference for [osu-collect](https://github.com/DesireThings/osu-collect#readme), the terminal downloader for osu! beatmap collections. It's an unofficial community tool, not made, endorsed or supported by ppy (osu!) or osu!Collector.
 
 New here? Start with [Installation](Installation), then [Usage](Usage).
 

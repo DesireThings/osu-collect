@@ -18,7 +18,7 @@ Rows group under `preset`, `filters` and `results` headings; the `advanced filte
 
 ## Supporter-only filters
 
-osu! has two more filters, `rank` and `played`, that only work for a logged-in osu!supporter account. osu!collect has no osu! login, so they don't appear. The other osu!-website facets, `explicit` in the filters block plus `genre`, `language`, `extra` at the top of `advanced filters`, work without supporter and always render.
+osu! has two more filters, `rank` and `played`, that only work for a logged-in osu!supporter account. osu-collect has no osu! login, so they don't appear. The other osu!-website facets, `explicit` in the filters block plus `genre`, `language`, `extra` at the top of `advanced filters`, work without supporter and always render.
 
 `extra` takes several values at once. Each of their chips shows `[x]` when picked and `[ ]` when not. Press <kbd>↵</kbd> or <kbd>space</kbd> to open the row: its gutter mark turns `✎` and a `❯` caret picks out one chip. <kbd>←</kbd> / <kbd>→</kbd> then walk the caret, <kbd>space</kbd> toggles the chip under it. <kbd>↵</kbd>, <kbd>esc</kbd> or <kbd>q</kbd> close the row again; <kbd>↑</kbd> / <kbd>↓</kbd> close it on the way to another row. With the row closed, <kbd>←</kbd> / <kbd>→</kbd> switch tabs as everywhere else.
 

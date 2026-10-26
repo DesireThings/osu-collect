@@ -2101,7 +2101,7 @@ fn header_renders_brand_tabs_and_version_regions() {
     let output = render_app(&app, 120, 24);
 
     assert!(
-        output.contains("osu!collect"),
+        output.contains("osu-collect"),
         "brand must render in header"
     );
     assert!(output.contains("get maps"), "tabs must render in header");

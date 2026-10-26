@@ -180,7 +180,7 @@ powershell -NoProfile -Command ^
   "$ws = New-Object -ComObject WScript.Shell; " ^
   "$q = [char]34; " ^
   "$bang = [char]33; " ^
-  "$name = 'osu' + $bang + 'collect.lnk'; " ^
+  "$name = 'osu-collect.lnk'; " ^
   "$wt = [System.IO.Path]::Combine($env:LOCALAPPDATA, 'Microsoft\WindowsApps\wt.exe'); " ^
   "$useWt = Test-Path $wt; " ^
   "$icon = ''; " ^
@@ -191,7 +191,7 @@ powershell -NoProfile -Command ^
   "  [System.IO.Path]::Combine($env:APPDATA, 'Microsoft\Windows\Start Menu\Programs') " ^
   "); " ^
   "foreach ($dir in $paths) { " ^
-  "  Remove-Item -LiteralPath ([System.IO.Path]::Combine($dir, 'osu-collect.lnk')) -Force -ErrorAction SilentlyContinue; " ^
+  "  Remove-Item -LiteralPath ([System.IO.Path]::Combine($dir, 'osu' + $bang + 'collect.lnk')) -Force -ErrorAction SilentlyContinue; " ^
   "  $lnk = $ws.CreateShortcut([System.IO.Path]::Combine($dir, $name)); " ^
   "  if ($useWt) { " ^
   "    $lnk.TargetPath = $wt; " ^
@@ -236,7 +236,7 @@ setlocal disabledelayedexpansion
 set "UNKEY=HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect"
 set "UNVER=%LATEST_TAG%"
 if "%UNVER:~0,1%"=="v" set "UNVER=%UNVER:~1%"
-reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu!collect" /f >nul
+reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu-collect" /f >nul
 reg add "%UNKEY%" /v DisplayVersion        /t REG_SZ   /d "%UNVER%" /f >nul
 reg add "%UNKEY%" /v DisplayIcon           /t REG_SZ   /d "%INSTALL_BIN%" /f >nul
 reg add "%UNKEY%" /v Publisher             /t REG_SZ   /d "DesireThings" /f >nul
@@ -270,13 +270,13 @@ exit /b 0
 # ::OSU-COLLECT-UNINSTALLER::
 $ErrorActionPreference = 'SilentlyContinue'
 Write-Host ''
-Write-Host 'Uninstalling osu!collect ...'
+Write-Host 'Uninstalling osu-collect ...'
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\osu-collect'
 $desktop    = [Environment]::GetFolderPath('Desktop')
 $startMenu  = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
 $shortcuts  = @(
-    Join-Path $desktop   'osu!collect.lnk'
-    Join-Path $startMenu 'osu!collect.lnk'
+    Join-Path $desktop   'osu-collect.lnk'
+    Join-Path $startMenu 'osu-collect.lnk'
     Join-Path $desktop   'osu-collect.lnk'
     Join-Path $startMenu 'osu-collect.lnk'
 )
@@ -292,7 +292,7 @@ if ($userPath) {
 # drop the "Installed apps" registry entry
 Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect' -Recurse -Force
 
-Write-Host 'osu!collect has been uninstalled.'
+Write-Host 'osu-collect has been uninstalled.'
 Start-Sleep -Seconds 2
 
 # remove the install dir (incl. this script) from a detached process so the file

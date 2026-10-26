@@ -98,5 +98,5 @@ pub fn run() {
             list_downloads,
         ])
         .run(tauri::generate_context!())
-        .expect("failed to start the osu!collect window");
+        .expect("failed to start the osu-collect window");
 }

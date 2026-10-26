@@ -1,6 +1,6 @@
 # Configuration
 
-osu!collect reads an optional config file. Every key has a default, so a missing file or missing keys are not an issue.
+osu-collect reads an optional config file. Every key has a default, so a missing file or missing keys are not an issue.
 
 | OS | Path |
 |---|---|

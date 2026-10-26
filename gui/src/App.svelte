@@ -45,7 +45,7 @@
 
 <div class="shell">
   <nav class="sidebar">
-    <div class="brand">osu!<span>collect</span></div>
+    <div class="brand">osu-<span>collect</span></div>
     <ol class="steps">
       {#each steps as step, i (step.id)}
         <li>
@@ -67,6 +67,7 @@
         </li>
       {/each}
     </ol>
+    <p class="unofficial">Unofficial tool, not made by ppy (osu!) or osu!Collector.</p>
   </nav>
 
   <main class="content">
