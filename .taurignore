@@ -2,6 +2,14 @@
 .claude/
 .mcp.json
 
+# Docs: not built into either binary. The bare folder lines cover the folder
+# itself being created or deleted; the /** lines cover files inside it.
+/wiki
+/wiki/**
+/media
+/media/**
+/*.md
+
 # The frontend. Vite hot-reloads it, so `tauri dev` restarting the app on
 # every edit here would only throw away the window's state.
 /gui/src/
