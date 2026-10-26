@@ -76,7 +76,7 @@ const RESULTS_SKIPPED: &str = "skipped";
 const RESULTS_FAILED: &str = "failed";
 const RESULTS_UNVERIFIED: &str = "unverified";
 const RESULTS_OUTRO_1: &str =
-    "how to import into osu!: https://github.com/uwuclxdy/osu-collect#importing-into-osu";
+    "how to import into osu!: https://github.com/DesireThings/osu-collect#importing-into-osu";
 const RESULTS_OUTRO_2: &str = "and leave a star while you're at it :3";
 
 const COMPACT_ACTIVE: &str = "active: ";

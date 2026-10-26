@@ -4,7 +4,7 @@ setlocal enableextensions enabledelayedexpansion
 :: install.bat -- installs or updates osu-collect from the latest GitHub release
 :: requires: Windows 10+ (PowerShell 5.1+ and curl.exe built-in, both preinstalled)
 
-set "REPO=uwuclxdy/osu-collect"
+set "REPO=DesireThings/osu-collect"
 set "API_URL=https://api.github.com/repos/%REPO%/releases/latest"
 set "ASSET_NAME=osu-collect-windows-x64.exe"
 set "INSTALL_DIR=%LOCALAPPDATA%\Programs\osu-collect"
@@ -239,9 +239,9 @@ if "%UNVER:~0,1%"=="v" set "UNVER=%UNVER:~1%"
 reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu!collect" /f >nul
 reg add "%UNKEY%" /v DisplayVersion        /t REG_SZ   /d "%UNVER%" /f >nul
 reg add "%UNKEY%" /v DisplayIcon           /t REG_SZ   /d "%INSTALL_BIN%" /f >nul
-reg add "%UNKEY%" /v Publisher             /t REG_SZ   /d "uwuclxdy" /f >nul
+reg add "%UNKEY%" /v Publisher             /t REG_SZ   /d "DesireThings" /f >nul
 reg add "%UNKEY%" /v InstallLocation       /t REG_SZ   /d "%INSTALL_DIR%" /f >nul
-reg add "%UNKEY%" /v URLInfoAbout          /t REG_SZ   /d "https://github.com/uwuclxdy/osu-collect" /f >nul
+reg add "%UNKEY%" /v URLInfoAbout          /t REG_SZ   /d "https://github.com/DesireThings/osu-collect" /f >nul
 reg add "%UNKEY%" /v UninstallString       /t REG_SZ   /d "powershell -NoProfile -ExecutionPolicy Bypass -File \"%INSTALL_DIR%\uninstall.ps1\"" /f >nul
 reg add "%UNKEY%" /v QuietUninstallString  /t REG_SZ   /d "powershell -NoProfile -ExecutionPolicy Bypass -File \"%INSTALL_DIR%\uninstall.ps1\"" /f >nul
 reg add "%UNKEY%" /v NoModify              /t REG_DWORD /d 1 /f >nul

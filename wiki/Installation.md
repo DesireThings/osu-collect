@@ -5,13 +5,13 @@
 **Linux x64 / macOS Apple Silicon**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/uwuclxdy/osu-collect/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.sh | bash
 ```
 
 **Windows x64 (PowerShell)**:
 
 ```powershell
-iwr https://raw.githubusercontent.com/uwuclxdy/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
+iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
 ```
 
 The Windows installer needs no admin rights. It does the following:
@@ -23,16 +23,16 @@ The Windows installer needs no admin rights. It does the following:
 
 ## Prebuilt binary
 
-Download the binary for your OS from [Releases](https://github.com/uwuclxdy/osu-collect/releases/latest) and run it in a terminal.
+Download the binary for your OS from [Releases](https://github.com/DesireThings/osu-collect/releases/latest) and run it in a terminal.
 
-osu!collect runs in a terminal. On Windows a double click usually opens it too, though that's not guaranteed; Windows Terminal or PowerShell 7+ are recommended. If it doesn't start, open an [issue](https://github.com/uwuclxdy/osu-collect/issues/new/choose).
+osu!collect runs in a terminal. On Windows a double click usually opens it too, though that's not guaranteed; Windows Terminal or PowerShell 7+ are recommended. If it doesn't start, open an [issue](https://github.com/DesireThings/osu-collect/issues/new/choose).
 
 ## Install from source
 
 Requires Rust 1.85+ (edition 2024):
 
 ```bash
-cargo install --git https://github.com/uwuclxdy/osu-collect
+cargo install --git https://github.com/DesireThings/osu-collect
 ```
 
 ## Self-updating

@@ -6,16 +6,19 @@
 
 <p style="font-size: 22px" ><b>Free osu!collector downloader in your terminal</b></p>
 
-[![Build](https://shields.uwuclxdy.dev/github/actions/workflow/status/uwuclxdy/osu-collect/release.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=build&color=ff66aa)](https://github.com/uwuclxdy/osu-collect/actions/workflows/release.yml)
-[![Latest release](https://shields.uwuclxdy.dev/github/v/release/uwuclxdy/osu-collect?style=for-the-badge&logo=github&color=ff66aa)](https://github.com/uwuclxdy/osu-collect/releases/latest)
-[![Downloads](https://shields.uwuclxdy.dev/github/downloads/uwuclxdy/osu-collect/total?style=for-the-badge&logo=github&color=ff66aa)](https://github.com/uwuclxdy/osu-collect/releases)
-![Platforms](https://shields.uwuclxdy.dev/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-ff66aa?style=for-the-badge)
+[![Build](https://img.shields.io/github/actions/workflow/status/DesireThings/osu-collect/release.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=build&color=ff66aa)](https://github.com/DesireThings/osu-collect/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/DesireThings/osu-collect?style=for-the-badge&logo=github&color=ff66aa)](https://github.com/DesireThings/osu-collect/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/DesireThings/osu-collect/total?style=for-the-badge&logo=github&color=ff66aa)](https://github.com/DesireThings/osu-collect/releases)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-ff66aa?style=for-the-badge)
 
-[Features](#features) · [Install](#installation) · [Usage](#usage) · [Import](#importing-into-osu) · [Configuration](#configuration) · [FAQ](#faq) · [Wiki](https://github.com/uwuclxdy/osu-collect/wiki)
+[Features](#features) · [Install](#installation) · [Usage](#usage) · [Import](#importing-into-osu) · [Configuration](#configuration) · [FAQ](#faq) · [Wiki](https://github.com/DesireThings/osu-collect/wiki)
 
 </div>
 
 osu!collect is a terminal app that **downloads osu! beatmap collections from [osu!collector](https://osucollector.com)**. Paste a collection link, pick a folder, and every map batch-downloads using multiple mirrors in rotation with automatic failover. You also get a ready-to-import `collection.db` and ability to update the collections later.
+
+> [!NOTE]
+> This is a personal fork of [uwuclxdy/osu-collect](https://github.com/uwuclxdy/osu-collect) by DesireThings, and it has been changed from the original: it adds a desktop window and a one-pass osu!lazer import, and it has no osu! login. Report problems with this fork [here](https://github.com/DesireThings/osu-collect/issues), not upstream. Both projects are licensed MIT OR Apache-2.0; see [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).
 
 <div align="center">
 
@@ -27,10 +30,10 @@ osu!collect is a terminal app that **downloads osu! beatmap collections from [os
 ## Features
 
 - **Free, no account needed,** whereas the official osu!Collector app is paid.
-- **Nine mirrors with automatic failover:** osu!collect keeps downloading even when a few mirrors are throttled. See [Mechanics](https://github.com/uwuclxdy/osu-collect/wiki/Mirrors).
-- **Search for maps without a collection:** per-diff criteria, auto-routed between the osu! api and nzbasic's community database. See [Criteria](https://github.com/uwuclxdy/osu-collect/wiki/Finding-Maps).
-- **A real osu! collection, verified:** integrity-checked `collection.db`, ready to import directly into your preferred osu! client. See [Verification](https://github.com/uwuclxdy/osu-collect/wiki/Usage).
-- **Keep collections up to date:** re-check a downloaded collection later, download only new or missing beatmaps. See [Guide](https://github.com/uwuclxdy/osu-collect/wiki/Updating-Collections).
+- **Nine mirrors with automatic failover:** osu!collect keeps downloading even when a few mirrors are throttled. See [Mechanics](https://github.com/DesireThings/osu-collect/wiki/Mirrors).
+- **Search for maps without a collection:** per-diff criteria, auto-routed between the osu! api and nzbasic's community database. See [Criteria](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps).
+- **A real osu! collection, verified:** integrity-checked `collection.db`, ready to import directly into your preferred osu! client. See [Verification](https://github.com/DesireThings/osu-collect/wiki/Usage).
+- **Keep collections up to date:** re-check a downloaded collection later, download only new or missing beatmaps. See [Guide](https://github.com/DesireThings/osu-collect/wiki/Updating-Collections).
 
 ## Installation
 
@@ -39,31 +42,31 @@ osu!collect is a terminal app that **downloads osu! beatmap collections from [os
 **Linux x64 / macOS Apple Silicon**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/uwuclxdy/osu-collect/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.sh | bash
 ```
 
 **Windows x64 (PowerShell)**:
 
 ```powershell
-iwr https://raw.githubusercontent.com/uwuclxdy/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
+iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"
 ```
 
 Installs to `%LOCALAPPDATA%\Programs\osu-collect`, adds it to `PATH`, creates a desktop shortcut and registers in **Settings -> Apps -> Installed apps**. No admin needed.
 
 ### Prebuilt binary
 
-Download from [Releases](https://github.com/uwuclxdy/osu-collect/releases/latest) and run it in a terminal.
+Download from [Releases](https://github.com/DesireThings/osu-collect/releases/latest) and run it in a terminal.
 
 > [!NOTE]
-> osu!collect runs in a terminal. Windows users should be able to open it with a double click as well, but it's not guaranteed. Open an [Issue](https://github.com/uwuclxdy/osu-collect/issues/new/choose) if it doesn't work. Windows Terminal or PowerShell 7+ are recommended.
+> osu!collect runs in a terminal. Windows users should be able to open it with a double click as well, but it's not guaranteed. Open an [Issue](https://github.com/DesireThings/osu-collect/issues/new/choose) if it doesn't work. Windows Terminal or PowerShell 7+ are recommended.
 
 ### Install latest from source (Rust 1.85+)
 
 ```bash
-cargo install --git https://github.com/uwuclxdy/osu-collect
+cargo install --git https://github.com/DesireThings/osu-collect
 ```
 
-Building from source and more: [Installation](https://github.com/uwuclxdy/osu-collect/wiki/Installation) in the wiki.
+Building from source and more: [Installation](https://github.com/DesireThings/osu-collect/wiki/Installation) in the wiki.
 
 ## Uninstall
 
@@ -81,10 +84,10 @@ Paste a collection link, pick a directory, press <kbd>↵</kbd>. The get maps ta
 
 Full guides in the wiki:
 
-- [Usage](https://github.com/uwuclxdy/osu-collect/wiki/Usage)
-- [Finding maps](https://github.com/uwuclxdy/osu-collect/wiki/Finding-Maps)
-- [Updating collections](https://github.com/uwuclxdy/osu-collect/wiki/Updating-Collections)
-- [Keybindings](https://github.com/uwuclxdy/osu-collect/wiki/Keybindings)
+- [Usage](https://github.com/DesireThings/osu-collect/wiki/Usage)
+- [Finding maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps)
+- [Updating collections](https://github.com/DesireThings/osu-collect/wiki/Updating-Collections)
+- [Keybindings](https://github.com/DesireThings/osu-collect/wiki/Keybindings)
 
 ## Importing into osu!
 
@@ -106,7 +109,7 @@ Drag the downloaded `.osz` files into osu!, then merge the generated `collection
 
 </details>
 
-More detail: [Importing into osu!](https://github.com/uwuclxdy/osu-collect/wiki/Importing-into-osu) in the wiki.
+More detail: [Importing into osu!](https://github.com/DesireThings/osu-collect/wiki/Importing-into-osu) in the wiki.
 
 ## Configuration
 
@@ -117,7 +120,7 @@ osu!collect reads an optional config file; most settings are editable live on th
 | Linux / macOS | `~/.config/osu-collect/config.toml` |
 | Windows | `%APPDATA%\osu-collect\config.toml` |
 
-See [config.toml.example](config.toml.example) and [Configuration](https://github.com/uwuclxdy/osu-collect/wiki/Configuration) (wiki).
+See [config.toml.example](config.toml.example) and [Configuration](https://github.com/DesireThings/osu-collect/wiki/Configuration) (wiki).
 
 ## Alternatives
 
@@ -142,7 +145,7 @@ No. osu!collect never asks for your osu! login.
 
 ## Documentation
 
-Full reference: [osu!collect wiki](https://github.com/uwuclxdy/osu-collect/wiki).
+Full reference: [osu!collect wiki](https://github.com/DesireThings/osu-collect/wiki).
 
 ## What's next
 

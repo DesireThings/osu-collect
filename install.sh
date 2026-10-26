@@ -5,7 +5,7 @@ set -euo pipefail
 
 # ── constants ────────────────────────────────────────────────────────────────
 
-readonly REPO="uwuclxdy/osu-collect"
+readonly REPO="DesireThings/osu-collect"
 readonly API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 readonly INSTALL_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 readonly BINARY_NAME="osu-collect"

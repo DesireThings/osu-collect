@@ -2,9 +2,10 @@
 name = "osu-collect"
 version = "0.6.1"
 edition = "2024"
-authors = ["uwuclxdy"]
+authors = ["uwuclxdy", "DesireThings"]
 description = "Download and update installed collections from osu!collector (TUI)"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/DesireThings/osu-collect"
 autotests = false
 
 [[bin]]
