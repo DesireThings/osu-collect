@@ -1,3 +1,9 @@
 # Not part of the build: tool folders the dev watcher would otherwise restart on.
 .claude/
 .mcp.json
+
+# The frontend. Vite hot-reloads it, so `tauri dev` restarting the app on
+# every edit here would only throw away the window's state.
+/gui/src/
+/gui/dist/
+/gui/node_modules/
