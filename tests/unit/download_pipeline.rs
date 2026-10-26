@@ -763,7 +763,7 @@ fn seed_owned_library(base: &Path, owned: &[u32]) -> (PathBuf, PathBuf) {
         .as_nanos();
     let cache_path = base.join("library-cache.json");
     let cache = crate::app::library_cache::LibraryCacheFile {
-        schema_version: 1,
+        schema_version: crate::app::library_cache::SCHEMA_VERSION,
         db_path: db_path.to_string_lossy().into_owned(),
         mtime_ns,
         beatmapset_ids: owned.to_vec(),

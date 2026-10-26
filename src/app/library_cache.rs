@@ -12,7 +12,9 @@ use tracing::{debug, warn};
 
 pub const LIBRARY_CACHE_FILE: &str = "library-cache.json";
 pub const LIBRARY_CACHE_ENV_PATH: &str = "OSU_COLLECT_LIBRARY_CACHE";
-const SCHEMA_VERSION: u32 = 1;
+/// Bump to drop every saved entry. 2: entries from osu-db 0.3.0, which read a
+/// stable `osu!.db` written since 20250107 as an empty library.
+pub(crate) const SCHEMA_VERSION: u32 = 2;
 static SAVE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 /// Memoized owned-beatmapset-id set for one osu! client database, keyed by the
@@ -90,6 +92,7 @@ where
     let db_path_str = db_path.to_string_lossy();
 
     if let Some(cached) = load(cache_path)
+        && cached.schema_version == SCHEMA_VERSION
         && cached.db_path == db_path_str
         && cached.mtime_ns == mtime
     {

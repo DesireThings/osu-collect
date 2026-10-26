@@ -37,7 +37,7 @@ mod tests {
             beatmapsets.len(),
             total_beatmaps
         );
-        // Parser may return empty for unsupported osu!.db versions — that is not a failure.
+        // An unsupported osu!.db version fails the `expect` above.
         // All beatmapset IDs must be non-zero when entries exist.
         for bs in &beatmapsets {
             assert!(bs.id > 0, "beatmapset id must be non-zero");

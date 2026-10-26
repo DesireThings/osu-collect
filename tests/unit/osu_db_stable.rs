@@ -154,3 +154,42 @@ fn reads_an_osu_db_from_a_current_stable_client() {
 fn still_reads_an_osu_db_from_before_float_star_ratings() {
     assert_eq!(read_sets(BEFORE_FLOAT_RATINGS), expected_sets());
 }
+
+#[test]
+fn an_unreadable_osu_db_is_an_error_not_an_empty_library() {
+    let dir = tempfile::tempdir().unwrap();
+    // A version number, then bytes no parser accepts.
+    let mut bytes = CURRENT.to_le_bytes().to_vec();
+    bytes.extend_from_slice(&[0xff; 64]);
+    fs::write(dir.path().join("osu!.db"), bytes).unwrap();
+
+    let err = StableReader::new(dir.path().to_path_buf())
+        .list_beatmapsets()
+        .expect_err("garbage must not read as an empty library");
+    assert!(err.starts_with("Couldn't read osu!.db at "), "{err}");
+    assert!(err.contains("newer osu! version"), "{err}");
+}
+
+#[test]
+fn an_unreadable_collection_db_is_an_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut bytes = CURRENT.to_le_bytes().to_vec();
+    bytes.extend_from_slice(&1u32.to_le_bytes()); // one collection
+    bytes.extend_from_slice(&[0xff; 16]); // not a string marker
+    fs::write(dir.path().join("collection.db"), bytes).unwrap();
+
+    let err = StableReader::new(dir.path().to_path_buf())
+        .list_collections()
+        .expect_err("garbage must not read as no collections");
+    assert!(err.starts_with("Couldn't read collection.db at "), "{err}");
+}
+
+#[test]
+fn a_new_empty_osu_db_is_an_empty_library() {
+    let dir = tempfile::tempdir().unwrap();
+    OsuDb::new(CURRENT).write(dir.path());
+    let sets = StableReader::new(dir.path().to_path_buf())
+        .list_beatmapsets()
+        .unwrap();
+    assert!(sets.is_empty());
+}
