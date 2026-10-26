@@ -237,7 +237,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --draft \
             --verify-tag \
-            --title "osu-collect $VERSION" \
+            --title "$TAG" \
             --notes-file "release-notes/$TAG.md"
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,isDraft,isPrerelease,assets \

@@ -3232,7 +3232,7 @@ dependencies = [
 
 [[package]]
 name = "osu-collect"
-version = "0.1.1"
+version = "0.1.0"
 dependencies = [
  "bytes",
  "chrono",
@@ -3275,7 +3275,7 @@ dependencies = [
 
 [[package]]
 name = "osu-collect-gui"
-version = "0.1.1"
+version = "0.1.0"
 dependencies = [
  "osu-collect",
  "serde",
