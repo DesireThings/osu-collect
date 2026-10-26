@@ -1,0 +1,4 @@
+# install.bat is committed with CRLF line endings and served as-is from
+# raw.githubusercontent.com. cmd can fail to find goto labels in a batch file
+# with LF-only line endings, so git must never convert this file.
+install.bat -text

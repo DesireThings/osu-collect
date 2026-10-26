@@ -146,27 +146,32 @@ echo ==^> installed to %INSTALL_BIN%
 
 :: -- add to user PATH if needed -----------------------------------------------
 
-:: read current user PATH from registry (not the process PATH) to avoid duplicates
-for /f "tokens=2*" %%A in (
-  'reg query "HKCU\Environment" /v Path 2^>nul'
-) do set "USER_PATH=%%B"
-
-:: check if install dir is already in user path
-echo !USER_PATH! | findstr /i /c:"%INSTALL_DIR%" >nul 2>&1
-if errorlevel 1 (
-  if defined USER_PATH (
-    setx PATH "!USER_PATH!;%INSTALL_DIR%" >nul
-  ) else (
-    setx PATH "%INSTALL_DIR%" >nul
-  )
-  if errorlevel 1 (
-    echo error: could not update user PATH
-  ) else (
-    echo ==^> added %INSTALL_DIR% to user PATH
-    echo     restart your terminal for PATH changes to take effect
-  )
-) else (
+:: edit the user PATH in the registry (not the process PATH) instead of with
+:: setx, which cuts values off at 1024 characters. %VAR% entries stay unexpanded
+:: and the value keeps its registry type. INSTALL_DIR reaches PowerShell through
+:: the environment, so quotes in the path cannot break the command. Setting and
+:: clearing a throwaway user variable makes Windows tell running programs that
+:: the environment changed, as setx did. exit 2 = already in PATH
+powershell -NoProfile -Command ^
+  "try { " ^
+  "  $dir = $env:INSTALL_DIR.TrimEnd('\'); " ^
+  "  $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment'); " ^
+  "  $cur = [string]$key.GetValue('Path', '', 'DoNotExpandEnvironmentNames'); " ^
+  "  $parts = @($cur -split ';' | Where-Object { $_ }); " ^
+  "  if ($parts | Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -eq $dir }) { exit 2 } " ^
+  "  $kind = [Microsoft.Win32.RegistryValueKind]::ExpandString; " ^
+  "  if ($key.GetValueNames() -contains 'Path') { $kind = $key.GetValueKind('Path') } " ^
+  "  $key.SetValue('Path', (($parts + $dir) -join ';'), $kind); " ^
+  "  [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', '1', 'User'); " ^
+  "  [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', $null, 'User'); " ^
+  "} catch { exit 1 }"
+if errorlevel 2 (
   echo ==^> %INSTALL_DIR% already in user PATH
+) else if errorlevel 1 (
+  echo error: could not update user PATH
+) else (
+  echo ==^> added %INSTALL_DIR% to user PATH
+  echo     restart your terminal for PATH changes to take effect
 )
 
 :: -- shortcuts ----------------------------------------------------------------
@@ -284,11 +289,16 @@ $shortcuts  = @(
 )
 foreach ($lnk in $shortcuts) { Remove-Item -LiteralPath $lnk -Force }
 
-# strip the install dir from the user PATH
-$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-if ($userPath) {
-    $kept = ($userPath -split ';') | Where-Object { $_ -and ($_ -ne $installDir) }
-    [Environment]::SetEnvironmentVariable('Path', ($kept -join ';'), 'User')
+# strip the install dir from the user PATH; read and write the registry value
+# directly so other %VAR% entries stay unexpanded and the value keeps its type
+$envKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+if ($envKey -and ($envKey.GetValueNames() -contains 'Path')) {
+    $userPath = [string]$envKey.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+    $kept = @($userPath -split ';' | Where-Object { $_ -and ([Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ne $installDir) })
+    $envKey.SetValue('Path', ($kept -join ';'), $envKey.GetValueKind('Path'))
+    # setting and clearing a throwaway variable tells running programs about the change
+    [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', '1', 'User')
+    [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', $null, 'User')
 }
 
 # drop the "Installed apps" registry entry
