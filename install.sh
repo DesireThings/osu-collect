@@ -201,7 +201,9 @@ main() {
   # download to a temp dir so we can verify before replacing
   local tmpdir
   tmpdir="$(mktemp -d)"
-  trap 'cleanup "$tmpdir"' EXIT
+  # the path is expanded now: the EXIT trap runs after main returns, when the
+  # local is gone (and `set -u` would stop on it)
+  trap "cleanup $(printf '%q' "$tmpdir")" EXIT
 
   local tmp_bin="${tmpdir}/${asset_name}"
 
