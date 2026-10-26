@@ -26,13 +26,34 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["appimage"],
+    "targets": ["appimage", "deb"],
+    "publisher": "DesireThings",
+    "copyright": "Copyright (c) 2026 uwuclxdy, DesireThings",
+    "homepage": "https://github.com/DesireThings/osu-collect",
+    "category": "Utility",
+    "shortDescription": "Download osu!collector collections and import them into osu!",
+    "longDescription": "Downloads beatmap collections from osu!collector through community mirrors and imports them, collections included, into osu!lazer or osu! stable. Unofficial; not made by ppy or osu!Collector.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.png",
+      "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "depends": ["libssl3 | libssl3t64"]
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
   }
 }
