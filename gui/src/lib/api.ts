@@ -90,9 +90,14 @@ export interface Failure {
   reason: string;
 }
 
+/** A whole collection, or the missing sets an update scan found. */
+export type RunKind = "collection" | "update";
+
 export interface DownloadStatus {
   id: number;
-  collection_id: number;
+  kind: RunKind;
+  /** Set for a collection run; null for an update, which can span several. */
+  collection_id: number | null;
   name: string;
   phase: Phase;
   total: number;

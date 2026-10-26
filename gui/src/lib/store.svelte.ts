@@ -67,7 +67,11 @@ export function removeEntry(key: number) {
 export function downloadFor(collectionId: number): DownloadStatus | undefined {
   let latest: DownloadStatus | undefined;
   for (const status of Object.values(store.downloads)) {
-    if (status.collection_id === collectionId && (!latest || status.id > latest.id)) {
+    if (
+      status.kind === "collection" &&
+      status.collection_id === collectionId &&
+      (!latest || status.id > latest.id)
+    ) {
       latest = status;
     }
   }
