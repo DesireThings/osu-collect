@@ -75,6 +75,11 @@ fn cancel_download(id: u64, downloads: State<'_, Downloads>) {
 }
 
 #[tauri::command]
+fn skip_waiting(id: u64, downloads: State<'_, Downloads>) {
+    downloads.skip_waiting(id);
+}
+
+#[tauri::command]
 fn list_downloads(downloads: State<'_, Downloads>) -> Vec<DownloadStatus> {
     downloads.list()
 }
@@ -129,6 +134,7 @@ pub fn run() {
             build_lazer_import,
             start_download,
             cancel_download,
+            skip_waiting,
             list_downloads,
         ])
         .run(tauri::generate_context!())

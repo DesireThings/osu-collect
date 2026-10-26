@@ -104,6 +104,8 @@ export interface DownloadStatus {
   waiting: number;
   /** Seconds until the first waiting set retries, as of this update. */
   retry_in_secs: number | null;
+  /** Sets skipped because the mirrors stayed busy (part of `skipped`). */
+  skipped_busy: number;
   failures: Failure[];
   error: string | null;
   warning: string | null;
@@ -112,6 +114,8 @@ export interface DownloadStatus {
 
 export const startDownload = (input: string) => invoke<number>("start_download", { input });
 export const cancelDownload = (id: number) => invoke<void>("cancel_download", { id });
+/** Skip the sets a download is holding back for busy mirrors. */
+export const skipWaiting = (id: number) => invoke<void>("skip_waiting", { id });
 export const listDownloads = () => invoke<DownloadStatus[]>("list_downloads");
 export const onDownloadStatus = (handler: (status: DownloadStatus) => void) =>
   listen<DownloadStatus>("download-status", (event) => handler(event.payload));

@@ -1,9 +1,19 @@
 <script lang="ts">
-  import type { DownloadStatus } from "./api";
+  import { skipWaiting, type DownloadStatus } from "./api";
 
   let { status }: { status: DownloadStatus } = $props();
 
   let showFailures = $state(false);
+  let skipError = $state<string | null>(null);
+
+  async function skip() {
+    skipError = null;
+    try {
+      await skipWaiting(status.id);
+    } catch (e) {
+      skipError = String(e);
+    }
+  }
 
   const settled = $derived(status.downloaded + status.skipped + status.failed);
   const percent = $derived(status.total > 0 ? Math.min(100, (settled / status.total) * 100) : 0);
@@ -38,7 +48,9 @@
 
   const summary = $derived.by(() => {
     const parts = [`${status.downloaded} new`];
-    if (status.skipped > 0) parts.push(`${status.skipped} you already had`);
+    const alreadyHad = status.skipped - status.skipped_busy;
+    if (alreadyHad > 0) parts.push(`${alreadyHad} you already had`);
+    if (status.skipped_busy > 0) parts.push(`${status.skipped_busy} skipped for now`);
     if (status.failed > 0) parts.push(`${status.failed} couldn't be downloaded`);
     return parts.join(" · ");
   });
@@ -59,15 +71,30 @@
       {#if status.bytes_done > 0}· {size(status.bytes_done)}{/if}
     </p>
     {#if status.waiting > 0}
-      <p class="muted small">
-        The mirrors that have {status.waiting === 1 ? "this map set" : "these map sets"} are busy right
-        now, so {status.waiting === 1 ? "it's" : "they're"} tried again
-        {retryIn ? wait(retryIn) : "in a moment"}. Nothing to do on your side.
-      </p>
+      <div class="waiting">
+        <p class="muted small">
+          The mirrors that have {status.waiting === 1 ? "this map set" : "these map sets"} are busy
+          right now, so {status.waiting === 1 ? "it's" : "they're"} tried again
+          {retryIn ? wait(retryIn) : "in a moment"}. You can wait, or skip
+          {status.waiting === 1 ? "it" : "them"} and get {status.waiting === 1 ? "it" : "them"} later.
+        </p>
+        <button class="secondary" onclick={skip}>Skip {status.waiting === 1 ? "it" : "these"} for now</button>
+      </div>
+      {#if skipError}
+        <p class="error-text small">{skipError}</p>
+      {/if}
     {/if}
   {:else if status.phase === "done"}
     <div class="bar done"><span style:width="100%"></span></div>
-    <p class="small {status.failed > 0 ? 'warn-text' : 'ok'}">Done: {summary}</p>
+    <p class="small {status.failed > 0 || status.skipped_busy > 0 ? 'warn-text' : 'ok'}">
+      Done: {summary}
+    </p>
+    {#if status.skipped_busy > 0}
+      <p class="muted small">
+        To get the {status.skipped_busy === 1 ? "map set" : "map sets"} skipped for now, press Check
+        again later. Only what's missing is downloaded.
+      </p>
+    {/if}
   {:else if status.phase === "cancelled"}
     <p class="muted small">Cancelled. {status.downloaded} new map sets were downloaded before stopping.</p>
   {:else}

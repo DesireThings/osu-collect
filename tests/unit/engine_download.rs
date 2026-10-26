@@ -1,10 +1,12 @@
 use super::{ABORTED, DownloadStatus, Downloads, PUSH_INTERVAL, Phase, Run, mirrors_from_config};
 use crate::app::{HomeTab, collection::FailureReason};
 use crate::config::Config;
-use crate::download::{BeatmapStage, DownloadEvent, DownloadStage, DownloadSummary, FailedMap};
+use crate::download::{
+    BeatmapStage, DownloadEvent, DownloadHandle, DownloadStage, DownloadSummary, FailedMap,
+};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use tokio::sync::mpsc;
+use std::time::{Duration, Instant};
+use tokio::sync::{mpsc, watch};
 
 fn mirror_names(mirrors: &[crate::mirrors::Mirror]) -> Vec<String> {
     mirrors.iter().map(|m| format!("{m:?}")).collect()
@@ -125,6 +127,99 @@ fn a_deferred_set_waits_instead_of_downloading() {
 
     assert_eq!((s.active, s.waiting), (1, 0));
     assert_eq!(s.retry_in_secs, None);
+}
+
+fn cooling(set: u32, secs: u64) -> DownloadEvent {
+    DownloadEvent::BeatmapStatus {
+        id: 1,
+        beatmapset_id: set,
+        stage: BeatmapStage::Downloading,
+        message: String::new(),
+        rate_limited: true,
+        cooldown_until: Some(Instant::now() + Duration::from_secs(secs)),
+    }
+}
+
+#[test]
+fn a_set_on_a_mirror_cooldown_waits_instead_of_downloading() {
+    let mut s = status();
+    s.apply(&beatmap(BeatmapStage::Downloading, 10));
+
+    s.apply(&cooling(10, 20));
+
+    assert_eq!((s.active, s.waiting), (0, 1));
+    assert!(
+        matches!(s.retry_in_secs, Some(19 | 20)),
+        "{:?}",
+        s.retry_in_secs
+    );
+
+    s.apply(&beatmap(BeatmapStage::Downloading, 10));
+
+    assert_eq!((s.active, s.waiting), (1, 0));
+}
+
+#[test]
+fn a_healthy_set_waiting_its_turn_is_not_held_back_by_a_busy_mirror() {
+    let mut s = status();
+    s.apply(&beatmap(BeatmapStage::Downloading, 10));
+
+    s.apply(&DownloadEvent::BeatmapDeferred {
+        id: 1,
+        beatmapset_id: 10,
+        pass: 0,
+        retry_in: Duration::from_secs(2),
+    });
+
+    assert_eq!((s.active, s.waiting), (0, 0));
+}
+
+#[test]
+fn a_set_skipped_while_the_mirrors_were_busy_is_not_one_you_already_had() {
+    let mut s = status();
+    s.apply(&deferred(10, 60));
+    s.apply(&cooling(11, 20));
+
+    s.apply(&beatmap(BeatmapStage::Skipped, 10));
+    s.apply(&beatmap(BeatmapStage::Skipped, 11));
+    s.apply(&beatmap(BeatmapStage::Skipped, 12));
+
+    assert_eq!(s.skipped_busy, 2);
+    assert_eq!(s.waiting, 0);
+}
+
+#[tokio::test]
+async fn skipping_waiting_sets_reaches_the_pipeline_only_when_some_are_waiting() {
+    let downloads = Downloads::new(Arc::new(|_| {}));
+    let (cancel, _) = watch::channel(false);
+    let (defer, _) = watch::channel(0u64);
+    let (skip, skips) = watch::channel(0u64);
+    let handle = DownloadHandle::new(cancel, defer, skip, tokio::spawn(async {}));
+    downloads.inner.lock().unwrap().runs.insert(
+        1,
+        Run {
+            status: status(),
+            request: None,
+            handle: Some(handle),
+        },
+    );
+
+    downloads.skip_waiting(1);
+    assert_eq!(*skips.borrow(), 0, "nothing is waiting");
+
+    downloads
+        .inner
+        .lock()
+        .unwrap()
+        .runs
+        .get_mut(&1)
+        .unwrap()
+        .status
+        .apply(&deferred(10, 60));
+    downloads.skip_waiting(1);
+    downloads.skip_waiting(2);
+
+    assert_eq!(*skips.borrow(), 1);
 }
 
 #[tokio::test]

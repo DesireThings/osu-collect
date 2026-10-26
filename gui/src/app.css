@@ -348,6 +348,21 @@ button:focus-visible,
 .progress p {
   margin: 6px 0 0;
 }
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.waiting p {
+  flex: 1;
+  margin: 0;
+}
+.waiting button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.86rem;
+}
 button.link {
   background: none;
   border: none;

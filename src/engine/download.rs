@@ -81,11 +81,15 @@ pub struct DownloadStatus {
     pub bytes_total: Option<u64>,
     /// Sets downloading right now.
     pub active: usize,
-    /// Sets put back in the queue because every mirror that has them is
-    /// rate-limiting; they retry on their own.
+    /// Sets held back because every mirror that has them is rate-limiting,
+    /// either waiting out a short cooldown or put back in the queue; they retry
+    /// on their own, or [`Downloads::skip_waiting`] drops them.
     pub waiting: usize,
     /// Seconds until the first waiting set retries, as of this update.
     pub retry_in_secs: Option<u64>,
+    /// Sets skipped because the mirrors stayed busy (included in `skipped`);
+    /// the next run of the collection tries them again.
+    pub skipped_busy: u32,
     pub failures: Vec<Failure>,
     pub error: Option<String>,
     pub warning: Option<String>,
@@ -100,6 +104,10 @@ pub struct DownloadStatus {
     /// Waiting sets and when each one retries.
     #[serde(skip)]
     deferred: HashMap<u32, Instant>,
+    /// Every set a mirror rate-limited this run, so a later skip of one counts
+    /// as `skipped_busy` rather than "already had it".
+    #[serde(skip)]
+    rate_limited: HashSet<u32>,
 }
 
 impl DownloadStatus {
@@ -119,6 +127,7 @@ impl DownloadStatus {
             active: 0,
             waiting: 0,
             retry_in_secs: None,
+            skipped_busy: 0,
             failures: Vec::new(),
             error: None,
             warning: None,
@@ -127,6 +136,7 @@ impl DownloadStatus {
             in_flight: HashMap::new(),
             active_sets: HashSet::new(),
             deferred: HashMap::new(),
+            rate_limited: HashSet::new(),
         }
     }
 
@@ -170,6 +180,22 @@ impl DownloadStatus {
             }
             DownloadEvent::BeatmapStatus {
                 beatmapset_id,
+                rate_limited: true,
+                cooldown_until,
+                ..
+            } => {
+                // Every mirror that has it is cooling down; it holds its worker
+                // while it waits, but it isn't downloading.
+                self.active_sets.remove(beatmapset_id);
+                self.rate_limited.insert(*beatmapset_id);
+                self.deferred
+                    .insert(*beatmapset_id, cooldown_until.unwrap_or_else(Instant::now));
+                self.active = self.active_sets.len();
+                self.refresh_waiting();
+                false
+            }
+            DownloadEvent::BeatmapStatus {
+                beatmapset_id,
                 stage,
                 ..
             } => {
@@ -184,6 +210,11 @@ impl DownloadStatus {
                     terminal => {
                         self.active_sets.remove(beatmapset_id);
                         self.deferred.remove(beatmapset_id);
+                        if *terminal == BeatmapStage::Skipped
+                            && self.rate_limited.contains(beatmapset_id)
+                        {
+                            self.skipped_busy += 1;
+                        }
                         if let Some((done, size)) = self.in_flight.remove(beatmapset_id)
                             && *terminal == BeatmapStage::Success
                         {
@@ -198,13 +229,21 @@ impl DownloadStatus {
             }
             DownloadEvent::BeatmapDeferred {
                 beatmapset_id,
+                pass,
                 retry_in,
                 ..
             } => {
                 self.active_sets.remove(beatmapset_id);
                 self.in_flight.remove(beatmapset_id);
-                self.deferred
-                    .insert(*beatmapset_id, Instant::now() + *retry_in);
+                // Pass 0 is a healthy set waiting its turn on a mirror's request
+                // spacing: it's just queued, and a skip wouldn't drop it.
+                if *pass == 0 {
+                    self.deferred.remove(beatmapset_id);
+                } else {
+                    self.rate_limited.insert(*beatmapset_id);
+                    self.deferred
+                        .insert(*beatmapset_id, Instant::now() + *retry_in);
+                }
                 self.active = self.active_sets.len();
                 self.refresh_bytes();
                 self.refresh_waiting();
@@ -468,6 +507,21 @@ impl Downloads {
         };
         if let Some(status) = cancelled_queued {
             (self.on_update)(&status);
+        }
+    }
+
+    /// Skip the sets a running download is holding back for busy mirrors. They
+    /// count as skipped, and running the collection again tries them.
+    pub fn skip_waiting(&self, id: DownloadId) {
+        let inner = self.inner.lock().expect("downloads lock");
+        if let Some(Run {
+            handle: Some(handle),
+            status,
+            ..
+        }) = inner.runs.get(&id)
+            && status.waiting > 0
+        {
+            handle.skip_rate_limited();
         }
     }
 
