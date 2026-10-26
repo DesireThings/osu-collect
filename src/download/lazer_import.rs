@@ -213,9 +213,12 @@ fn extract_into(archive: &Path, dest: &Path) -> Result<usize, String> {
 
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i).map_err(|e| e.to_string())?;
-        let relative = entry
-            .enclosed_name()
-            .ok_or_else(|| format!("unsafe path in archive: {}", entry.name()))?;
+        let relative = entry.enclosed_name().ok_or_else(|| {
+            format!(
+                "unsafe path in archive: {}",
+                String::from_utf8_lossy(entry.name_raw())
+            )
+        })?;
         let path = dest.join(&relative);
 
         if entry.is_dir() {

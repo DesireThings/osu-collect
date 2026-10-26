@@ -30,7 +30,7 @@ futures-util = { version = "0.3.32", default-features = false, features = ["allo
 osu-db = "0.3.0"
 # `.osz` unpacking for the lazer import folder; `deflate-flate2` reuses
 # the flate2 (miniz_oxide) already in the tree instead of zopfli + zlib-rs.
-zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
+zip = { version = "9.1.1", default-features = false, features = ["deflate-flate2"] }
 ratatui = { version = "0.30.1", default-features = false, features = ["crossterm", "layout-cache"] }
 # default features pull `chafa-dyn` (a libchafa system dep) + `image/default` (avif/rav1e);
 # the pure-rust sixel/kitty/iterm2/halfblocks protocols need neither.
