@@ -14,6 +14,7 @@
 //! the whole error path.
 
 use crate::app::FindSource;
+use crate::config::constants::USER_AGENT;
 use futures_util::{StreamExt, stream};
 use osu_downloader::size::SizeFetcher;
 use std::sync::LazyLock;
@@ -25,7 +26,8 @@ use tracing::debug;
 const SIZE_CONCURRENCY: usize = 4;
 
 /// One shared fetcher (connection reuse) for the whole session.
-static SIZE_FETCHER: LazyLock<SizeFetcher> = LazyLock::new(SizeFetcher::new);
+static SIZE_FETCHER: LazyLock<SizeFetcher> =
+    LazyLock::new(|| SizeFetcher::with_user_agent(USER_AGENT));
 
 /// A settled size probe, folded back into the find source's session cache.
 #[derive(Debug)]

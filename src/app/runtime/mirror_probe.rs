@@ -1,3 +1,4 @@
+use crate::config::constants::USER_AGENT;
 use osu_downloader::MirrorKind;
 use reqwest::Client;
 use std::time::{Duration, Instant};
@@ -98,10 +99,7 @@ async fn run_probe_all(
 ) {
     let _ = tx.send(MirrorProbeEvent::Started);
 
-    let client = Client::builder()
-        .timeout(Duration::from_millis(PROBE_TIMEOUT_MS))
-        .build()
-        .unwrap_or_default();
+    let client = probe_client();
 
     // Probe every built-in mirror in parallel. Iterating BUILTINS keeps this in
     // sync as mirrors are added — no per-mirror wiring here.
@@ -121,6 +119,14 @@ async fn run_probe_all(
     for (kind, result) in results {
         let _ = tx.send(MirrorProbeEvent::Result { kind, result });
     }
+}
+
+fn probe_client() -> Client {
+    Client::builder()
+        .timeout(Duration::from_millis(PROBE_TIMEOUT_MS))
+        .user_agent(USER_AGENT)
+        .build()
+        .unwrap_or_default()
 }
 
 async fn probe_one(client: &Client, kind: MirrorKind) -> ProbeResult {

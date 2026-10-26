@@ -20,6 +20,7 @@ pub use crate::config::constants::status;
 pub use osu_downloader::ArchiveValidation;
 
 use crate::app::collection::FailureReason;
+use crate::config::constants::USER_AGENT;
 use crate::core::collection::Collection;
 use crate::mirrors::Mirror;
 use crate::osu_db::OsuClient;
@@ -427,7 +428,7 @@ pub(crate) async fn fetch_collection_sizes(
 
     let sample = sample_unknown(&unknown);
     let sample_len = sample.len();
-    let fetcher = SizeFetcher::new();
+    let fetcher = SizeFetcher::with_user_agent(USER_AGENT);
     let result = fetcher.fetch_sizes(&sample).await;
     let total_bytes =
         estimate_total_bytes(known_sum, result.total_bytes, sample_len, unknown.len());

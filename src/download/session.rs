@@ -5,6 +5,7 @@ use super::{
     precheck::{PrecheckOptions, PrecheckReport, verify_existing_beatmapsets},
 };
 use crate::{
+    config::constants::USER_AGENT,
     core::collection::{Collection, CollectionService, HttpCollectionService, Uploader},
     utils::{self, prepare_directory},
 };
@@ -236,7 +237,8 @@ impl DownloadSession {
                 beatmapset_ids,
                 prefetched,
             } => {
-                let service = HttpCollectionService::new(CollectionClient::new());
+                let service =
+                    HttpCollectionService::new(CollectionClient::with_user_agent(USER_AGENT));
                 // `collection_names` (which of the requested ids actually fetched)
                 // is not carried further: the title `resolve_selective_with`
                 // already baked into `collection.name` is the one and only
@@ -519,7 +521,7 @@ async fn prepare_selective_output(
 
 async fn resolve_collection(collection_input: &str) -> Result<Collection, DownloadError> {
     let collection_id = utils::parse_collection_id(collection_input)?;
-    let service = HttpCollectionService::new(CollectionClient::new());
+    let service = HttpCollectionService::new(CollectionClient::with_user_agent(USER_AGENT));
     let collection = service.fetch_collection(collection_id).await?;
 
     info!(

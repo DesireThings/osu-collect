@@ -6,7 +6,7 @@
 //! TUI reads, so both frontends stay in step.
 
 use crate::{
-    config::{Config, load_config_or_default, save_config},
+    config::{Config, constants::USER_AGENT, load_config_or_default, save_config},
     core::collection::{CollectionService, HttpCollectionService},
     osu_db::{BeatmapReader, LazerReader, OsuClient, StableReader},
     utils::{self, AppError, Result},
@@ -115,7 +115,7 @@ pub const NOT_A_COLLECTION_LINK: &str = "That doesn't look like an osu!collector
 pub async fn preview_collection(input: &str) -> Result<CollectionPreview> {
     let id = utils::parse_collection_id(input.trim())
         .map_err(|_| AppError::other(NOT_A_COLLECTION_LINK))?;
-    let collection = HttpCollectionService::new(CollectionClient::new())
+    let collection = HttpCollectionService::new(CollectionClient::with_user_agent(USER_AGENT))
         .fetch_collection(id)
         .await?;
     Ok(CollectionPreview {

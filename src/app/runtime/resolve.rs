@@ -1,5 +1,6 @@
 use crate::{
     app::home::ResolveState,
+    config::constants::USER_AGENT,
     core::collection::{Collection, CollectionService},
     utils,
 };
@@ -128,7 +129,7 @@ async fn run_resolve(
 
     let _ = tx.send(HomeResolveEvent::new(generation, HomeResolveKind::Loading));
 
-    let client = CollectionClient::new();
+    let client = CollectionClient::with_user_agent(USER_AGENT);
     let service = crate::core::collection::HttpCollectionService::new(client);
 
     tokio::select! {

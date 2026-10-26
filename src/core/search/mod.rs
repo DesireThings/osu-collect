@@ -1,5 +1,6 @@
 pub mod api_client;
 
+use crate::config::constants::USER_AGENT;
 use std::sync::LazyLock;
 
 pub use api_client::{HttpSearchService, SearchService};
@@ -14,6 +15,6 @@ pub use osu_downloader::search::{
 /// is minted once and shared instead of one cache per caller.
 pub fn shared_service() -> &'static HttpSearchService {
     static SERVICE: LazyLock<HttpSearchService> =
-        LazyLock::new(|| HttpSearchService::new(SearchClient::new()));
+        LazyLock::new(|| HttpSearchService::new(SearchClient::with_user_agent(USER_AGENT)));
     &SERVICE
 }

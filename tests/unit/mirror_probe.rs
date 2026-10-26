@@ -8,7 +8,9 @@ use osu_downloader::MirrorKind;
 
 // handle_mirror_probe_event is not re-exported; import directly via the module
 // (accessible because this file is compiled inside mirror_probe via #[path]).
-use super::handle_mirror_probe_event;
+use super::{handle_mirror_probe_event, probe_client};
+use crate::config::constants::USER_AGENT;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::NONE)
@@ -238,4 +240,37 @@ fn switching_to_home_tab_emits_probe_mirrors() {
         matches!(cmd, Some(AppCommand::ProbeMirrors)),
         "expected ProbeMirrors when switching to home, got {cmd:?}"
     );
+}
+
+#[tokio::test]
+async fn probes_tell_the_mirror_which_app_is_asking() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        let mut buf = [0u8; 1024];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = socket.read(&mut buf).await.unwrap();
+            if n == 0 {
+                break;
+            }
+            request.extend_from_slice(&buf[..n]);
+        }
+        socket
+            .write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
+            .await
+            .unwrap();
+        String::from_utf8_lossy(&request).into_owned()
+    });
+
+    probe_client().head(&url).send().await.unwrap();
+
+    let request = server.await.unwrap();
+    let user_agent = request.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        name.eq_ignore_ascii_case("user-agent")
+            .then(|| value.trim())
+    });
+    assert_eq!(user_agent, Some(USER_AGENT));
 }

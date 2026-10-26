@@ -47,9 +47,10 @@ pub const RELEASES_URL: &str =
 /// in, since `/releases/latest` excludes prereleases and drafts.
 pub const RELEASES_LIST_URL: &str =
     "https://api.github.com/repos/DesireThings/osu-collect/releases";
-/// Sent with every map download, so mirror operators can tell which app is
-/// asking and where to find it.
-pub const DOWNLOAD_USER_AGENT: &str = concat!(
+/// Sent with map downloads and with requests to the mirrors, osu!Collector,
+/// nzbasic and the osu! API, so whoever runs them can tell which app is asking
+/// and where to find it.
+pub const USER_AGENT: &str = concat!(
     "osu-collect/",
     env!("CARGO_PKG_VERSION"),
     " (+https://github.com/DesireThings/osu-collect)"

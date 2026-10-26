@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{
     app::{failed_maps, library_cache, snapshots},
-    config::constants::{DEFAULT_PROGRESS_WATCHDOG_SECS, DOWNLOAD_USER_AGENT, NETWORK_RETRY_CAP},
+    config::constants::{DEFAULT_PROGRESS_WATCHDOG_SECS, NETWORK_RETRY_CAP, USER_AGENT},
     osu_db::OsuClient,
 };
 use futures_util::StreamExt;
@@ -676,7 +676,7 @@ fn build_downloader(
 ) -> Result<Downloader, DownloadError> {
     Downloader::builder()
         .mirrors(mirrors)
-        .user_agent(DOWNLOAD_USER_AGENT)
+        .user_agent(USER_AGENT)
         .concurrent_downloads(config.concurrent.max(1) as usize)
         .archive_validation(config.archive_validation)
         .progress_timeout(Duration::from_secs(DEFAULT_PROGRESS_WATCHDOG_SECS))

@@ -54,8 +54,22 @@ impl SizeFetcher {
     /// Panics if the underlying reqwest client builder fails — which only
     /// happens if the system's TLS backend cannot initialise.
     pub fn new() -> Self {
+        Self::build(None)
+    }
+
+    /// Like [`new`](Self::new), but every request sends `user_agent`.
+    ///
+    /// # Panics
+    ///
+    /// Same as [`new`](Self::new).
+    pub fn with_user_agent(user_agent: &str) -> Self {
+        Self::build(Some(user_agent))
+    }
+
+    fn build(user_agent: Option<&str>) -> Self {
         Self {
-            client: http::create_api_client().expect("failed to build default reqwest client"),
+            client: http::create_api_client(user_agent)
+                .expect("failed to build default reqwest client"),
             concurrency: DEFAULT_CONCURRENT_REQUESTS,
         }
     }

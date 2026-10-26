@@ -1,6 +1,6 @@
 use super::{build_downloader, try_remove_empty_output_dir, unsatisfied_targets, verified_targets};
 use crate::app::collection::FailureReason;
-use crate::config::constants::DOWNLOAD_USER_AGENT;
+use crate::config::constants::USER_AGENT;
 use crate::core::collection::{test_beatmapset, test_collection};
 use crate::download::collection_db::create_selective_collection_db;
 use crate::download::events::{Tally, translate_event};
@@ -1690,9 +1690,9 @@ async fn downloads_tell_the_mirror_which_app_is_asking() {
                 .then(|| value.trim())
         })
         .expect("a User-Agent header");
-    assert_eq!(user_agent, DOWNLOAD_USER_AGENT);
+    assert_eq!(user_agent, USER_AGENT);
     assert_eq!(
-        DOWNLOAD_USER_AGENT,
+        USER_AGENT,
         format!(
             "osu-collect/{} (+https://github.com/DesireThings/osu-collect)",
             env!("CARGO_PKG_VERSION")

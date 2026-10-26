@@ -6,6 +6,7 @@
 //! (`src/app/runtime/enrich.rs`) — one representative diff per set.
 
 use crate::app::{App, AppCommand, BrowseRow, EnrichTarget, FindBackend, FindStatusMsg};
+use crate::config::constants::USER_AGENT;
 use osu_downloader::Error;
 use osu_downloader::filter::{FilterClient, FilterQuery, FilterResults};
 use std::sync::LazyLock;
@@ -13,7 +14,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::{sync::mpsc, sync::watch, task::JoinHandle};
 
 /// One shared client for the whole session (connection reuse).
-static FILTER_CLIENT: LazyLock<FilterClient> = LazyLock::new(FilterClient::new);
+static FILTER_CLIENT: LazyLock<FilterClient> =
+    LazyLock::new(|| FilterClient::with_user_agent(USER_AGENT));
 
 /// Monotonic filter generation. Each `schedule_filter` bumps it; a fetch whose
 /// generation is stale by completion drops its result rather than clobbering the

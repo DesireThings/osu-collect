@@ -35,13 +35,15 @@
 
 use crate::app::find_source::shortfall_ids;
 use crate::app::{App, AppCommand, EnrichTarget};
+use crate::config::constants::USER_AGENT;
 use osu_downloader::filter::{BeatmapDetails, FilterClient};
 use std::sync::LazyLock;
 use tokio::sync::mpsc;
 
 /// One reqwest client for every details page — its own pool to the BBD host,
 /// separate from the filter task's client but configured identically.
-static DETAILS_CLIENT: LazyLock<FilterClient> = LazyLock::new(FilterClient::new);
+static DETAILS_CLIENT: LazyLock<FilterClient> =
+    LazyLock::new(|| FilterClient::with_user_agent(USER_AGENT));
 
 /// A details page result, sent back to the main loop.
 #[derive(Debug)]

@@ -5,7 +5,7 @@ use super::super::{
     update_source::{MissingBeatmapset, MissingStatus, ScanStatus, extract_collection_id},
 };
 use crate::{
-    config::constants::CONCURRENT_REQUESTS,
+    config::constants::{CONCURRENT_REQUESTS, USER_AGENT},
     core::collection::{Collection, api_client},
     osu_db::{
         BeatmapReader, LazerReader, LocalBeatmapset, LocalCollection, Md5, OsuClient, StableReader,
@@ -457,7 +457,7 @@ pub(super) fn spawn_failed_map_recheck_task(
     );
 
     let handle = tokio::spawn(async move {
-        let fetcher = osu_downloader::size::SizeFetcher::new();
+        let fetcher = osu_downloader::size::SizeFetcher::with_user_agent(USER_AGENT);
         let progress_tx = tx.clone();
         // Availability is an anonymous probe, so drop auth-gated mirrors (osu!
         // official) — they'd 403 without a token and waste requests.
@@ -797,7 +797,7 @@ pub async fn fetch_missing_beatmapsets(
     snapshot_diffs: HashMap<u32, snapshots::SnapshotDiff>,
     settings: FetchCompareSettings,
 ) -> Result<FetchMissingResult, String> {
-    let client = osu_downloader::collection::CollectionClient::new();
+    let client = osu_downloader::collection::CollectionClient::with_user_agent(USER_AGENT);
     let mut collection_seen: HashMap<u32, Vec<u32>> = HashMap::new();
     let mut collection_removed_counts: HashMap<u32, usize> = HashMap::new();
 
