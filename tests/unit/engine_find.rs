@@ -250,3 +250,47 @@ fn a_find_download_with_nothing_picked_is_refused() {
 
     assert!(err.to_string().starts_with("Nothing to download"), "{err}");
 }
+
+#[test]
+fn downloaded_sets_come_from_every_run_folder_but_the_import_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let base = dir.path();
+    std::fs::write(base.join("7.osz"), b"").unwrap();
+    for (folder, file) in [
+        ("search-freedom dive", "39804.osz"),
+        (
+            "stream 200-220-23907",
+            "1011576 BABYMETAL - Road of Resistance.osz",
+        ),
+        ("stream 200-220-23907", "notes.txt"),
+        ("stream 200-220-23907", "55.osz.download-1-2.tmp"),
+        (super::IMPORT_FOLDER_NAME, "999.osz"),
+    ] {
+        std::fs::create_dir_all(base.join(folder)).unwrap();
+        std::fs::write(base.join(folder).join(file), b"").unwrap();
+    }
+
+    let mut ids = super::downloaded_set_ids(base);
+    ids.sort();
+    assert_eq!(ids, vec![7, 39804, 1011576]);
+    assert!(super::downloaded_set_ids(&base.join("missing")).is_empty());
+}
+
+#[test]
+fn an_unreadable_library_still_marks_downloads() {
+    let dir = tempfile::tempdir().unwrap();
+    let downloads = dir.path().join("downloads");
+    std::fs::create_dir_all(downloads.join("run")).unwrap();
+    std::fs::write(downloads.join("run").join("12.osz"), b"").unwrap();
+    let settings = crate::engine::Settings {
+        client: OsuClient::Stable,
+        // An install folder with no osu!.db in it.
+        osu_path: Some(dir.path().join("osu")),
+        download_dir: downloads,
+    };
+
+    let owned = super::owned(&settings);
+    assert!(owned.in_osu.is_empty());
+    assert!(owned.library_error.is_some());
+    assert_eq!(owned.downloaded, vec![12]);
+}

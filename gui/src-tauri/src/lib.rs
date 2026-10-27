@@ -3,7 +3,7 @@
 
 use osu_collect::engine::{
     self, CollectionPreview, DownloadOptions, DownloadStatus, Downloads, FindCheck, FindCriteria,
-    FindOptions, FindPage, FindPick, ImportFolderReport, Installs, ScanProgress, Settings,
+    FindOptions, FindPage, FindPick, ImportFolderReport, Installs, Owned, ScanProgress, Settings,
     UpdatePick, UpdateReport, Updates,
 };
 use serde::Serialize;
@@ -162,6 +162,16 @@ async fn find_maps(criteria: FindCriteria, cursor: Option<String>) -> Result<Fin
         .map_err(|e| e.to_string())
 }
 
+/// Map sets already in osu! or the download folder. Off the main thread: the
+/// first read of a big library takes a few seconds.
+#[tauri::command]
+async fn find_owned() -> Result<Owned, String> {
+    let settings = engine::load_settings();
+    tauri::async_runtime::spawn_blocking(move || engine::find::owned(&settings))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Async so it runs on Tauri's Tokio runtime: queueing can start the pipeline.
 #[tauri::command]
 async fn download_found(pick: FindPick, downloads: State<'_, Downloads>) -> Result<u64, String> {
@@ -227,6 +237,7 @@ pub fn run() {
             find_preset,
             find_check,
             find_maps,
+            find_owned,
             download_found,
             third_party_licences,
         ])
