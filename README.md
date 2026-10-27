@@ -30,7 +30,7 @@ osu-collect downloads every map in an [osu!collector](https://osucollector.com) 
 - **Nine mirrors with failover:** when a mirror rate-limits, the map waits and retries while the rest keep downloading. You can also skip the stuck ones and fetch them later. See [Mirrors](https://github.com/DesireThings/osu-collect/wiki/Mirrors).
 - **A real collection:** a verified `collection.db` next to the maps.
 - **Keep collections up to date:** check a downloaded collection again and fetch only new or missing maps.
-- **Find maps without a collection** (terminal app): search by per-difficulty criteria through the osu! API or nzbasic's community database. See [Finding maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps).
+- **Find maps without a collection:** search by per-difficulty criteria through the osu! API or nzbasic's community database. See [Finding maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps).
 
 ## Installation
 
@@ -143,8 +143,8 @@ The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-col
 ## What's next
 
 - [x] First release: packaged desktop app and terminal binaries for Linux, Windows and macOS (0.1.0)
-- [x] Desktop app: update screen
-- [x] Desktop app: find screen
+- [x] Desktop app: update screen (0.2.0)
+- [x] Desktop app: find screen (0.2.0)
 - [ ] Desktop app: tell you when a new version is out
 - [ ] osu! stable: add maps and collections straight into stable (with a backup, while osu! is closed), so Collection Manager isn't needed
 - [ ] Export collections as `.osdb`, Collection Manager's format, for sharing and merging
