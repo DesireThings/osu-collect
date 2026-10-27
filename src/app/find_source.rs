@@ -914,12 +914,15 @@ const SORT: &[SortOption] = &[
         osu: Some((SortField::Updated, SortOrder::Desc)),
         nzbasic: Some((FilterSort::LastUpdate, FilterDirection::Desc)),
     },
-    // osu-only (force osu): no nzbasic column expresses these.
+    // nzbasic has no search text to rank by, so relevance falls back to newest
+    // ranked first there. That keeps it from forcing a route: it's the desktop
+    // app's default sort, and a nzbasic filter must not clash with it.
     SortOption {
         label: "relevance",
         osu: Some((SortField::Relevance, SortOrder::Desc)),
-        nzbasic: None,
+        nzbasic: Some((FilterSort::ApprovedDate, FilterDirection::Desc)),
     },
+    // osu-only (force osu): no nzbasic column expresses these.
     SortOption {
         label: "title ↑",
         osu: Some((SortField::Title, SortOrder::Asc)),
@@ -1633,6 +1636,13 @@ impl FindSource {
     /// never drift.
     pub fn sort_labels(&self) -> Vec<&'static str> {
         SORT.iter().map(|opt| opt.label).collect()
+    }
+
+    /// Position of the relevance sort in [`Self::sort_labels`].
+    pub fn relevance_sort_idx(&self) -> usize {
+        SORT.iter()
+            .position(|opt| matches!(opt.osu, Some((SortField::Relevance, _))))
+            .expect("SORT has a relevance option")
     }
 
     pub fn explicit_label(&self) -> &'static str {

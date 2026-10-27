@@ -7,11 +7,15 @@
 //! both frontends search the same way and download into the same folders.
 
 use super::{
-    Downloads,
+    Downloads, IMPORT_FOLDER_NAME, Settings,
     download::{RunSettings, run_settings},
+    updates,
 };
 use crate::{
-    app::find_source::{FindChoices, FindPlan, FindRoute, FindSource},
+    app::{
+        find_source::{FindChoices, FindPlan, FindRoute, FindSource},
+        library_cache,
+    },
     config::{constants::USER_AGENT, load_config_or_default},
     core::search::{SearchService, shared_service},
     download::{DownloadId, IdsDownloadRequest, IdsRunSource},
@@ -19,12 +23,14 @@ use crate::{
 };
 use futures_util::{StreamExt, stream};
 use osu_downloader::{
+    OutputEntry, classify_output_entry,
     filter::{BeatmapDetails, BeatmapStatus, FilterClient},
     search::BeatmapSetMeta,
 };
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
+    path::Path,
     sync::LazyLock,
 };
 
@@ -71,9 +77,9 @@ pub struct FindCriteria {
 }
 
 impl Default for FindCriteria {
-    /// The TUI's untouched form (status "has leaderboard", newest ranked first).
+    /// The TUI's untouched form (status "has leaderboard"), sorted by relevance.
     fn default() -> Self {
-        Self::from_source(&FindSource::new())
+        Self::from_source(&FindSource::new()).relevance_by_default()
     }
 }
 
@@ -160,8 +166,19 @@ impl FindCriteria {
     /// preset's own filled in.
     pub fn with_preset(idx: usize) -> Result<Self> {
         FindSource::with_preset(idx)
-            .map(|source| Self::from_source(&source))
+            .map(|source| Self::from_source(&source).relevance_by_default())
             .map_err(AppError::other_dynamic)
+    }
+
+    /// The desktop app sorts by relevance unless something chose another sort
+    /// (best match with search text, newest ranked without). The terminal app
+    /// keeps "ranked ↓" as its default.
+    fn relevance_by_default(mut self) -> Self {
+        let source = FindSource::new();
+        if self.sort == source.choices().sort {
+            self.sort = source.relevance_sort_idx();
+        }
+        self
     }
 }
 
@@ -192,7 +209,7 @@ pub fn options() -> FindOptions {
         genres: source.genre_labels().to_vec(),
         languages: source.language_labels().to_vec(),
         extras: source.extra_labels().to_vec(),
-        defaults: FindCriteria::from_source(&source),
+        defaults: FindCriteria::default(),
     }
 }
 
@@ -451,6 +468,63 @@ fn build_find_request(pick: &FindPick, run: RunSettings) -> Result<IdsDownloadRe
         osu_client: run.osu_client,
         osu_path: run.osu_path,
     })
+}
+
+/// Map sets the user already has, to mark them in the results.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Owned {
+    /// In the osu! library from Setup.
+    pub in_osu: Vec<u32>,
+    /// Downloaded into the download folder by any run, imported or not.
+    pub downloaded: Vec<u32>,
+    /// Why the library couldn't be read; `in_osu` is empty then.
+    pub library_error: Option<String>,
+}
+
+/// What the user already has. Blocking: reads the osu! library (memoized by
+/// the library cache, so only the first call after osu! changes is slow) and
+/// lists the download folder.
+pub fn owned(settings: &Settings) -> Owned {
+    let (in_osu, library_error) = match updates::library_path(settings) {
+        None => (Vec::new(), None),
+        Some(path) => match library_cache::owned_ids_cached(settings.client, path) {
+            Ok(ids) => (ids.into_iter().collect(), None),
+            Err(e) => (Vec::new(), Some(e)),
+        },
+    };
+    Owned {
+        in_osu,
+        downloaded: downloaded_set_ids(&settings.download_dir),
+        library_error,
+    }
+}
+
+/// Set ids of the `.osz` files in `download_dir` and its run folders. The
+/// lazer import folder only holds copies, so it's left out.
+fn downloaded_set_ids(download_dir: &Path) -> Vec<u32> {
+    let archives = |dir: &Path| -> Vec<u32> {
+        std::fs::read_dir(dir)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|entry| match classify_output_entry(&entry.file_name()) {
+                OutputEntry::Archive { beatmapset_id } => Some(beatmapset_id),
+                _ => None,
+            })
+            .collect()
+    };
+    let mut ids: HashSet<u32> = archives(download_dir).into_iter().collect();
+    for entry in std::fs::read_dir(download_dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+    {
+        let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+        if is_dir && entry.file_name() != IMPORT_FOLDER_NAME {
+            ids.extend(archives(&entry.path()));
+        }
+    }
+    ids.into_iter().collect()
 }
 
 #[cfg(test)]

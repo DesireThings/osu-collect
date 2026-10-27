@@ -6,6 +6,7 @@ import {
   downloadFound,
   downloadUpdates,
   findMaps,
+  findOwned,
   listDownloads,
   onDownloadStatus,
   onScanProgress,
@@ -17,6 +18,7 @@ import {
   type FindCriteria,
   type FindRoute,
   type FindRow,
+  type Owned,
   type ScanProgress,
   type UpdateReport,
 } from "./api";
@@ -59,6 +61,9 @@ export const store = $state({
     nextCursor: null as string | null,
     picked: [] as number[],
     downloadError: null as string | null,
+    /** What the user already has; null until first read. */
+    owned: null as Owned | null,
+    hideOwned: false,
   },
 });
 
@@ -233,10 +238,21 @@ export async function search() {
     f.total = page.total;
     f.nextCursor = page.next_cursor;
     f.picked = [];
+    void refreshOwned();
   } catch (e) {
     f.error = String(e);
   } finally {
     f.searching = false;
+  }
+}
+
+/** Re-read what the user already has, to mark it in the results. A failure
+ * only loses the marks, so it isn't shown as an error. */
+export async function refreshOwned() {
+  try {
+    store.find.owned = await findOwned();
+  } catch {
+    store.find.owned = null;
   }
 }
 
@@ -259,16 +275,17 @@ export async function loadMore() {
   }
 }
 
-export async function downloadPicked() {
+/** Queue the ticked sets; resolves to the new run's id, or null when it failed. */
+export async function downloadPicked(): Promise<number | null> {
   const f = store.find;
-  if (!f.searched || !f.route) return;
+  if (!f.searched || !f.route) return null;
   f.downloadError = null;
   const sizes: Record<number, number> = {};
   for (const row of f.rows) {
     if (row.size !== null && f.picked.includes(row.id)) sizes[row.id] = row.size;
   }
   try {
-    await downloadFound({
+    return await downloadFound({
       criteria: f.searched,
       route: f.route,
       beatmapset_ids: f.rows.filter((r) => f.picked.includes(r.id)).map((r) => r.id),
@@ -276,5 +293,6 @@ export async function downloadPicked() {
     });
   } catch (e) {
     f.downloadError = String(e);
+    return null;
   }
 }

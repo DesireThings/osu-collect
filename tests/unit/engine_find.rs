@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use super::{FindCriteria, FindPick, Route, build_find_request, check, nzbasic_rows, options};
-use crate::app::find_source::FindSource;
+use crate::app::find_source::{FindChoices, FindPlan, FindSource};
 use crate::download::{DownloadConfig, IdsRunSource};
 use crate::engine::{Downloads, download::RunSettings};
 use crate::osu_db::OsuClient;
-use osu_downloader::filter::BeatmapDetails;
+use osu_downloader::filter::{BeatmapDetails, FilterDirection, FilterSort};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -34,16 +34,66 @@ fn position(labels: &[&str], label: &str) -> usize {
 }
 
 #[test]
-fn the_defaults_are_the_tuis_untouched_form() {
+fn the_defaults_are_the_tuis_untouched_form_sorted_by_relevance() {
     let options = options();
 
     assert_eq!(options.defaults, criteria());
     assert_eq!(options.statuses[criteria().status], "has leaderboard");
-    assert_eq!(options.sorts[criteria().sort], "ranked ↓");
+    assert_eq!(options.sorts[criteria().sort], "relevance");
+    let tui = FindSource::new().choices();
+    let gui = criteria().to_source().unwrap().choices();
     assert_eq!(
-        criteria().to_source().unwrap().choices(),
-        FindSource::new().choices()
+        options.sorts[tui.sort], "ranked ↓",
+        "the terminal app keeps its default"
     );
+    assert_eq!(
+        FindChoices {
+            sort: tui.sort,
+            ..gui
+        },
+        tui
+    );
+}
+
+#[test]
+fn relevance_never_clashes_with_a_nzbasic_filter() {
+    let options = options();
+    let special = FindCriteria {
+        special: 1,
+        ..criteria()
+    };
+    let checked = check(&special);
+    assert_eq!(checked.route, Some(Route::Nzbasic));
+    assert_eq!(checked.problem, None);
+    let Ok(FindPlan::Nzbasic(query)) = special.to_source().unwrap().build_plan(None) else {
+        panic!("a Special filter searches nzbasic");
+    };
+    // No search text to rank by there: newest ranked first.
+    assert_eq!(
+        query.sort,
+        Some((FilterSort::ApprovedDate, FilterDirection::Desc))
+    );
+
+    let with_text = FindCriteria {
+        query: "freedom dive".into(),
+        ..criteria()
+    };
+    assert_eq!(check(&with_text).route, Some(Route::Osu));
+    assert_eq!(options.sorts[with_text.sort], "relevance");
+}
+
+#[test]
+fn a_preset_without_its_own_sort_starts_on_relevance() {
+    let options = options();
+    for (i, label) in options.presets.iter().enumerate() {
+        let preset = FindCriteria::with_preset(i).unwrap();
+        let checked = check(&preset);
+        assert_eq!(checked.problem, None, "preset {label}");
+        assert!(checked.route.is_some(), "preset {label}");
+    }
+    let farm = FindCriteria::with_preset(position(&options.presets, "farm")).unwrap();
+    assert_eq!(options.sorts[farm.sort], "relevance");
+    assert_eq!(check(&farm).route, Some(Route::Nzbasic));
 }
 
 #[test]
@@ -234,4 +284,48 @@ fn a_find_download_with_nothing_picked_is_refused() {
     let err = downloads.enqueue_find(request).unwrap_err();
 
     assert!(err.to_string().starts_with("Nothing to download"), "{err}");
+}
+
+#[test]
+fn downloaded_sets_come_from_every_run_folder_but_the_import_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let base = dir.path();
+    std::fs::write(base.join("7.osz"), b"").unwrap();
+    for (folder, file) in [
+        ("search-freedom dive", "39804.osz"),
+        (
+            "stream 200-220-23907",
+            "1011576 BABYMETAL - Road of Resistance.osz",
+        ),
+        ("stream 200-220-23907", "notes.txt"),
+        ("stream 200-220-23907", "55.osz.download-1-2.tmp"),
+        (super::IMPORT_FOLDER_NAME, "999.osz"),
+    ] {
+        std::fs::create_dir_all(base.join(folder)).unwrap();
+        std::fs::write(base.join(folder).join(file), b"").unwrap();
+    }
+
+    let mut ids = super::downloaded_set_ids(base);
+    ids.sort();
+    assert_eq!(ids, vec![7, 39804, 1011576]);
+    assert!(super::downloaded_set_ids(&base.join("missing")).is_empty());
+}
+
+#[test]
+fn an_unreadable_library_still_marks_downloads() {
+    let dir = tempfile::tempdir().unwrap();
+    let downloads = dir.path().join("downloads");
+    std::fs::create_dir_all(downloads.join("run")).unwrap();
+    std::fs::write(downloads.join("run").join("12.osz"), b"").unwrap();
+    let settings = crate::engine::Settings {
+        client: OsuClient::Stable,
+        // An install folder with no osu!.db in it.
+        osu_path: Some(dir.path().join("osu")),
+        download_dir: downloads,
+    };
+
+    let owned = super::owned(&settings);
+    assert!(owned.in_osu.is_empty());
+    assert!(owned.library_error.is_some());
+    assert_eq!(owned.downloaded, vec![12]);
 }

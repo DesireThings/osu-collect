@@ -259,3 +259,15 @@ export const findCheck = (criteria: FindCriteria) => invoke<FindCheck>("find_che
 export const findMaps = (criteria: FindCriteria, cursor: string | null = null) =>
   invoke<FindPage>("find_maps", { criteria, cursor });
 export const downloadFound = (pick: FindPick) => invoke<number>("download_found", { pick });
+
+/** Map sets the user already has. */
+export interface Owned {
+  /** In the osu! library from Setup. */
+  in_osu: number[];
+  /** Downloaded into the download folder, imported or not. */
+  downloaded: number[];
+  /** Why the library couldn't be read; `in_osu` is empty then. */
+  library_error: string | null;
+}
+
+export const findOwned = () => invoke<Owned>("find_owned");

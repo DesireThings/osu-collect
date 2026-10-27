@@ -17,6 +17,7 @@
     isActive,
     latestFindRun,
     loadMore,
+    refreshOwned,
     search,
     store,
   } from "./store.svelte";
@@ -39,6 +40,8 @@
     try {
       [options, apiApp] = await Promise.all([findOptions(), savedApiApp()]);
       if (!f.criteria) f.criteria = $state.snapshot(options.defaults);
+      // Setup may have pointed at another osu! since the results came in.
+      if (f.rows.length > 0) void refreshOwned();
     } catch (e) {
       loadError = String(e);
     }
@@ -90,6 +93,60 @@
   const pickedSize = $derived(
     f.rows.reduce((sum, r) => sum + (f.picked.includes(r.id) && r.size ? r.size : 0), 0),
   );
+
+  let runCard = $state<HTMLElement | null>(null);
+  /** The run just started from the download bar, until its card is shown. */
+  let revealRun = $state<number | null>(null);
+
+  async function startDownload() {
+    const id = await downloadPicked();
+    if (id !== null) revealRun = id;
+  }
+
+  function showRun() {
+    runCard?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // The card renders below every result, so without this a download looks
+  // like it did nothing. Waits for the run's first status to arrive.
+  $effect(() => {
+    if (revealRun === null || run?.id !== revealRun || !runCard) return;
+    showRun();
+    revealRun = null;
+  });
+
+  /** Live progress for the download bar, which stays on screen. */
+  const runLine = $derived.by(() => {
+    if (!run || !running) return null;
+    if (run.phase === "preparing") return "Getting ready…";
+    const settled = run.downloaded + run.skipped + run.failed;
+    return `Downloading ${settled.toLocaleString()} of ${plural(run.total, "map set", "map sets")}`;
+  });
+
+  const inOsu = $derived(new Set(f.owned?.in_osu ?? []));
+  const downloadedSets = $derived(new Set(f.owned?.downloaded ?? []));
+  /** Where the user already has a set: in osu!, or downloaded but maybe not imported. */
+  const have = (id: number): "osu" | "downloaded" | null =>
+    inOsu.has(id) ? "osu" : downloadedSets.has(id) ? "downloaded" : null;
+  const visibleRows = $derived(f.hideOwned ? f.rows.filter((r) => !have(r.id)) : f.rows);
+  const hiddenCount = $derived(f.rows.length - visibleRows.length);
+
+  // A hidden row can't be seen to be ticked, so it stops counting: hiding
+  // (or a download that adds to what the user has) unticks it.
+  $effect(() => {
+    if (!f.hideOwned) return;
+    const kept = f.picked.filter((id) => !have(id));
+    if (kept.length !== f.picked.length) f.picked = kept;
+  });
+
+  // A finished download changes what's downloaded (and maybe what's in osu!).
+  let refreshedFor = -1;
+  $effect(() => {
+    if (run?.phase === "done" && run.id !== refreshedFor) {
+      refreshedFor = run.id;
+      void refreshOwned();
+    }
+  });
 
   function togglePicked(id: number) {
     f.picked = f.picked.includes(id) ? f.picked.filter((p) => p !== id) : [...f.picked, id];
@@ -271,13 +328,18 @@
               : plural(f.rows.length, "result", "results")}
           </h2>
           <div class="actions">
-            <button class="secondary" onclick={() => (f.picked = f.rows.map((r) => r.id))}>Tick all</button>
+            <label class="check small">
+              <input type="checkbox" bind:checked={f.hideOwned} />
+              Hide maps I already have{#if f.hideOwned && hiddenCount > 0}&nbsp;({hiddenCount.toLocaleString()} hidden){/if}
+            </label>
+            <button class="secondary" onclick={() => (f.picked = visibleRows.map((r) => r.id))}>Tick all</button>
             <button class="secondary" onclick={() => (f.picked = [])}>Untick all</button>
           </div>
         </div>
         <ul class="rows">
-          {#each f.rows as row (row.id)}
-            <li>
+          {#each visibleRows as row (row.id)}
+            {@const owned = have(row.id)}
+            <li class:have-osu={owned === "osu"} class:have-downloaded={owned === "downloaded"}>
               <label class="row">
                 <input type="checkbox" checked={f.picked.includes(row.id)} onchange={() => togglePicked(row.id)} />
                 <img
@@ -290,6 +352,11 @@
                 <span class="row-main">
                   <span class="row-title">
                     {row.title ? `${row.artist} – ${row.title}` : `Map set ${row.id}`}
+                    {#if owned === "osu"}
+                      <span class="tag tag-osu">In osu!</span>
+                    {:else if owned === "downloaded"}
+                      <span class="tag tag-downloaded" title="In your download folder; import it to play it">Downloaded</span>
+                    {/if}
                   </span>
                   <span class="muted small">
                     {#if row.creator}mapped by {row.creator}{/if}
@@ -309,6 +376,14 @@
             </li>
           {/each}
         </ul>
+        {#if visibleRows.length === 0}
+          <p class="muted small">You already have every map shown here.</p>
+        {/if}
+        {#if f.owned?.library_error}
+          <p class="muted small">
+            Couldn't read your osu! library, so only downloaded maps are marked: {f.owned.library_error}
+          </p>
+        {/if}
         {#if f.nextCursor}
           <div class="actions left">
             <button class="secondary" onclick={loadMore} disabled={f.loadingMore}>
@@ -321,10 +396,14 @@
       <div class="actions download-bar">
         {#if f.downloadError}
           <p class="error-text small">{f.downloadError}</p>
+        {:else if runLine}
+          <p class="muted small">
+            {runLine} · <button class="link" onclick={showRun}>Show progress</button>
+          </p>
         {:else if pickedCount === 0}
           <p class="muted small">Tick the map sets you want.</p>
         {/if}
-        <button class="primary" onclick={downloadPicked} disabled={pickedCount === 0}>
+        <button class="primary" onclick={startDownload} disabled={pickedCount === 0}>
           Download {plural(pickedCount, "map set", "map sets")}{#if pickedSize > 0}&nbsp;(about {size(pickedSize)}){/if}
         </button>
       </div>
@@ -332,7 +411,7 @@
   {/if}
 
   {#if run}
-    <section class="card">
+    <section class="card" bind:this={runCard}>
       <div class="entry">
         <div class="entry-main">
           <span class="entry-title">Search “{run.name}”</span>
@@ -453,5 +532,36 @@
   .row-title {
     font-weight: 600;
     overflow-wrap: anywhere;
+  }
+  /* Maps the user already has: a coloured edge and a tag, like osu!'s own listing. */
+  .rows li.have-osu,
+  .rows li.have-downloaded {
+    padding-left: 10px;
+    box-shadow: inset 3px 0 0 var(--have);
+  }
+  .rows li.have-osu {
+    --have: var(--ok);
+  }
+  .rows li.have-downloaded {
+    --have: var(--warn);
+  }
+  .tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    vertical-align: 1px;
+    border: 1px solid currentColor;
+  }
+  .tag-osu {
+    color: var(--ok);
+  }
+  .tag-downloaded {
+    color: var(--warn);
+  }
+  .results-head .check {
+    color: var(--muted);
   }
 </style>
