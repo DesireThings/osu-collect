@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use super::{FindCriteria, FindPick, Route, build_find_request, check, nzbasic_rows, options};
-use crate::app::find_source::FindSource;
+use crate::app::find_source::{FindChoices, FindPlan, FindSource};
 use crate::download::{DownloadConfig, IdsRunSource};
 use crate::engine::{Downloads, download::RunSettings};
 use crate::osu_db::OsuClient;
-use osu_downloader::filter::BeatmapDetails;
+use osu_downloader::filter::{BeatmapDetails, FilterDirection, FilterSort};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -34,31 +34,66 @@ fn position(labels: &[&str], label: &str) -> usize {
 }
 
 #[test]
-fn the_defaults_are_the_tuis_untouched_form() {
+fn the_defaults_are_the_tuis_untouched_form_sorted_by_relevance() {
     let options = options();
 
     assert_eq!(options.defaults, criteria());
     assert_eq!(options.statuses[criteria().status], "has leaderboard");
-    assert_eq!(options.sorts[criteria().sort], "ranked ↓");
+    assert_eq!(options.sorts[criteria().sort], "relevance");
+    let tui = FindSource::new().choices();
+    let gui = criteria().to_source().unwrap().choices();
     assert_eq!(
-        criteria().to_source().unwrap().choices(),
-        FindSource::new().choices()
+        options.sorts[tui.sort], "ranked ↓",
+        "the terminal app keeps its default"
+    );
+    assert_eq!(
+        FindChoices {
+            sort: tui.sort,
+            ..gui
+        },
+        tui
     );
 }
 
 #[test]
-fn relevance_sort_points_at_relevance_on_the_osu_route() {
+fn relevance_never_clashes_with_a_nzbasic_filter() {
     let options = options();
-    assert_eq!(options.sorts[options.relevance_sort], "relevance");
+    let special = FindCriteria {
+        special: 1,
+        ..criteria()
+    };
+    let checked = check(&special);
+    assert_eq!(checked.route, Some(Route::Nzbasic));
+    assert_eq!(checked.problem, None);
+    let Ok(FindPlan::Nzbasic(query)) = special.to_source().unwrap().build_plan(None) else {
+        panic!("a Special filter searches nzbasic");
+    };
+    // No search text to rank by there: newest ranked first.
+    assert_eq!(
+        query.sort,
+        Some((FilterSort::ApprovedDate, FilterDirection::Desc))
+    );
 
     let with_text = FindCriteria {
         query: "freedom dive".into(),
-        sort: options.relevance_sort,
         ..criteria()
     };
-    let checked = check(&with_text);
-    assert_eq!(checked.route, Some(Route::Osu));
-    assert_eq!(checked.problem, None);
+    assert_eq!(check(&with_text).route, Some(Route::Osu));
+    assert_eq!(options.sorts[with_text.sort], "relevance");
+}
+
+#[test]
+fn a_preset_without_its_own_sort_starts_on_relevance() {
+    let options = options();
+    for (i, label) in options.presets.iter().enumerate() {
+        let preset = FindCriteria::with_preset(i).unwrap();
+        let checked = check(&preset);
+        assert_eq!(checked.problem, None, "preset {label}");
+        assert!(checked.route.is_some(), "preset {label}");
+    }
+    let farm = FindCriteria::with_preset(position(&options.presets, "farm")).unwrap();
+    assert_eq!(options.sorts[farm.sort], "relevance");
+    assert_eq!(check(&farm).route, Some(Route::Nzbasic));
 }
 
 #[test]

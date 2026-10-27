@@ -1604,7 +1604,7 @@ fn farm_preset_seeds_mode_and_special_and_resets_stray_forcers() {
 #[test]
 fn preset_resets_a_backend_forcing_sort() {
     let mut source = FindSource::new();
-    set_sort(&mut source, "relevance"); // osu-only sort
+    set_sort(&mut source, "title ↑"); // osu-only sort
     for _ in 0..3 {
         source.cycle_preset(true); // farm (a nzbasic-forcer)
     }

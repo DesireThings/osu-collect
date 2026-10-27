@@ -50,8 +50,6 @@ export const store = $state({
   find: {
     /** The form as edited; null until the options load. */
     criteria: null as FindCriteria | null,
-    /** The user picked a sort; until then it follows the search text. */
-    sortChosen: false,
     searching: false,
     loadingMore: false,
     error: null as string | null,

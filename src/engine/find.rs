@@ -77,9 +77,9 @@ pub struct FindCriteria {
 }
 
 impl Default for FindCriteria {
-    /// The TUI's untouched form (status "has leaderboard", newest ranked first).
+    /// The TUI's untouched form (status "has leaderboard"), sorted by relevance.
     fn default() -> Self {
-        Self::from_source(&FindSource::new())
+        Self::from_source(&FindSource::new()).relevance_by_default()
     }
 }
 
@@ -166,8 +166,19 @@ impl FindCriteria {
     /// preset's own filled in.
     pub fn with_preset(idx: usize) -> Result<Self> {
         FindSource::with_preset(idx)
-            .map(|source| Self::from_source(&source))
+            .map(|source| Self::from_source(&source).relevance_by_default())
             .map_err(AppError::other_dynamic)
+    }
+
+    /// The desktop app sorts by relevance unless something chose another sort
+    /// (best match with search text, newest ranked without). The terminal app
+    /// keeps "ranked ↓" as its default.
+    fn relevance_by_default(mut self) -> Self {
+        let source = FindSource::new();
+        if self.sort == source.choices().sort {
+            self.sort = source.relevance_sort_idx();
+        }
+        self
     }
 }
 
@@ -184,9 +195,6 @@ pub struct FindOptions {
     pub languages: Vec<&'static str>,
     pub extras: Vec<&'static str>,
     pub defaults: FindCriteria,
-    /// Position of "relevance" in `sorts`: the sort to use while there's
-    /// search text, as on the osu! website.
-    pub relevance_sort: usize,
 }
 
 pub fn options() -> FindOptions {
@@ -201,8 +209,7 @@ pub fn options() -> FindOptions {
         genres: source.genre_labels().to_vec(),
         languages: source.language_labels().to_vec(),
         extras: source.extra_labels().to_vec(),
-        defaults: FindCriteria::from_source(&source),
-        relevance_sort: source.relevance_sort_idx(),
+        defaults: FindCriteria::default(),
     }
 }
 

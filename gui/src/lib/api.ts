@@ -214,8 +214,6 @@ export interface FindOptions {
   languages: string[];
   extras: string[];
   defaults: FindCriteria;
-  /** Position of "relevance" in `sorts`, used while there's search text. */
-  relevance_sort: number;
 }
 
 /** osu!'s own search (needs the user's API app), or nzbasic's map database. */
