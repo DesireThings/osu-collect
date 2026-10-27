@@ -142,6 +142,14 @@
   const visibleRows = $derived(f.hideOwned ? f.rows.filter((r) => !have(r.id)) : f.rows);
   const hiddenCount = $derived(f.rows.length - visibleRows.length);
 
+  // A hidden row can't be seen to be ticked, so it stops counting: hiding
+  // (or a download that adds to what the user has) unticks it.
+  $effect(() => {
+    if (!f.hideOwned) return;
+    const kept = f.picked.filter((id) => !have(id));
+    if (kept.length !== f.picked.length) f.picked = kept;
+  });
+
   // A finished download changes what's downloaded (and maybe what's in osu!).
   let refreshedFor = -1;
   $effect(() => {
