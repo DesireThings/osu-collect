@@ -8,7 +8,7 @@ The sidebar has three steps, then **Find maps**, **Update collections** and Sett
 
 ## 1. Set up
 
-- **Which osu! do you play?** osu!lazer (which covers Torii and other lazer builds) or osu! stable. Your osu! folder is found automatically when it's in the usual place; otherwise use **Choose folder…**. For lazer, that's the folder with `client.realm` in it (in osu!lazer: Settings → Maintenance → Open osu! folder).
+- **Which osu! do you play?** osu!lazer (which covers Torii and other lazer builds) or osu! stable. Your osu! folder is found automatically when it's in the usual place; for lazer that includes Torii's folder and a folder you moved in lazer's settings, and when there's more than one, the one you played most recently wins. Otherwise use **Choose folder…**. For lazer, that's the folder with `client.realm` in it (in osu!lazer: Settings → Maintenance → Open osu! folder).
 - **Where should downloaded maps go?** Each collection gets its own folder inside this one.
 
 **Save and continue** writes both to `config.toml`.

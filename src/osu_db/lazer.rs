@@ -1,9 +1,6 @@
-use super::{
-    BeatmapReader, LocalBeatmap, LocalBeatmapset, LocalCollection, checksum, find_installation,
-    require_db,
-};
+use super::{BeatmapReader, LocalBeatmap, LocalBeatmapset, LocalCollection, checksum, require_db};
 use crate::realm_bridge::ffi;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf, time::SystemTime};
 use tracing::{debug, info, warn};
 
 pub struct LazerReader {
@@ -103,7 +100,46 @@ impl BeatmapReader for LazerReader {
     }
 
     fn default_path() -> Option<PathBuf> {
-        find_installation(Self::candidate_paths(), "client.realm")
+        find_lazer_install(Self::candidate_paths())
+    }
+}
+
+/// Picks lazer's data folder from `candidates`. Each one is first followed
+/// through its `storage.ini` redirect; then the folder whose `client.realm`
+/// changed last wins, so a leftover realm or an install that isn't played any
+/// more doesn't beat the one in use. Ties keep the earlier candidate.
+fn find_lazer_install(candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> {
+    let mut best: Option<(SystemTime, PathBuf)> = None;
+    for candidate in candidates {
+        let folder = follow_storage_redirect(candidate);
+        let Ok(meta) = fs::metadata(folder.join("client.realm")) else {
+            continue;
+        };
+        let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        if best.as_ref().is_none_or(|(newest, _)| modified > *newest) {
+            best = Some((modified, folder));
+        }
+    }
+    best.map(|(_, folder)| folder)
+}
+
+/// The folder lazer actually uses for `folder`: moving the data folder in
+/// lazer's settings writes `FullPath = <new folder>` to `storage.ini` in the
+/// default one. Like lazer, a redirect to a folder that doesn't exist is
+/// ignored.
+fn follow_storage_redirect(folder: PathBuf) -> PathBuf {
+    let Ok(ini) = fs::read_to_string(folder.join("storage.ini")) else {
+        return folder;
+    };
+    let target = ini.lines().find_map(|line| {
+        let (key, value) = line.split_once('=')?;
+        key.trim()
+            .eq_ignore_ascii_case("FullPath")
+            .then(|| PathBuf::from(value.trim()))
+    });
+    match target {
+        Some(target) if target.is_absolute() && target.is_dir() => target,
+        _ => folder,
     }
 }
 
@@ -117,6 +153,10 @@ impl LazerReader {
             if let Some(data) = dirs::data_dir() {
                 paths.push(data.join("osu"));
             }
+            // %appdata%\osu-torii (Torii)
+            if let Some(data) = dirs::data_dir() {
+                paths.push(data.join("osu-torii"));
+            }
         }
 
         #[cfg(target_os = "linux")]
@@ -129,6 +169,10 @@ impl LazerReader {
             if let Some(data) = dirs::data_local_dir() {
                 paths.push(data.join("osu-lazer"));
             }
+            // ~/.local/share/osu-torii (Torii)
+            if let Some(data) = dirs::data_local_dir() {
+                paths.push(data.join("osu-torii"));
+            }
         }
 
         #[cfg(target_os = "macos")]
@@ -136,6 +180,10 @@ impl LazerReader {
             // ~/Library/Application Support/osu
             if let Some(data) = dirs::data_dir() {
                 paths.push(data.join("osu"));
+            }
+            // ~/Library/Application Support/osu-torii (Torii)
+            if let Some(data) = dirs::data_dir() {
+                paths.push(data.join("osu-torii"));
             }
         }
 
@@ -247,3 +295,7 @@ impl LazerReader {
         Ok((collections, beatmapsets, all_checksums))
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/osu_db_lazer.rs"]
+mod tests;
