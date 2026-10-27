@@ -1,4 +1,4 @@
-use super::{db_file_path, owned_ids_cached_with};
+use super::{LibraryCacheFile, db_file_path, owned_ids_cached_with};
 use crate::osu_db::OsuClient;
 use std::{
     collections::HashSet,
@@ -74,4 +74,29 @@ fn cache_missing_db_file_errors_without_reading() {
     });
 
     assert!(result.is_err());
+}
+
+#[test]
+fn cache_from_an_older_schema_is_read_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("osu!.db");
+    fs::write(&db, b"db").unwrap();
+    set_mtime(&db, 1_000);
+    let cache = dir.path().join("library-cache.json");
+    // What osu-db 0.3.0 left behind for a current osu!.db: a matching path and
+    // mtime, but an empty library.
+    let stale = LibraryCacheFile {
+        schema_version: 1,
+        db_path: db.to_string_lossy().into_owned(),
+        mtime_ns: Duration::from_secs(1_000).as_nanos(),
+        beatmapset_ids: Vec::new(),
+    };
+    fs::write(&cache, serde_json::to_string(&stale).unwrap()).unwrap();
+
+    let ids = owned_ids_cached_with(&db, &cache, || Ok(HashSet::from([7]))).unwrap();
+    assert_eq!(ids, HashSet::from([7]));
+
+    // The fresh read replaced the stale entry.
+    let served = owned_ids_cached_with(&db, &cache, || panic!("cache hit expected")).unwrap();
+    assert_eq!(served, HashSet::from([7]));
 }

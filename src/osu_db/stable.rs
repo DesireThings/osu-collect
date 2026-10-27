@@ -3,7 +3,10 @@ use super::{
     require_db,
 };
 use osu_db::{collection::CollectionList, listing::Listing};
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 pub struct StableReader {
     path: PathBuf,
@@ -31,17 +34,10 @@ impl BeatmapReader for StableReader {
             return Ok(Vec::new());
         }
 
-        let listing = match Listing::from_file(&db_path) {
-            Ok(listing) => listing,
-            Err(e) => {
-                tracing::warn!(
-                    path = %db_path.display(),
-                    error = %e,
-                    "Failed to parse osu!.db, returning empty beatmapset list"
-                );
-                return Ok(Vec::new());
-            }
-        };
+        // An unreadable file is an error, not an empty library: an empty one
+        // would make every map look missing (osu-db 0.3.0 read every osu!.db
+        // since 20250107 that way, without a word).
+        let listing = Listing::from_file(&db_path).map_err(|e| unreadable(&db_path, e))?;
 
         let mut sets: HashMap<u32, Vec<LocalBeatmap>> = HashMap::new();
 
@@ -82,17 +78,8 @@ impl BeatmapReader for StableReader {
             return Ok(Vec::new());
         }
 
-        let collection_list = match CollectionList::from_file(&db_path) {
-            Ok(list) => list,
-            Err(e) => {
-                tracing::warn!(
-                    path = %db_path.display(),
-                    error = %e,
-                    "Failed to parse collection.db, returning empty collection list"
-                );
-                return Ok(Vec::new());
-            }
-        };
+        let collection_list =
+            CollectionList::from_file(&db_path).map_err(|e| unreadable(&db_path, e))?;
 
         let collections = collection_list
             .collections
@@ -115,6 +102,20 @@ impl BeatmapReader for StableReader {
     fn default_path() -> Option<PathBuf> {
         find_installation(Self::candidate_paths(), "osu!.db")
     }
+}
+
+/// Shown wherever the library is read (update scans, the TUI, the CLI).
+fn unreadable(db_path: &Path, error: impl std::fmt::Display) -> String {
+    tracing::warn!(path = %db_path.display(), error = %error, "failed to parse osu! stable database");
+    let file = db_path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    format!(
+        "Couldn't read {file} at {} ({error}). It may come from a newer osu! version \
+         than osu-collect can read yet.",
+        db_path.display()
+    )
 }
 
 impl StableReader {
@@ -263,3 +264,7 @@ impl StableReader {
         paths
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/osu_db_stable.rs"]
+mod tests;
