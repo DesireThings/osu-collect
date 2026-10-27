@@ -91,6 +91,35 @@
     f.rows.reduce((sum, r) => sum + (f.picked.includes(r.id) && r.size ? r.size : 0), 0),
   );
 
+  let runCard = $state<HTMLElement | null>(null);
+  /** The run just started from the download bar, until its card is shown. */
+  let revealRun = $state<number | null>(null);
+
+  async function startDownload() {
+    const id = await downloadPicked();
+    if (id !== null) revealRun = id;
+  }
+
+  function showRun() {
+    runCard?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // The card renders below every result, so without this a download looks
+  // like it did nothing. Waits for the run's first status to arrive.
+  $effect(() => {
+    if (revealRun === null || run?.id !== revealRun || !runCard) return;
+    showRun();
+    revealRun = null;
+  });
+
+  /** Live progress for the download bar, which stays on screen. */
+  const runLine = $derived.by(() => {
+    if (!run || !running) return null;
+    if (run.phase === "preparing") return "Getting ready…";
+    const settled = run.downloaded + run.skipped + run.failed;
+    return `Downloading ${settled.toLocaleString()} of ${plural(run.total, "map set", "map sets")}`;
+  });
+
   function togglePicked(id: number) {
     f.picked = f.picked.includes(id) ? f.picked.filter((p) => p !== id) : [...f.picked, id];
   }
@@ -321,10 +350,14 @@
       <div class="actions download-bar">
         {#if f.downloadError}
           <p class="error-text small">{f.downloadError}</p>
+        {:else if runLine}
+          <p class="muted small">
+            {runLine} · <button class="link" onclick={showRun}>Show progress</button>
+          </p>
         {:else if pickedCount === 0}
           <p class="muted small">Tick the map sets you want.</p>
         {/if}
-        <button class="primary" onclick={downloadPicked} disabled={pickedCount === 0}>
+        <button class="primary" onclick={startDownload} disabled={pickedCount === 0}>
           Download {plural(pickedCount, "map set", "map sets")}{#if pickedSize > 0}&nbsp;(about {size(pickedSize)}){/if}
         </button>
       </div>
@@ -332,7 +365,7 @@
   {/if}
 
   {#if run}
-    <section class="card">
+    <section class="card" bind:this={runCard}>
       <div class="entry">
         <div class="entry-main">
           <span class="entry-title">Search “{run.name}”</span>
