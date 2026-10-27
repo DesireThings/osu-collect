@@ -1635,6 +1635,13 @@ impl FindSource {
         SORT.iter().map(|opt| opt.label).collect()
     }
 
+    /// Position of the relevance sort in [`Self::sort_labels`].
+    pub fn relevance_sort_idx(&self) -> usize {
+        SORT.iter()
+            .position(|opt| matches!(opt.osu, Some((SortField::Relevance, _))))
+            .expect("SORT has a relevance option")
+    }
+
     pub fn explicit_label(&self) -> &'static str {
         EXPLICIT_LABELS[self.explicit_idx]
     }

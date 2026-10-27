@@ -47,6 +47,21 @@ fn the_defaults_are_the_tuis_untouched_form() {
 }
 
 #[test]
+fn relevance_sort_points_at_relevance_on_the_osu_route() {
+    let options = options();
+    assert_eq!(options.sorts[options.relevance_sort], "relevance");
+
+    let with_text = FindCriteria {
+        query: "freedom dive".into(),
+        sort: options.relevance_sort,
+        ..criteria()
+    };
+    let checked = check(&with_text);
+    assert_eq!(checked.route, Some(Route::Osu));
+    assert_eq!(checked.problem, None);
+}
+
+#[test]
 fn criteria_survive_the_round_trip_through_the_form() {
     let options = options();
     let mut c = criteria();

@@ -178,6 +178,9 @@ pub struct FindOptions {
     pub languages: Vec<&'static str>,
     pub extras: Vec<&'static str>,
     pub defaults: FindCriteria,
+    /// Position of "relevance" in `sorts`: the sort to use while there's
+    /// search text, as on the osu! website.
+    pub relevance_sort: usize,
 }
 
 pub fn options() -> FindOptions {
@@ -193,6 +196,7 @@ pub fn options() -> FindOptions {
         languages: source.language_labels().to_vec(),
         extras: source.extra_labels().to_vec(),
         defaults: FindCriteria::from_source(&source),
+        relevance_sort: source.relevance_sort_idx(),
     }
 }
 

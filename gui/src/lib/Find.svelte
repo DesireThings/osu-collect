@@ -60,7 +60,18 @@
     // A preset resets the form, as in the terminal app; the limit stays.
     const limit = f.criteria!.limit;
     f.criteria = { ...(await findPreset(preset)), limit };
+    // A preset with its own sort keeps it; otherwise the sort follows the text again.
+    f.sortChosen = f.criteria.sort !== options!.defaults.sort;
   }
+
+  // Relevance while there's search text, the usual order without: what the
+  // osu! website does. Stops once the user picks a sort themselves.
+  $effect(() => {
+    const c = f.criteria;
+    if (!c || !options || f.sortChosen) return;
+    const want = c.query.trim() ? options.relevance_sort : options.defaults.sort;
+    if (c.sort !== want) c.sort = want;
+  });
 
   function toggleExtra(idx: number) {
     const extra = f.criteria!.extra;
@@ -204,7 +215,7 @@
       </label>
       <label class="field">
         <span class="field-label">Sort</span>
-        <select bind:value={c.sort}>
+        <select bind:value={c.sort} onchange={() => (f.sortChosen = true)}>
           {#each options.sorts as label, i (label)}<option value={i}>{label}</option>{/each}
         </select>
       </label>
