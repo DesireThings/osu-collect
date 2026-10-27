@@ -180,11 +180,19 @@ jobs:
             dist/osu-collect-windows-x64.exe.sha256
 
   build-macos:
-    runs-on: macos-14
+    # Pinned, not macos-latest, so the build machine only changes on purpose.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      # The oldest macOS the apps support, from the desktop app's
+      # bundle.macOS.minimumSystemVersion. rustc, cc and CMake (realm-core)
+      # all read MACOSX_DEPLOYMENT_TARGET, so nothing is built for the
+      # runner's own, newer macOS.
+      - name: Target the oldest supported macOS
+        run: echo "MACOSX_DEPLOYMENT_TARGET=$(node -p "require('./gui/src-tauri/tauri.conf.json').bundle.macOS.minimumSystemVersion")" >> "$GITHUB_ENV"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -195,7 +203,10 @@ jobs:
       - name: Install dependencies
         run: brew install cmake
 
+      # Keyed by runner image, so a new image starts from a clean build.
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: macos-15
 
       # --workspace covers the desktop app crate (gui/src-tauri) and osu-downloader.
       - name: clippy
@@ -209,6 +220,9 @@ jobs:
 
       - name: Build for macOS (arm64)
         run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Check it runs on the oldest supported macOS
+        run: scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" target/aarch64-apple-darwin/release/osu-collect target/aarch64-apple-darwin/release/build
 
       - name: Package artifact
         run: |

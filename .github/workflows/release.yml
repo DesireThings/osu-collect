@@ -127,8 +127,9 @@ jobs:
             os: windows-latest
             asset_name: osu-collect-windows-x64
             ext: .exe
+          # Pinned, not macos-latest, so the build machine only changes on purpose.
           - target: aarch64-apple-darwin
-            os: macos-14
+            os: macos-15
             asset_name: osu-collect-macos-arm64
             ext: ""
     steps:
@@ -150,10 +151,25 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install cmake
 
+      # The oldest macOS the apps support, from the desktop app's
+      # bundle.macOS.minimumSystemVersion. rustc, cc and CMake (realm-core)
+      # all read MACOSX_DEPLOYMENT_TARGET, so nothing is built for the
+      # runner's own, newer macOS.
+      - name: Target the oldest supported macOS
+        if: runner.os == 'macOS'
+        run: echo "MACOSX_DEPLOYMENT_TARGET=$(node -p "require('./gui/src-tauri/tauri.conf.json').bundle.macOS.minimumSystemVersion")" >> "$GITHUB_ENV"
+
+      # Keyed by runner image, so a new image starts from a clean build.
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Check it runs on the oldest supported macOS
+        if: runner.os == 'macOS'
+        run: scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" "target/${{ matrix.target }}/release/osu-collect" "target/${{ matrix.target }}/release/build"
 
       - name: Check the version it reports
         run: |

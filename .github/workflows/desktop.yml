@@ -19,6 +19,7 @@ on:
       - scripts/third-party-licenses.sh
       - scripts/js-bundle-licenses.mjs
       - scripts/appimage-lib-notices.sh
+      - scripts/check-macos-min.sh
       - scripts/notices/**
   workflow_dispatch:
   workflow_call:
@@ -87,8 +88,9 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: nsis
+          # Pinned, not macos-latest, so the build machine only changes on purpose.
           - name: macos-arm64
-            os: macos-14
+            os: macos-15
             target: aarch64-apple-darwin
             bundles: dmg
     env:
@@ -113,9 +115,18 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install cmake
 
+      # The oldest macOS the apps support, from the desktop app's
+      # bundle.macOS.minimumSystemVersion. rustc, cc and CMake (realm-core)
+      # all read MACOSX_DEPLOYMENT_TARGET, so nothing is built for the
+      # runner's own, newer macOS.
+      - name: Target the oldest supported macOS
+        if: runner.os == 'macOS'
+        run: echo "MACOSX_DEPLOYMENT_TARGET=$(node -p "require('./gui/src-tauri/tauri.conf.json').bundle.macOS.minimumSystemVersion")" >> "$GITHUB_ENV"
+
+      # Keyed by runner image too, so a new image starts from a clean build.
       - uses: Swatinem/rust-cache@v2
         with:
-          key: desktop-${{ matrix.target }}
+          key: desktop-${{ matrix.target }}-${{ matrix.os }}
 
       - uses: pnpm/action-setup@v6
         with:
@@ -167,6 +178,10 @@ jobs:
               hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$BUNDLE"/dmg/*.dmg
               test -f "$mnt/osu-collect.app/Contents/Resources/THIRD-PARTY-LICENSES.txt"
               codesign -dv "$mnt/osu-collect.app" 2>&1 | grep -E 'Signature|Identifier|flags'
+              # Runs on the oldest supported macOS: what Info.plist promises,
+              # and what the app and the libraries in it were built for.
+              test "$(plutil -extract LSMinimumSystemVersion raw "$mnt/osu-collect.app/Contents/Info.plist")" = "$MACOSX_DEPLOYMENT_TARGET"
+              scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" "$mnt/osu-collect.app/Contents/MacOS/osu-collect-gui" "target/${{ matrix.target }}/release/build"
               hdiutil detach "$mnt"
               ;;
           esac
