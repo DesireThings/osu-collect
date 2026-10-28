@@ -1,5 +1,7 @@
-# cargo-deny config — license + advisory + source checks for libraries / published crates.
-# cp into: ./deny.toml
+# cargo-deny config: licence, advisory, ban and source checks. Run by the `deny`
+# job in ci.yml and weekly by advisories.yml. The licence list matches the
+# `accepted` list in about.toml, so what is allowed here is what the shipped
+# licence listing can show.
 
 [graph]
 all-features = true
@@ -19,13 +21,17 @@ allow = [
   "Apache-2.0 WITH LLVM-exception",
   "BSD-2-Clause",
   "BSD-3-Clause",
-  "CDLA-Permissive-2.0",
   "ISC",
-  "Unicode-DFS-2016",
-  "Unicode-3.0",
-  "MPL-2.0",
-  "Unlicense",
   "Zlib",
+  "Unicode-3.0",
+  "Unlicense",
+  "BSL-1.0",
+  "0BSD",
+  "MIT-0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "MPL-2.0",
+  "OpenSSL",
 ]
 
 [bans]
