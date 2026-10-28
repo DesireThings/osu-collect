@@ -3,7 +3,7 @@ use crate::core::collection::Collection;
 use crate::utils::AppError;
 use osu_db::collection::{Collection as DbCollection, CollectionList};
 use std::{collections::HashSet, io, path::Path, path::PathBuf};
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 const COLLECTION_DB_CREATED: &str = "collection.db created successfully";
 const COLLECTION_DB_FILENAME: &str = "collection.db";
@@ -79,6 +79,29 @@ pub async fn write_selective_collection_db(
         error!(error = %err, "failed to create selective collection.db");
         DownloadError::internal(message)
     })
+}
+
+/// Remove `collection.db` and `osu!.name.cfg` from a stopped run's folder when
+/// they are its only entries. A collection run writes them before downloading
+/// anything, so a run stopped before any map landed would otherwise leave a
+/// folder of just these two, which `try_remove_empty_output_dir` then keeps.
+pub async fn remove_lone_collection_db(output_dir: &Path) {
+    let Ok(mut entries) = tokio::fs::read_dir(output_dir).await else {
+        return;
+    };
+    let mut ours = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let name = entry.file_name();
+        if name != COLLECTION_DB_FILENAME && name != OSU_NAME_CFG_FILENAME {
+            return;
+        }
+        ours.push(entry.path());
+    }
+    for path in ours {
+        if let Err(err) = tokio::fs::remove_file(&path).await {
+            warn!(error = %err, path = %path.display(), "failed to remove file from stopped run");
+        }
+    }
 }
 
 async fn run_blocking<F, T>(f: F) -> Result<T, AppError>
