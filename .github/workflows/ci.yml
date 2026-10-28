@@ -9,8 +9,8 @@ on:
       - main
   pull_request:
 
-# Least-privilege default: read-only token. Build jobs only upload ephemeral
-# artifacts (no GitHub Release publish), which needs no extra scope.
+# Least-privilege default: read-only token. CI only checks; it publishes and
+# uploads nothing, so it needs no extra scope.
 permissions:
   contents: read
 
@@ -124,26 +124,6 @@ jobs:
       - name: test osu-downloader lib
         run: cargo test --manifest-path osu-downloader/Cargo.toml --all-features
 
-      - name: Build for Linux
-        run: cargo build --release --target x86_64-unknown-linux-gnu
-
-      - name: Package artifact
-        run: |
-          mkdir -p dist
-          cp target/x86_64-unknown-linux-gnu/release/osu-collect dist/osu-collect-linux-x64
-          chmod +x dist/osu-collect-linux-x64
-          cd dist && sha256sum osu-collect-linux-x64 > osu-collect-linux-x64.sha256
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: osu-collect-linux-x64
-          if-no-files-found: error
-          retention-days: 1
-          path: |
-            dist/osu-collect-linux-x64
-            dist/osu-collect-linux-x64.sha256
-
   build-windows:
     runs-on: windows-latest
     steps:
@@ -168,27 +148,6 @@ jobs:
 
       - name: test desktop app crate
         run: cargo test --release -p osu-collect-gui --all-features --target x86_64-pc-windows-msvc
-
-      - name: Build for Windows
-        run: cargo build --release --target x86_64-pc-windows-msvc
-
-      - name: Package artifact
-        run: |
-          New-Item -ItemType Directory -Force -Path dist
-          Copy-Item target/x86_64-pc-windows-msvc/release/osu-collect.exe dist/osu-collect-windows-x64.exe
-          Get-FileHash dist/osu-collect-windows-x64.exe -Algorithm SHA256 |
-            ForEach-Object { "$($_.Hash.ToLower())  osu-collect-windows-x64.exe" } |
-            Out-File -Encoding ascii dist/osu-collect-windows-x64.exe.sha256
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: osu-collect-windows-x64
-          if-no-files-found: error
-          retention-days: 1
-          path: |
-            dist/osu-collect-windows-x64.exe
-            dist/osu-collect-windows-x64.exe.sha256
 
   build-macos:
     # Pinned, not macos-latest, so the build machine only changes on purpose.
@@ -229,25 +188,10 @@ jobs:
       - name: test desktop app crate
         run: cargo test --release -p osu-collect-gui --all-features --target aarch64-apple-darwin
 
+      # Kept only for the check below, which reads the release binary and its
+      # build-script outputs; nothing is packaged or uploaded from CI.
       - name: Build for macOS (arm64)
         run: cargo build --release --target aarch64-apple-darwin
 
       - name: Check it runs on the oldest supported macOS
         run: scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" target/aarch64-apple-darwin/release/osu-collect target/aarch64-apple-darwin/release/build
-
-      - name: Package artifact
-        run: |
-          mkdir -p dist
-          cp target/aarch64-apple-darwin/release/osu-collect dist/osu-collect-macos-arm64
-          chmod +x dist/osu-collect-macos-arm64
-          cd dist && shasum -a 256 osu-collect-macos-arm64 > osu-collect-macos-arm64.sha256
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: osu-collect-macos-arm64
-          if-no-files-found: error
-          retention-days: 1
-          path: |
-            dist/osu-collect-macos-arm64
-            dist/osu-collect-macos-arm64.sha256
