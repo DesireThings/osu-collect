@@ -49,14 +49,6 @@ jobs:
           arguments: --all-features --workspace
           command: check advisories licenses bans sources
 
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: taiki-e/install-action@cargo-audit
-      - name: cargo audit
-        run: cargo audit
-
   # The desktop app's Svelte frontend: type-check and a production build.
   frontend:
     runs-on: ubuntu-latest

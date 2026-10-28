@@ -1,0 +1,32 @@
+# Weekly check of main's dependencies against the RustSec advisory database.
+# ci.yml's `deny` job only runs when a PR or a push changes something, so a
+# new advisory against a dependency we already ship would otherwise go
+# unnoticed until the next change. A failure here is a run on the Actions tab
+# (and GitHub's failed-workflow email), not a PR check.
+name: advisories
+
+on:
+  schedule:
+    # Mondays 06:17 UTC; off the hour, when scheduled runs queue up.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+  # Runs once on a PR that changes this file, since a scheduled workflow only
+  # exists on the default branch and could not be tried before merging.
+  pull_request:
+    paths:
+      - .github/workflows/advisories.yml
+
+permissions:
+  contents: read
+
+jobs:
+  advisories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          # Same scope as ci.yml's `deny` job: every crate in the workspace,
+          # not only the root one.
+          arguments: --all-features --workspace
+          command: check advisories
