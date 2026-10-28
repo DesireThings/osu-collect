@@ -1,0 +1,90 @@
+name: Bug report
+description: Something in osu-collect doesn't work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. A few details make a bug much quicker to fix.
+
+        - **Questions or "how do I…?"** go in [Discussions](https://github.com/DesireThings/osu-shelf/discussions/categories/q-a) or on [Discord](https://discord.gg/qTFvdSM2f7), not here.
+        - **Security problems:** please don't post them here. Use the [private report form](https://github.com/DesireThings/osu-shelf/security/advisories/new).
+        - **Behaviour problems with a person** (in the project or the Discord server) are handled through a private ticket on Discord. See the [Code of Conduct](https://github.com/DesireThings/osu-shelf/blob/main/CODE_OF_CONDUCT.md).
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app?
+      options:
+        - Desktop app
+        - Terminal app
+        - Both / not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Desktop app: Settings, then About. Terminal app: run `osu-collect --version`."
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: osu! client
+      description: The game you were importing into or detecting. Torii is a lazer-based server client.
+      options:
+        - osu!lazer
+        - osu! stable
+        - Torii
+        - Not relevant
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected to see instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The collection link or search you used (if it matters) and what you clicked or ran, in order.
+      placeholder: |
+        1. Open Add collections
+        2. Paste https://osucollector.com/collections/...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: |
+        Optional, but helpful. Screenshots can go straight in here.
+
+        Log files only exist if logging is switched on (`[logging]` in `config.toml`, see the [Configuration page](https://github.com/DesireThings/osu-shelf/wiki/Configuration)). If you have one, paste the relevant lines.
+
+        **Never paste `auth.json`** or anything containing an API secret or token.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: I searched the existing issues and didn't find this one.
+          required: true
+        - label: I removed any secrets (API keys, tokens) from what I pasted.
+          required: true
