@@ -1,11 +1,8 @@
 /target
 .env
-/build
 .idea
 testing-db
 *.osz
-*.osz.part-*
-/tmp/
 /gui/node_modules
 /gui/dist
 /gui/src-tauri/gen

@@ -105,7 +105,7 @@ This is a fork of [uwuclxdy/osu-collect](https://github.com/uwuclxdy/osu-collect
 
 You need:
 
-- a current stable Rust (tested with 1.99; anything older than 1.88 won't build),
+- a current stable Rust (tested with 1.99; anything older than 1.90 won't build),
 - CMake and a C++17 compiler, for the bundled realm library osu-collect uses to read osu!lazer's database,
 - git.
 

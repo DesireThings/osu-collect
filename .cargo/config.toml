@@ -1,8 +1,3 @@
-[target.x86_64-pc-windows-gnu]
-rustflags = [
-    "-C", "link-arg=-static-libgcc",
-]
-
 # Statically link the MSVC C runtime (/MT) so the released .exe doesn't depend on
 # the VC++ Redistributable (MSVCP140.dll / VCRUNTIME140*.dll) being installed.
 # build.rs reads CARGO_CFG_TARGET_FEATURE to match realm-core's cmake runtime to this.
