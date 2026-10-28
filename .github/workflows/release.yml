@@ -92,8 +92,12 @@ jobs:
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-about
-        run: cargo install cargo-about --version 0.9.2 --locked --features cli
+      # The prebuilt binary, not `cargo install`: compiling cargo-about took
+      # minutes on every run. 0.9.2 is the version scripts/third-party-licenses.sh
+      # expects.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.2
       - name: Build THIRD-PARTY-LICENSES.txt
         run: scripts/third-party-licenses.sh THIRD-PARTY-LICENSES.txt
       - uses: actions/upload-artifact@v7
