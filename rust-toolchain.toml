@@ -1,0 +1,6 @@
+# The compiler CI and local builds use. Bump it on purpose (a PR of its own)
+# instead of letting `stable` move under a green build.
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
