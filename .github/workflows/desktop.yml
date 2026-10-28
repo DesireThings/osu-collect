@@ -43,14 +43,16 @@ jobs:
     name: Licence list
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: pnpm/action-setup@v6
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 12.15.0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: pnpm
@@ -60,12 +62,12 @@ jobs:
       # The prebuilt binary, not `cargo install`: compiling cargo-about took
       # minutes on every run. 0.9.2 is the version scripts/third-party-licenses.sh
       # expects.
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
         with:
           tool: cargo-about@0.9.2
       - name: Build THIRD-PARTY-LICENSES-desktop.txt
         run: scripts/third-party-licenses.sh --desktop THIRD-PARTY-LICENSES-desktop.txt
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-licences
           path: THIRD-PARTY-LICENSES-desktop.txt
@@ -100,12 +102,13 @@ jobs:
     env:
       BUNDLE: target/${{ matrix.target }}/release/bundle
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
+          toolchain: stable
           targets: ${{ matrix.target }}
 
       - name: Install native deps (Linux)
@@ -128,14 +131,14 @@ jobs:
         run: echo "MACOSX_DEPLOYMENT_TARGET=$(node -p "require('./gui/src-tauri/tauri.conf.json').bundle.macOS.minimumSystemVersion")" >> "$GITHUB_ENV"
 
       # Keyed by runner image too, so a new image starts from a clean build.
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           key: desktop-${{ matrix.target }}-${{ matrix.os }}
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 12.15.0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: pnpm
@@ -143,7 +146,7 @@ jobs:
       - name: Install the frontend's packages
         run: pnpm -C gui install --frozen-lockfile
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: desktop-licences
 
@@ -210,7 +213,7 @@ jobs:
           esac
           ls -la out
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-${{ matrix.name }}
           path: out/*
