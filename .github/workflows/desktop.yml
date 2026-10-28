@@ -57,8 +57,12 @@ jobs:
           cache-dependency-path: gui/pnpm-lock.yaml
       - name: Install the frontend's packages
         run: pnpm -C gui install --frozen-lockfile
-      - name: Install cargo-about
-        run: cargo install cargo-about --version 0.9.2 --locked --features cli
+      # The prebuilt binary, not `cargo install`: compiling cargo-about took
+      # minutes on every run. 0.9.2 is the version scripts/third-party-licenses.sh
+      # expects.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.2
       - name: Build THIRD-PARTY-LICENSES-desktop.txt
         run: scripts/third-party-licenses.sh --desktop THIRD-PARTY-LICENSES-desktop.txt
       - uses: actions/upload-artifact@v7
