@@ -1,8 +1,9 @@
 # Builds the desktop app's installers and keeps them as workflow artifacts:
 # Linux AppImage + .deb, Windows setup .exe (NSIS), macOS .dmg (Apple Silicon).
 # Nothing is published from here. It runs on pull requests that touch the
-# packaging, by hand, and from release.yml (workflow_call), which attaches
-# the artifacts to the release.
+# packaging, after every merge to main (so there's always a fresh installer
+# to try), by hand, and from release.yml (workflow_call), which attaches the
+# artifacts to the release.
 #
 # Unsigned: Windows shows a SmartScreen warning, and the macOS app is only
 # ad-hoc signed (bundle.macOS.signingIdentity "-"), so it opens through
@@ -10,6 +11,9 @@
 name: desktop app
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - .github/workflows/desktop.yml
