@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/DesireThings/osu-shelf/discussions/categories/q-a
+    about: How do I…? Questions and answers that others can find later.
+  - name: Chat on Discord
+    url: https://discord.gg/qTFvdSM2f7
+    about: Quick help and chat with other users.
+  - name: Report a security problem
+    url: https://github.com/DesireThings/osu-shelf/security/advisories/new
+    about: Privately, so it can be fixed before it's public.

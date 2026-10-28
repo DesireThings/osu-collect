@@ -1,0 +1,46 @@
+name: Feature request
+description: An idea for something osu-collect could do
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a one-person hobby project, so every idea gets read but not every idea gets built. Describing the problem you're trying to solve helps most.
+
+        Not sure it's a good idea yet? Float it in [Discussions (Ideas)](https://github.com/DesireThings/osu-shelf/discussions/categories/ideas) or on [Discord](https://discord.gg/qTFvdSM2f7) first.
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app is it for?
+      options:
+        - Desktop app
+        - Terminal app
+        - Both
+        - Installer or updater
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or annoyance behind the idea.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do instead today?
+      description: Workarounds or other tools you've tried. Optional.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: I searched the existing issues and didn't find this one.
+          required: true

@@ -4,7 +4,7 @@
 
 <p><b>Download osu!collector collections and get them into osu!, from a desktop app or your terminal</b></p>
 
-[Features](#features) · [Install](#installation) · [Desktop app](#desktop-app) · [Terminal app](#terminal-app) · [Import](#importing-into-osu) · [FAQ](#faq) · [Docs](#documentation) · [What's next](#whats-next)
+[Features](#features) · [Install](#installation) · [Desktop app](#desktop-app) · [Terminal app](#terminal-app) · [Import](#importing-into-osu) · [FAQ](#faq) · [Docs](#documentation) · [Community](#help-and-community) · [What's next](#whats-next)
 
 </div>
 
@@ -139,6 +139,14 @@ Yes, the [osu!Collector desktop client](https://osucollector.com/app). Its subsc
 ## Documentation
 
 The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-collect/wiki). Its pages live in [`wiki/`](wiki/) in this repository and are copied to the GitHub wiki automatically, so if a wiki link doesn't work yet, read the same page in [`wiki/`](wiki/Home.md).
+
+## Help and community
+
+- **Chat and quick help:** the [Discord server](https://discord.gg/qTFvdSM2f7).
+- **Questions and ideas:** [GitHub Discussions](https://github.com/DesireThings/osu-shelf/discussions), where answers stay findable.
+- **Bugs and feature requests:** [open an issue](https://github.com/DesireThings/osu-shelf/issues/new/choose); the form asks for what helps most.
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+- **Security problems:** report them privately, as described in [SECURITY.md](SECURITY.md).
 
 ## What's next
 
