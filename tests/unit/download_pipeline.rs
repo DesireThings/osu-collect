@@ -1699,3 +1699,105 @@ async fn downloads_tell_the_mirror_which_app_is_asking() {
         )
     );
 }
+
+#[tokio::test]
+async fn lone_collection_db_is_removed_but_kept_beside_maps() {
+    use crate::download::collection_db::remove_lone_collection_db;
+
+    let root = tempdir().unwrap();
+    let lone = root.path().join("lone");
+    std::fs::create_dir_all(&lone).unwrap();
+    std::fs::write(lone.join("collection.db"), b"db").unwrap();
+    std::fs::write(lone.join("osu!.name.cfg"), b"").unwrap();
+    let with_map = root.path().join("with-map");
+    std::fs::create_dir_all(&with_map).unwrap();
+    std::fs::write(with_map.join("collection.db"), b"db").unwrap();
+    std::fs::write(with_map.join("osu!.name.cfg"), b"").unwrap();
+    std::fs::write(with_map.join("123.osz"), b"hi").unwrap();
+
+    remove_lone_collection_db(&lone).await;
+    try_remove_empty_output_dir(&lone).await;
+    assert!(!lone.exists(), "a folder of only db files must be removed");
+
+    remove_lone_collection_db(&with_map).await;
+    assert!(
+        with_map.join("collection.db").exists(),
+        "db beside a map must remain"
+    );
+    assert!(
+        with_map.join("osu!.name.cfg").exists(),
+        "cfg beside a map must remain"
+    );
+}
+
+/// A map that never settles (here: a refused mirror, which the library retries
+/// with a 5s backoff) holds the session open. `collection.db` must already be
+/// in the run folder while that happens, not only once the map settles or is
+/// skipped. Stopping the run before any map lands then removes the db files
+/// and the folder with them.
+#[tokio::test]
+async fn collection_db_is_written_before_an_unsettled_map_finishes() {
+    let dir = tempdir().unwrap();
+    let failed_maps = dir.path().join("failed-beatmapsets.json");
+    let _env = crate::test_env::TempEnvVar::set_all([(
+        crate::app::failed_maps::FAILED_MAPS_ENV_PATH,
+        failed_maps.to_str().unwrap(),
+    )]);
+
+    let collection = test_collection(4242, vec![test_beatmapset(10, &["aaa", "bbb"])]);
+    let output_dir = dir.path().join(collection.folder_name());
+    let config = DownloadConfig {
+        directory: dir.path().to_string_lossy().into_owned(),
+        mirrors: vec![Mirror::custom("http://127.0.0.1:1/{id}").expect("custom mirror")],
+        concurrent: 1,
+        archive_validation: ArchiveValidation::Off,
+        auto_skip_rate_limited: false,
+        rate_limit_skip_secs: 60,
+    };
+    let request = crate::download::DownloadRequest {
+        collection_input: collection.id.to_string(),
+        config,
+        auto_overwrite: false,
+        previously_failed_skipped: HashSet::new(),
+        skip_already_imported: false,
+        osu_client: OsuClient::Stable,
+        osu_path: String::new(),
+        prefetched: Some(collection),
+    };
+
+    let (cancel_tx, cancel_rx) = watch::channel(false);
+    let (_defer_tx, defer_rx) = watch::channel(0u64);
+    let (_skip_tx, skip_rx) = watch::channel(0u64);
+    let emit: Arc<dyn Fn(DownloadEvent) + Send + Sync> = Arc::new(|_| {});
+    let handle = tokio::spawn(super::run_collection(
+        8, request, cancel_rx, defer_rx, skip_rx, emit,
+    ));
+
+    let db_path = output_dir.join("collection.db");
+    tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        while !db_path.exists() {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("collection.db must be written while the map is still unsettled");
+    assert!(
+        !handle.is_finished(),
+        "the run must still be waiting on the map"
+    );
+
+    cancel_tx.send(true).unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(3), handle)
+        .await
+        .expect("a stopped run must end promptly")
+        .unwrap()
+        .unwrap();
+    assert!(
+        !output_dir.exists(),
+        "a run stopped before any map landed must leave no folder behind"
+    );
+    assert!(
+        !failed_maps.exists(),
+        "a stopped run must not touch failed maps"
+    );
+}

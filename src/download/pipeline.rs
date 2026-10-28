@@ -1,7 +1,9 @@
 use super::{
     DownloadConfig, DownloadError, DownloadEvent, DownloadHandle, DownloadId, DownloadRequest,
     DownloadStage, Emit, IdsDownloadRequest, SelectiveDownloadRequest,
-    collection_db::{write_collection_db, write_selective_collection_db},
+    collection_db::{
+        remove_lone_collection_db, write_collection_db, write_selective_collection_db,
+    },
     events::{Tally, emit_finish, translate_event},
     fetch_collection_sizes,
     lock::ActiveDownloadRegistry,
@@ -198,8 +200,19 @@ async fn run_collection(
         });
     }
 
-    let collection = session.target.collection().cloned();
     let output_dir = session.output.output_dir.clone();
+
+    // collection.db reflects the full collection regardless of partial failures so that
+    // saved state matches the user's intent even when some maps couldn't be downloaded.
+    // It needs nothing from the run, so it is written before the downloads start: a
+    // map parked on a rate-limit cooldown can hold the session open for minutes, and
+    // the collection must not be missing from the folder until it settles or is
+    // skipped. Always `Some` here (a collection run), but the accessor is `Option`
+    // since a search run has no collection.
+    if let Some(collection) = session.target.collection().cloned() {
+        let db_collection_name = format!("{}-{}", collection.name, collection.id);
+        write_collection_db(collection, db_collection_name, output_dir.clone()).await?;
+    }
 
     let Some(tally) = run_pipeline_core(
         &session,
@@ -213,18 +226,10 @@ async fn run_collection(
     .await?
     else {
         drop(session);
+        remove_lone_collection_db(&output_dir).await;
         try_remove_empty_output_dir(&output_dir).await;
         return Ok(());
     };
-
-    // collection.db reflects the full collection regardless of partial failures so that
-    // saved state matches the user's intent even when some maps couldn't be downloaded.
-    // Always `Some` here (a collection run), but the accessor is `Option` since a
-    // search run has no collection.
-    if let Some(collection) = collection {
-        let db_collection_name = format!("{}-{}", collection.name, collection.id);
-        write_collection_db(collection, db_collection_name, output_dir).await?;
-    }
 
     // Clear any now-on-disk ids from the persisted failed-maps file (so a
     // successful re-download stops showing as previously failed) and record this
