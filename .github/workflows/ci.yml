@@ -81,7 +81,10 @@ jobs:
         run: pnpm build
 
   build-linux:
-    runs-on: ubuntu-latest
+    # 22.04, not latest, to match release.yml and desktop.yml: `ubuntu-latest`
+    # moves to a newer image (runner-images#14748), which would change the
+    # glibc and WebKitGTK that CI builds against without anyone choosing it.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -100,7 +103,12 @@ jobs:
           # The desktop app (Tauri): WebKitGTK and its GTK/soup stack, librsvg for icons.
           sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev
 
+      # Keyed by runner image, so a new image starts from a clean build. Without
+      # it, objects cached from a newer image (glibc 2.38+ symbols such as
+      # __isoc23_strtol) fail to link here.
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ubuntu-22.04
 
       # --workspace covers the desktop app crate (gui/src-tauri) and osu-downloader;
       # plain cargo only builds default-members = ["."].
