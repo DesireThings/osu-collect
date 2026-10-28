@@ -243,6 +243,7 @@ jobs:
           name: release-files
           path: release/*
           if-no-files-found: error
+          retention-days: 7
 
       # The self-updater and install scripts check each file against the
       # SHA-256 GitHub records for it (the asset's `digest`); SHA256SUMS is
