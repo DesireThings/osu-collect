@@ -1,0 +1,34 @@
+# One grouped PR per ecosystem per month, so updates arrive in a batch we can
+# review together instead of a trickle. Security updates are not held to this
+# schedule: GitHub opens those as soon as an advisory lands.
+#
+# The vendor/realm-cpp submodule is deliberately not listed: it is pinned to a
+# commit the realm bindings are built and tested against.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # One workspace, one Cargo.lock at the root (the CLI, the desktop crate and
+  # osu-downloader).
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  # The desktop frontend; pnpm is picked up from gui/pnpm-lock.yaml.
+  - package-ecosystem: npm
+    directory: /gui
+    schedule:
+      interval: monthly
+    groups:
+      npm:
+        patterns: ["*"]
