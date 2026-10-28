@@ -1,9 +1,12 @@
 name: ci
 
+# Pull requests run the checks once, and main runs them after a merge. A push
+# trigger on every branch would run them a second time for each PR branch,
+# which doubles the macOS runner demand.
 on:
   push:
     branches:
-      - '**'
+      - main
   pull_request:
 
 # Least-privilege default: read-only token. Build jobs only upload ephemeral
