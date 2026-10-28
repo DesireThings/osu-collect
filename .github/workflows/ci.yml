@@ -78,7 +78,10 @@ jobs:
         run: pnpm build
 
   build-linux:
-    runs-on: ubuntu-latest
+    # 22.04, not latest, to match release.yml and desktop.yml: `ubuntu-latest`
+    # moves to a newer image (runner-images#14748), which would change the
+    # glibc and WebKitGTK that CI builds against without anyone choosing it.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
         with:
