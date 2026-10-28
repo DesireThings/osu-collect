@@ -263,6 +263,7 @@ jobs:
             --verify-tag \
             --title "$TAG" \
             --notes-file "release-notes/$TAG.md"
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest \
+            --discussion-category Announcements
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,isDraft,isPrerelease,assets \
             --jq '"\(.url) draft=\(.isDraft) prerelease=\(.isPrerelease) files=\(.assets | length)"'
