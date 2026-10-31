@@ -63,6 +63,18 @@ iwr https://raw.githubusercontent.com/DesireThings/osu-shelf/main/install.bat -O
 
 Or download `osu-shelf-linux-x64`, `osu-shelf-windows-x64.exe` or `osu-shelf-macos-arm64` from the release. Building from source, uninstalling and more: [Installation](https://github.com/DesireThings/osu-shelf/wiki/Installation).
 
+### Arch Linux
+
+There is no AUR package yet, so the packaging files live in the repository at [`packaging/arch`](packaging/arch/README.md). They build both apps from source, with the desktop entry and icons:
+
+```bash
+git clone https://github.com/DesireThings/osu-shelf.git
+cd osu-shelf/packaging/arch
+makepkg -si
+```
+
+`makepkg -s` installs the build dependencies (Rust, CMake, a C++ compiler, Node.js and pnpm). The first build takes roughly 10–30 minutes because realm-core and the Tauri app are compiled from source.
+
 ## Desktop app
 
 1. **Set up:** pick osu!lazer or osu! stable (your osu! folder is found automatically when it's in the usual place) and a download folder.

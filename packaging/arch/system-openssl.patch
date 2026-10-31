@@ -1,0 +1,10 @@
+--- a/build.rs
++++ b/build.rs
+@@ -24,6 +24,7 @@
+     let mut cmake_config = cmake::Config::new(&realm_core_dir);
+     cmake_config
+         .define("REALM_BUILD_LIB_ONLY", "ON")
++        .define("REALM_USE_SYSTEM_OPENSSL", "ON")
+         .define("REALM_ENABLE_SYNC", "OFF")
+         .define("REALM_NO_TESTS", "ON")
+         .define("BUILD_TESTING", "OFF")
