@@ -86,5 +86,5 @@ fn reconcile_contested_id_stays_failed() {
 fn failed_maps_path_in_uses_osu_collect_data_file() {
     let path = failed_maps_path_in("/tmp/data".into());
 
-    assert!(path.ends_with("osu-collect/failed-beatmapsets.json"));
+    assert!(path.ends_with("osu-shelf/failed-beatmapsets.json"));
 }

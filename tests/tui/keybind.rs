@@ -496,7 +496,7 @@ fn config_mirror_toggle_syncs_home_count() {
     // user config.
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("config.toml");
-    let _env = osu_collect::test_env::TempEnvVar::set("OSU_COLLECT_CONFIG", path.to_str().unwrap());
+    let _env = osu_collect::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
 
     let mut app = make_app();
     let before = app.home.mirror_count(app.osu_official_unlocked());
@@ -928,7 +928,7 @@ fn shift_arrow_reorders_config_mirror_and_syncs_pipeline() {
     // user config.
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("config.toml");
-    let _env = osu_collect::test_env::TempEnvVar::set("OSU_COLLECT_CONFIG", path.to_str().unwrap());
+    let _env = osu_collect::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
 
     let mut app = make_app();
     app.active_tab = Tab::Config;

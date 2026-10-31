@@ -1,4 +1,4 @@
-use super::{NOT_A_COLLECTION_LINK, Settings, preview_collection};
+use super::{NOT_A_COLLECTION_LINK, Settings, default_download_dir_in, preview_collection};
 use crate::config::Config;
 use crate::osu_db::OsuClient;
 use std::path::PathBuf;
@@ -26,7 +26,44 @@ fn empty_config_defaults_to_lazer_autodetect_and_a_download_folder() {
 
     assert_eq!(settings.client, OsuClient::Lazer);
     assert_eq!(settings.osu_path, None);
-    assert!(settings.download_dir.ends_with("osu-collect"));
+    let name = settings
+        .download_dir
+        .file_name()
+        .and_then(|name| name.to_str());
+    assert!(matches!(name, Some("osu-shelf" | "osu-collect")));
+}
+
+#[test]
+fn download_dir_uses_the_new_folder_on_a_fresh_install() {
+    let base = tempfile::tempdir().unwrap();
+
+    assert_eq!(
+        default_download_dir_in(base.path().to_path_buf()),
+        base.path().join("osu-shelf")
+    );
+}
+
+#[test]
+fn download_dir_falls_back_to_an_existing_legacy_folder() {
+    let base = tempfile::tempdir().unwrap();
+    std::fs::create_dir(base.path().join("osu-collect")).unwrap();
+
+    assert_eq!(
+        default_download_dir_in(base.path().to_path_buf()),
+        base.path().join("osu-collect")
+    );
+}
+
+#[test]
+fn download_dir_prefers_the_new_folder_when_both_exist() {
+    let base = tempfile::tempdir().unwrap();
+    std::fs::create_dir(base.path().join("osu-collect")).unwrap();
+    std::fs::create_dir(base.path().join("osu-shelf")).unwrap();
+
+    assert_eq!(
+        default_download_dir_in(base.path().to_path_buf()),
+        base.path().join("osu-shelf")
+    );
 }
 
 #[test]

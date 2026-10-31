@@ -6,7 +6,11 @@
 //! TUI reads, so both frontends stay in step.
 
 use crate::{
-    config::{Config, constants::USER_AGENT, load_config_or_default, save_config},
+    config::{
+        Config,
+        constants::{APP_SUBDIR, LEGACY_APP_SUBDIR, USER_AGENT},
+        load_config_or_default, save_config,
+    },
     core::collection::{CollectionService, HttpCollectionService},
     osu_db::{BeatmapReader, LazerReader, OsuClient, StableReader},
     utils::{self, AppError, Result},
@@ -81,12 +85,24 @@ impl Settings {
     }
 }
 
-/// `~/Downloads/osu-collect` (or the home folder when there is no Downloads).
+/// `~/Downloads/osu-shelf` (or the home folder when there is no Downloads).
+/// While the bridge release is in use, an existing `~/Downloads/osu-collect`
+/// wins over a missing new folder so upgrades keep seeing their downloads.
 fn default_download_dir() -> PathBuf {
-    dirs::download_dir()
+    let base = dirs::download_dir()
         .or_else(dirs::home_dir)
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("osu-collect")
+        .unwrap_or_else(|| PathBuf::from("."));
+    default_download_dir_in(base)
+}
+
+fn default_download_dir_in(base: PathBuf) -> PathBuf {
+    let current = base.join(APP_SUBDIR);
+    let legacy = base.join(LEGACY_APP_SUBDIR);
+    if !current.exists() && legacy.exists() {
+        legacy
+    } else {
+        current
+    }
 }
 
 pub fn load_settings() -> Settings {

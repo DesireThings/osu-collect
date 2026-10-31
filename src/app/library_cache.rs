@@ -1,9 +1,12 @@
 use super::runtime::owned_beatmapset_ids;
-use crate::osu_db::OsuClient;
+use crate::{
+    config::{constants::APP_SUBDIR, env_override},
+    osu_db::OsuClient,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
     time::UNIX_EPOCH,
@@ -11,7 +14,8 @@ use std::{
 use tracing::{debug, warn};
 
 pub const LIBRARY_CACHE_FILE: &str = "library-cache.json";
-pub const LIBRARY_CACHE_ENV_PATH: &str = "OSU_COLLECT_LIBRARY_CACHE";
+pub const LIBRARY_CACHE_ENV_PATH: &str = "OSU_SHELF_LIBRARY_CACHE";
+const LEGACY_LIBRARY_CACHE_ENV_PATH: &str = "OSU_COLLECT_LIBRARY_CACHE";
 /// Bump to drop every saved entry. 2: entries from osu-db 0.3.0, which read a
 /// stable `osu!.db` written since 20250107 as an empty library.
 pub(crate) const SCHEMA_VERSION: u32 = 2;
@@ -41,18 +45,15 @@ pub fn db_file_path(client: OsuClient, install_dir: &Path) -> PathBuf {
 }
 
 pub fn library_cache_path() -> Option<PathBuf> {
-    if let Ok(custom) = env::var(LIBRARY_CACHE_ENV_PATH) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(LIBRARY_CACHE_ENV_PATH, LEGACY_LIBRARY_CACHE_ENV_PATH) {
+        return Some(path);
     }
 
     platform_data_dir().map(library_cache_path_in)
 }
 
 pub fn library_cache_path_in(base: PathBuf) -> PathBuf {
-    base.join("osu-collect").join(LIBRARY_CACHE_FILE)
+    base.join(APP_SUBDIR).join(LIBRARY_CACHE_FILE)
 }
 
 #[cfg(windows)]

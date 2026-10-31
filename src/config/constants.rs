@@ -39,9 +39,15 @@ pub const HIGH_THREAD_WARN_THRESHOLD: u8 = 50;
 /// carrying a transient `Error` (e.g. `Error::Network`).
 pub const NETWORK_RETRY_CAP: u32 = 1000;
 
-pub const CONFIG_SUBDIR: &str = "osu-collect";
+/// Folder name under the per-user config and data roots.
+pub const APP_SUBDIR: &str = "osu-shelf";
+/// Folder name used before the rename; only the migration reads it.
+pub const LEGACY_APP_SUBDIR: &str = "osu-collect";
+pub const CONFIG_SUBDIR: &str = APP_SUBDIR;
 pub const CONFIG_FILE: &str = "config.toml";
-pub const CONFIG_ENV_PATH: &str = "OSU_COLLECT_CONFIG";
+pub const CONFIG_ENV_PATH: &str = "OSU_SHELF_CONFIG";
+/// Pre-rename override, still read for the bridge release.
+pub const LEGACY_CONFIG_ENV_PATH: &str = "OSU_COLLECT_CONFIG";
 
 pub const RELEASES_URL: &str =
     "https://api.github.com/repos/DesireThings/osu-collect/releases/latest";
@@ -106,6 +112,6 @@ pub const DISK_DANGER_BYTES: u64 = 100 * 1024 * 1024;
 /// Alias kept for any code that references the old name.
 pub const LOW_SPACE_THRESHOLD_BYTES: u64 = DISK_WARN_BYTES;
 
-pub const DIRECTORY_LOCK_FILE: &str = ".osu-collect.lock";
+pub const DIRECTORY_LOCK_FILE: &str = ".osu-shelf.lock";
 
 pub const API_MAX_RETRIES: u8 = 3;

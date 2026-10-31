@@ -1,7 +1,7 @@
 use osu_collect::app::run_app;
 use osu_collect::auto_update::cleanup_stale_artifacts;
 use osu_collect::cli;
-use osu_collect::config::{LogLevel, LoggingConfig, load_config_or_default};
+use osu_collect::config::{LogLevel, LoggingConfig, load_config_or_default, migrate_legacy_dirs};
 use osu_collect::realm_bridge::ffi::set_realm_debug_logging;
 use osu_collect::utils;
 #[cfg(windows)]
@@ -27,6 +27,8 @@ async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
             std::process::exit(1);
         }
     };
+
+    migrate_legacy_dirs();
 
     let config = load_config_or_default();
 

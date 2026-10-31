@@ -36,7 +36,7 @@ async fn pretty_logging_writes_human_readable_lines() {
     let mut log_path: Option<PathBuf> = None;
     while let Some(entry) = entries.next_entry().await.expect("read dir entry") {
         let name = entry.file_name();
-        if name.to_string_lossy().starts_with("osu-collect.log") {
+        if name.to_string_lossy().starts_with("osu-shelf.log") {
             log_path = Some(entry.path());
             break;
         }

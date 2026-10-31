@@ -641,7 +641,7 @@ fn update_source_shows_client_toggle() {
 
 // ── config view ──────────────────────────────────────────────────────────────
 
-/// Render the config tab with `OSU_COLLECT_AUTH` pointed at a temp dir, so the
+/// Render the config tab with `OSU_SHELF_AUTH` pointed at a temp dir, so the
 /// chip reflects `auth_json` and not whatever login the machine running the
 /// test happens to have stored.
 fn config_tab_with_stored_auth(auth_json: Option<&str>) -> String {

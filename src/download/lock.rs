@@ -1,4 +1,7 @@
-use crate::{config::constants::DIRECTORY_LOCK_FILE, download::error::DownloadError};
+use crate::{
+    config::constants::{APP_SUBDIR, DIRECTORY_LOCK_FILE},
+    download::error::DownloadError,
+};
 use dashmap::DashSet;
 use fs2::FileExt;
 use std::{
@@ -47,7 +50,7 @@ fn lock_file_path(path: &Path) -> Result<PathBuf, DownloadError> {
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
     let file_name = format!("{DIRECTORY_LOCK_FILE}-{:016x}", hasher.finish());
-    let lock_dir = std::env::temp_dir().join("osu-collect");
+    let lock_dir = std::env::temp_dir().join(APP_SUBDIR);
     std::fs::create_dir_all(&lock_dir)?;
     Ok(lock_dir.join(file_name))
 }

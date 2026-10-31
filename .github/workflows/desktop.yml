@@ -164,7 +164,7 @@ jobs:
       - name: Add the AppImage's libraries to the licence list, bundle again
         if: runner.os == 'Linux'
         run: |
-          scripts/appimage-lib-notices.sh "$BUNDLE/appimage/osu-collect.AppDir" > "$RUNNER_TEMP/appimage-libs.txt"
+          scripts/appimage-lib-notices.sh "$BUNDLE/appimage/osu-shelf.AppDir" > "$RUNNER_TEMP/appimage-libs.txt"
           { printf '\n'; cat "$RUNNER_TEMP/appimage-libs.txt"; } >> THIRD-PARTY-LICENSES-desktop.txt
           cd gui
           pnpm tauri build --config src-tauri/tauri.release.conf.json --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
@@ -174,11 +174,11 @@ jobs:
           set -x
           case "${{ runner.os }}" in
             Linux)
-              test -f "$BUNDLE/appimage/osu-collect.AppDir/usr/lib/osu-collect/THIRD-PARTY-LICENSES.txt"
-              grep -q '^Libraries bundled in the Linux AppImage' "$BUNDLE/appimage/osu-collect.AppDir/usr/lib/osu-collect/THIRD-PARTY-LICENSES.txt"
-              dpkg-deb -c "$BUNDLE"/deb/*.deb | grep 'usr/lib/osu-collect/THIRD-PARTY-LICENSES.txt'
+              test -f "$BUNDLE/appimage/osu-shelf.AppDir/usr/lib/osu-shelf/THIRD-PARTY-LICENSES.txt"
+              grep -q '^Libraries bundled in the Linux AppImage' "$BUNDLE/appimage/osu-shelf.AppDir/usr/lib/osu-shelf/THIRD-PARTY-LICENSES.txt"
+              dpkg-deb -c "$BUNDLE"/deb/*.deb | grep 'usr/lib/osu-shelf/THIRD-PARTY-LICENSES.txt'
               dpkg-deb -f "$BUNDLE"/deb/*.deb Package Version Depends
-              find "$BUNDLE/appimage/osu-collect.AppDir" -name '*.so*' -type f | wc -l
+              find "$BUNDLE/appimage/osu-shelf.AppDir" -name '*.so*' -type f | wc -l
               ;;
             Windows)
               7z l "$BUNDLE"/nsis/*-setup.exe | grep 'THIRD-PARTY-LICENSES.txt'
@@ -187,12 +187,12 @@ jobs:
               # A dmg-only build deletes the .app it made, so look inside the dmg.
               mnt="$(mktemp -d)"
               hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$BUNDLE"/dmg/*.dmg
-              test -f "$mnt/osu-collect.app/Contents/Resources/THIRD-PARTY-LICENSES.txt"
-              codesign -dv "$mnt/osu-collect.app" 2>&1 | grep -E 'Signature|Identifier|flags'
+              test -f "$mnt/osu-shelf.app/Contents/Resources/THIRD-PARTY-LICENSES.txt"
+              codesign -dv "$mnt/osu-shelf.app" 2>&1 | grep -E 'Signature|Identifier|flags'
               # Runs on the oldest supported macOS: what Info.plist promises,
               # and what the app and the libraries in it were built for.
-              test "$(plutil -extract LSMinimumSystemVersion raw "$mnt/osu-collect.app/Contents/Info.plist")" = "$MACOSX_DEPLOYMENT_TARGET"
-              scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" "$mnt/osu-collect.app/Contents/MacOS/osu-collect-gui" "target/${{ matrix.target }}/release/build"
+              test "$(plutil -extract LSMinimumSystemVersion raw "$mnt/osu-shelf.app/Contents/Info.plist")" = "$MACOSX_DEPLOYMENT_TARGET"
+              scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" "$mnt/osu-shelf.app/Contents/MacOS/osu-collect-gui" "target/${{ matrix.target }}/release/build"
               hdiutil detach "$mnt"
               ;;
           esac

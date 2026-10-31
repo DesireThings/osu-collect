@@ -1,14 +1,16 @@
+use crate::config::{constants::APP_SUBDIR, env_override};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
 use tracing::{debug, warn};
 
 pub const STATE_FILE: &str = "collection_state.toml";
-pub const STATE_ENV_PATH: &str = "OSU_COLLECT_STATE";
+pub const STATE_ENV_PATH: &str = "OSU_SHELF_STATE";
+const LEGACY_STATE_ENV_PATH: &str = "OSU_COLLECT_STATE";
 const SCHEMA_VERSION: u32 = 1;
 static SAVE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
@@ -76,13 +78,10 @@ impl CollectionStateFile {
 }
 
 pub fn state_path() -> Option<PathBuf> {
-    if let Ok(custom) = env::var(STATE_ENV_PATH) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(STATE_ENV_PATH, LEGACY_STATE_ENV_PATH) {
+        return Some(path);
     }
-    dirs::data_local_dir().map(|d| d.join("osu-collect").join(STATE_FILE))
+    dirs::data_local_dir().map(|d| d.join(APP_SUBDIR).join(STATE_FILE))
 }
 
 pub fn load(path: &Path) -> CollectionStateFile {

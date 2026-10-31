@@ -6,10 +6,12 @@ use tracing::{debug, info, warn};
 
 const AUTH_FILE: &str = "auth.json";
 /// Env override for the stored-auth path, matching every other on-disk store
-/// (`OSU_COLLECT_STATE`, `OSU_COLLECT_FAILED_MAPS`, …). Without it a test that
+/// (`OSU_SHELF_STATE`, `OSU_SHELF_FAILED_MAPS`, …). Without it a test that
 /// builds an `App` reads the developer's real login and renders a different
-/// config tab than CI does.
-pub const AUTH_ENV_PATH: &str = "OSU_COLLECT_AUTH";
+/// config tab than CI does. The pre-rename `OSU_COLLECT_*` names are still read
+/// as a fallback during the bridge release.
+pub const AUTH_ENV_PATH: &str = "OSU_SHELF_AUTH";
+const LEGACY_AUTH_ENV_PATH: &str = "OSU_COLLECT_AUTH";
 const REFRESH_MARGIN_SECS: u64 = 60;
 const OSU_TOKEN_URL: &str = "https://osu.ppy.sh/oauth/token";
 
@@ -98,11 +100,8 @@ impl StoredAuth {
 }
 
 fn auth_path() -> Option<std::path::PathBuf> {
-    if let Ok(custom) = std::env::var(AUTH_ENV_PATH) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(std::path::PathBuf::from(trimmed));
-        }
+    if let Some(path) = crate::config::env_override(AUTH_ENV_PATH, LEGACY_AUTH_ENV_PATH) {
+        return Some(path);
     }
 
     dirs::config_dir().map(|d| d.join(CONFIG_SUBDIR).join(AUTH_FILE))

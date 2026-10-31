@@ -151,7 +151,7 @@ fn snapshot_dir_in_adds_expected_suffix() {
 
     let path = snapshots::snapshot_dir_in(base);
 
-    assert!(path.ends_with("osu-collect/snapshots"));
+    assert!(path.ends_with("osu-shelf/snapshots"));
 }
 
 #[test]

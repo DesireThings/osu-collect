@@ -1,14 +1,16 @@
+use crate::config::{constants::APP_SUBDIR, env_override};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
 use tracing::{debug, warn};
 
 pub const IGNORED_MAPS_FILE: &str = "ignored-beatmapsets.json";
-pub const IGNORED_MAPS_ENV_PATH: &str = "OSU_COLLECT_IGNORED_MAPS";
+pub const IGNORED_MAPS_ENV_PATH: &str = "OSU_SHELF_IGNORED_MAPS";
+const LEGACY_IGNORED_MAPS_ENV_PATH: &str = "OSU_COLLECT_IGNORED_MAPS";
 const SCHEMA_VERSION: u32 = 1;
 static SAVE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
@@ -38,18 +40,15 @@ impl IgnoredMapsFile {
 }
 
 pub fn ignored_maps_path() -> Option<PathBuf> {
-    if let Ok(custom) = env::var(IGNORED_MAPS_ENV_PATH) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(IGNORED_MAPS_ENV_PATH, LEGACY_IGNORED_MAPS_ENV_PATH) {
+        return Some(path);
     }
 
     super::platform_data_dir().map(ignored_maps_path_in)
 }
 
 pub fn ignored_maps_path_in(base: PathBuf) -> PathBuf {
-    base.join("osu-collect").join(IGNORED_MAPS_FILE)
+    base.join(APP_SUBDIR).join(IGNORED_MAPS_FILE)
 }
 
 pub fn load(path: &Path) -> IgnoredMapsFile {

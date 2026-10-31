@@ -71,5 +71,5 @@ fn reconcile_installed_keeps_all_when_none_installed() {
 fn ignored_maps_path_in_uses_osu_collect_data_file() {
     let path = ignored_maps_path_in("/tmp/data".into());
 
-    assert!(path.ends_with("osu-collect/ignored-beatmapsets.json"));
+    assert!(path.ends_with("osu-shelf/ignored-beatmapsets.json"));
 }

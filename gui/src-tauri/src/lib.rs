@@ -205,6 +205,7 @@ async fn build_lazer_import(download_dir: PathBuf) -> Result<LazerImportResult, 
 }
 
 pub fn run() {
+    osu_collect::config::migrate_legacy_dirs();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

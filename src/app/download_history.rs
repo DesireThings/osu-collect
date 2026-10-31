@@ -9,17 +9,19 @@
 //! `App::remove_download_page` / the exit flush, so no run is ever lost.
 
 use crate::app::collection::CollectionPage;
+use crate::config::{constants::APP_SUBDIR, env_override};
 use crate::download::{DownloadId, DownloadStage};
 use serde::{Deserialize, Serialize};
 use std::{
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tracing::{debug, warn};
 
 pub const HISTORY_FILE: &str = "download_history.json";
-pub const HISTORY_ENV_PATH: &str = "OSU_COLLECT_DOWNLOAD_HISTORY";
+pub const HISTORY_ENV_PATH: &str = "OSU_SHELF_DOWNLOAD_HISTORY";
+const LEGACY_HISTORY_ENV_PATH: &str = "OSU_COLLECT_DOWNLOAD_HISTORY";
 /// Ring cap: bounds the file, the visible records list, and the in-session
 /// settled-page retention (each evicts oldest-first past it). The newest runs
 /// always win the ring — a session settling ≥cap runs pushes older sessions'
@@ -198,13 +200,10 @@ impl DownloadHistory {
 }
 
 pub fn history_path() -> Option<PathBuf> {
-    if let Ok(custom) = env::var(HISTORY_ENV_PATH) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(HISTORY_ENV_PATH, LEGACY_HISTORY_ENV_PATH) {
+        return Some(path);
     }
-    super::platform_data_dir().map(|base| base.join("osu-collect").join(HISTORY_FILE))
+    super::platform_data_dir().map(|base| base.join(APP_SUBDIR).join(HISTORY_FILE))
 }
 
 fn load_records(path: &Path) -> Vec<HistoryRecord> {
