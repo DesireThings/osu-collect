@@ -61,7 +61,7 @@
 
 <div class="shell">
   <nav class="sidebar">
-    <div class="brand">osu-<span>collect</span></div>
+    <div class="brand">osu-<span>shelf</span></div>
     <ol class="steps">
       {#each steps as step, i (step.id)}
         <li>
