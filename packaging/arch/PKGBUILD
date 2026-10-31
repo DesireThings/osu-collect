@@ -43,8 +43,12 @@ source=(
   "realm-sha1::git+https://github.com/clibs/sha1.git#commit=$_realm_sha1"
   "realm-sha2::git+https://github.com/kalven/sha-2.git#commit=$_realm_sha2"
   'system-openssl.patch'
+  # Built by scripts/third-party-licenses.sh --desktop in the release
+  # workflow and attached to the release: cargo-about 0.9.2, which the script
+  # needs, is not packaged for Arch. Pinned by checksum.
+  "THIRD-PARTY-LICENSES-desktop.txt::$url/releases/download/v$pkgver/THIRD-PARTY-LICENSES-desktop.txt"
 )
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' '7066caeed81c980a916986596144c35fed0712870d156c5bf1807794a881c022')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' '7066caeed81c980a916986596144c35fed0712870d156c5bf1807794a881c022' '0fd39dfe449e307149988c453dd53f956a7c9bb9e24c4b4b6653a0118b4067ea')
 
 prepare() {
   cd "$pkgname"
@@ -123,6 +127,14 @@ Categories=Utility;Network;
 Keywords=osu;osu!;collector;beatmaps;collections;
 StartupWMClass=osu-shelf-gui
 EOF
+
+  # The About screen reads THIRD-PARTY-LICENSES.txt from Tauri's resource
+  # directory (/usr/lib/osu-shelf on Linux outside an AppImage); Arch
+  # guidelines also want the licence files under /usr/share/licenses.
+  install -Dm644 "$srcdir/THIRD-PARTY-LICENSES-desktop.txt" \
+    "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-LICENSES-desktop.txt"
+  install -Dm644 "$srcdir/THIRD-PARTY-LICENSES-desktop.txt" \
+    "$pkgdir/usr/lib/$pkgname/THIRD-PARTY-LICENSES.txt"
 
   install -Dm644 LICENSE-MIT \
     "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
