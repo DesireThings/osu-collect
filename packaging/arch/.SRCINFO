@@ -26,10 +26,12 @@ pkgbase = osu-shelf
 	source = realm-sha1::git+https://github.com/clibs/sha1.git#commit=d9ae30f34095107ece9dceb224839f0dc2f9c1c7
 	source = realm-sha2::git+https://github.com/kalven/sha-2.git#commit=0e9aebf34101c6aa89355fd76ac9cd886735dee1
 	source = system-openssl.patch
+	source = THIRD-PARTY-LICENSES-desktop.txt::https://github.com/DesireThings/osu-shelf/releases/download/v0.3.0/THIRD-PARTY-LICENSES-desktop.txt
 	sha256sums = SKIP
 	sha256sums = SKIP
 	sha256sums = SKIP
 	sha256sums = SKIP
 	sha256sums = 7066caeed81c980a916986596144c35fed0712870d156c5bf1807794a881c022
+	sha256sums = 0fd39dfe449e307149988c453dd53f956a7c9bb9e24c4b4b6653a0118b4067ea
 
 pkgname = osu-shelf
