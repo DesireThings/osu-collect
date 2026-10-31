@@ -1,0 +1,128 @@
+# Maintainer: Kieran <kieran.parry2004@gmail.com>
+pkgname=osu-shelf
+pkgver=0.3.0
+pkgrel=1
+pkgdesc='Download osu!collector collections and import them into osu! (GUI and TUI)'
+arch=('x86_64')
+url='https://github.com/DesireThings/osu-shelf'
+license=('MIT' 'Apache-2.0')
+# With LTO enabled, makepkg passes -flto to the C/C++ compilers; the GCC
+# bitcode objects in realm-core's and aws-lc's static archives then cannot be
+# linked by rustc's LLVM linker and every symbol is reported undefined.
+options=('!lto')
+depends=(
+  'glibc'
+  'gtk3'
+  'libstdc++'         # C++ runtime for the realm bridge
+  'openssl'           # realm-core encryption + reqwest's TLS
+  'webkit2gtk-4.1'    # WebView the desktop app runs in
+  'xdg-utils'         # tauri-plugin-opener calls xdg-open at runtime
+  'zlib'
+)
+makedepends=(
+  'cmake'             # realm-core
+  'gcc'               # g++ for realm-core and the cxx bridge
+  'git'               # VCS sources
+  'nodejs'
+  'pkgconf'
+  'pnpm'              # frontend, pinned by gui/pnpm-lock.yaml
+  'rust'              # >= 1.90, edition 2024
+)
+
+# osu-shelf's vendor/realm-cpp submodule (4ebdd34, branch "community") points
+# realm-core at this commit, and realm-core carries its own sha-1/sha-2 pins.
+# build.rs compiles realm-core from there; catch2 is only used by its tests,
+# which build.rs disables.
+_realm_core=10b706633bc94fce130ebe72707c6deb7a7ba041
+_realm_sha1=d9ae30f34095107ece9dceb224839f0dc2f9c1c7
+_realm_sha2=0e9aebf34101c6aa89355fd76ac9cd886735dee1
+
+source=(
+  "$pkgname::git+$url.git#tag=v$pkgver"
+  "realm-core::git+https://github.com/realm/realm-core.git#commit=$_realm_core"
+  "realm-sha1::git+https://github.com/clibs/sha1.git#commit=$_realm_sha1"
+  "realm-sha2::git+https://github.com/kalven/sha-2.git#commit=$_realm_sha2"
+  'system-openssl.patch'
+)
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' '7066caeed81c980a916986596144c35fed0712870d156c5bf1807794a881c022')
+
+prepare() {
+  cd "$pkgname"
+
+  # build.rs runs CMake on vendor/realm-cpp/realm-core, but makepkg does not
+  # clone submodules and GitHub's archive tarballs leave them out. Put the
+  # pinned commits where build.rs looks for them.
+  rm -rf vendor/realm-cpp/realm-core
+  mkdir -p vendor/realm-cpp
+  cp -a "$srcdir/realm-core" vendor/realm-cpp/realm-core
+  rm -rf vendor/realm-cpp/realm-core/src/external/sha-1 \
+         vendor/realm-cpp/realm-core/src/external/sha-2
+  cp -a "$srcdir/realm-sha1" vendor/realm-cpp/realm-core/src/external/sha-1
+  cp -a "$srcdir/realm-sha2" vendor/realm-cpp/realm-core/src/external/sha-2
+
+  # realm-core downloads a prebuilt OpenSSL tarball at configure time unless
+  # REALM_USE_SYSTEM_OPENSSL is on. Link the distribution's OpenSSL instead,
+  # so the build needs no network and picks up its security fixes.
+  patch -Np1 -i ../system-openssl.patch
+
+  cargo fetch --locked
+  pnpm -C gui install --frozen-lockfile
+}
+
+build() {
+  cd "$pkgname"
+
+  # realm-core's C++ embeds its source path via __FILE__ and the cxx bridge
+  # embeds its include path, so makepkg's build directory would end up in the
+  # binaries. Map it to the usual debug prefix instead.
+  local map="$srcdir=/usr/src/debug/$pkgname"
+  export CFLAGS="${CFLAGS} -ffile-prefix-map=${map}"
+  export CXXFLAGS="${CXXFLAGS} -ffile-prefix-map=${map}"
+  export RUSTFLAGS="${RUSTFLAGS} --remap-path-prefix=${map}"
+
+  # Terminal app; the root package is the workspace's only default member.
+  cargo build --release --locked
+
+  # Desktop app: tauri-build embeds gui/dist at compile time, so build the
+  # Svelte frontend first, then the Tauri shell crate.
+  pnpm -C gui build
+  cargo build --release --locked -p osu-shelf-gui
+}
+
+package() {
+  cd "$pkgname"
+
+  install -Dm755 target/release/osu-shelf "$pkgdir/usr/bin/osu-shelf"
+  install -Dm755 target/release/osu-shelf-gui "$pkgdir/usr/bin/osu-shelf-gui"
+
+  install -Dm644 gui/src-tauri/icons/32x32.png \
+    "$pkgdir/usr/share/icons/hicolor/32x32/apps/osu-shelf.png"
+  install -Dm644 gui/src-tauri/icons/64x64.png \
+    "$pkgdir/usr/share/icons/hicolor/64x64/apps/osu-shelf.png"
+  install -Dm644 gui/src-tauri/icons/128x128.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/osu-shelf.png"
+  install -Dm644 gui/src-tauri/icons/128x128@2x.png \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/osu-shelf.png"
+  install -Dm644 gui/src-tauri/icons/icon.png \
+    "$pkgdir/usr/share/icons/hicolor/512x512/apps/osu-shelf.png"
+
+  install -d "$pkgdir/usr/share/applications"
+  cat > "$pkgdir/usr/share/applications/osu-shelf.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=osu-shelf
+GenericName=osu! collection downloader
+Comment=Download osu!collector collections and import them into osu!
+Exec=osu-shelf-gui
+Icon=osu-shelf
+Terminal=false
+Categories=Utility;Network;
+Keywords=osu;osu!;collector;beatmaps;collections;
+StartupWMClass=osu-shelf-gui
+EOF
+
+  install -Dm644 LICENSE-MIT \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+  install -Dm644 LICENSE-APACHE \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+}
