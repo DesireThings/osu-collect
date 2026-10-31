@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds THIRD-PARTY-LICENSES.txt for a release: osu-collect's own MIT notice,
+# Builds THIRD-PARTY-LICENSES.txt for a release: osu-shelf's own MIT notice,
 # the licences of every Rust crate built in (cargo-about, see about.toml /
 # about.hbs), then realm-core's licence and third-party notices, since cargo
 # can't see that C++ submodule.
@@ -37,25 +37,25 @@ done
 
 rule='================================================================================'
 
-# The header and osu-collect's own licence. The MIT notice of osu-collect
+# The header and osu-shelf's own licence. The MIT notice of osu-shelf
 # itself has to travel with every copy too, not only the dependencies'.
 {
     if $desktop; then
         printf 'THIRD-PARTY LICENCES FOR THE OSU-COLLECT DESKTOP APP\n'
         printf '=====================================================\n\n'
-        printf 'This file lists the licences of everything built into the osu-collect\n'
-        printf 'desktop app: osu-collect itself, the Rust crates, the JavaScript packages\n'
+        printf 'This file lists the licences of everything built into the osu-shelf\n'
+        printf 'desktop app: osu-shelf itself, the Rust crates, the JavaScript packages\n'
         printf 'in its window, and realm-core, the C++ database library it links to read\n'
         printf "osu!lazer's library.\n\n"
     else
         printf 'THIRD-PARTY LICENCES FOR OSU-COLLECT\n'
         printf '====================================\n\n'
-        printf 'This file lists the licences of everything built into osu-collect:\n'
-        printf 'osu-collect itself, the Rust crates, and realm-core, the C++ database\n'
+        printf 'This file lists the licences of everything built into osu-shelf:\n'
+        printf 'osu-shelf itself, the Rust crates, and realm-core, the C++ database\n'
         printf "library it links to read osu!lazer's library.\n\n"
     fi
-    printf '%s\nosu-collect: MIT OR Apache-2.0 (the MIT notice is below; LICENSE-APACHE\n' "$rule"
-    printf 'is in the source repository, https://github.com/DesireThings/osu-collect)\n%s\n\n' "$rule"
+    printf '%s\nosu-shelf: MIT OR Apache-2.0 (the MIT notice is below; LICENSE-APACHE\n' "$rule"
+    printf 'is in the source repository, https://github.com/DesireThings/osu-shelf)\n%s\n\n' "$rule"
     cat "$root/LICENSE-MIT"
     printf '\n'
 } > "$out"

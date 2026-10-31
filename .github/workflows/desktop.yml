@@ -192,7 +192,7 @@ jobs:
               # Runs on the oldest supported macOS: what Info.plist promises,
               # and what the app and the libraries in it were built for.
               test "$(plutil -extract LSMinimumSystemVersion raw "$mnt/osu-shelf.app/Contents/Info.plist")" = "$MACOSX_DEPLOYMENT_TARGET"
-              scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" "$mnt/osu-shelf.app/Contents/MacOS/osu-collect-gui" "target/${{ matrix.target }}/release/build"
+              scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" "$mnt/osu-shelf.app/Contents/MacOS/osu-shelf-gui" "target/${{ matrix.target }}/release/build"
               hdiutil detach "$mnt"
               ;;
           esac
@@ -200,7 +200,7 @@ jobs:
       - name: Name the installers
         run: |
           version="$(node -p "require('./gui/src-tauri/tauri.conf.json').version")"
-          base="osu-collect-desktop-${version}"
+          base="osu-shelf-desktop-${version}"
           mkdir -p out
           case "${{ runner.os }}" in
             Linux)

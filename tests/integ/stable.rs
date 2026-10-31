@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use osu_collect::osu_db::{BeatmapReader, StableReader};
+    use osu_shelf::osu_db::{BeatmapReader, StableReader};
     use std::path::PathBuf;
 
     fn testing_db_path() -> Option<PathBuf> {

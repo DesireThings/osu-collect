@@ -113,7 +113,7 @@ jobs:
         run: cargo test --release --all-targets --all-features --target x86_64-unknown-linux-gnu
 
       - name: test desktop app crate
-        run: cargo test --release -p osu-collect-gui --all-features --target x86_64-unknown-linux-gnu
+        run: cargo test --release -p osu-shelf-gui --all-features --target x86_64-unknown-linux-gnu
 
       - name: test osu-downloader lib
         run: cargo test --manifest-path osu-downloader/Cargo.toml --all-features
@@ -142,7 +142,7 @@ jobs:
         run: cargo test --release --all-targets --all-features --target x86_64-pc-windows-msvc
 
       - name: test desktop app crate
-        run: cargo test --release -p osu-collect-gui --all-features --target x86_64-pc-windows-msvc
+        run: cargo test --release -p osu-shelf-gui --all-features --target x86_64-pc-windows-msvc
 
   build-macos:
     # Pinned, not macos-latest, so the build machine only changes on purpose.
@@ -182,7 +182,7 @@ jobs:
         run: cargo test --release --all-targets --all-features --target aarch64-apple-darwin
 
       - name: test desktop app crate
-        run: cargo test --release -p osu-collect-gui --all-features --target aarch64-apple-darwin
+        run: cargo test --release -p osu-shelf-gui --all-features --target aarch64-apple-darwin
 
       # Kept only for the check below, which reads the release binary and its
       # build-script outputs; nothing is packaged or uploaded from CI.
@@ -190,4 +190,4 @@ jobs:
         run: cargo build --release --target aarch64-apple-darwin
 
       - name: Check it runs on the oldest supported macOS
-        run: scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" target/aarch64-apple-darwin/release/osu-collect target/aarch64-apple-darwin/release/build
+        run: scripts/check-macos-min.sh "$MACOSX_DEPLOYMENT_TARGET" target/aarch64-apple-darwin/release/osu-shelf target/aarch64-apple-darwin/release/build

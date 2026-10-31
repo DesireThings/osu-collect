@@ -1,6 +1,6 @@
 # Contributing
 
-osu-collect is a one-person hobby project, and help is welcome: bug reports, ideas, docs fixes and code. This page says where things go and what a good change looks like.
+osu-shelf is a one-person hobby project, and help is welcome: bug reports, ideas, docs fixes and code. This page says where things go and what a good change looks like.
 
 ## Where things go
 
@@ -28,7 +28,7 @@ Run these before you open a pull request. They're what CI runs:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --all-targets --all-features
-cargo test -p osu-collect-gui --all-features
+cargo test -p osu-shelf-gui --all-features
 cargo test --manifest-path osu-downloader/Cargo.toml --all-features
 ```
 
@@ -45,7 +45,7 @@ The branch `main` is protected: pull requests need the `fmt`, `build-linux`, `bu
 
 ## Licence
 
-osu-collect is licensed under MIT OR Apache-2.0. Unless you say otherwise, anything you contribute is licensed the same way, with no extra terms.
+osu-shelf is licensed under MIT OR Apache-2.0. Unless you say otherwise, anything you contribute is licensed the same way, with no extra terms.
 
 ## Who's who
 

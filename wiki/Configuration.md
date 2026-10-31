@@ -1,14 +1,14 @@
 # Configuration
 
-osu-collect reads an optional config file. Every key has a default, so a missing file or missing keys are not an issue.
+osu-shelf reads an optional config file. Every key has a default, so a missing file or missing keys are not an issue.
 
 | OS | Path |
 |---|---|
-| Linux | `~/.config/osu-collect/config.toml` |
-| macOS | `~/Library/Application Support/osu-collect/config.toml` |
-| Windows | `%APPDATA%\osu-collect\config.toml` |
+| Linux | `~/.config/osu-shelf/config.toml` |
+| macOS | `~/Library/Application Support/osu-shelf/config.toml` |
+| Windows | `%APPDATA%\osu-shelf\config.toml` |
 
-Most settings are also editable live on the config tab, where changes apply and save immediately. The desktop window's **Settings** page edits the mirrors and download options in the same file. A commented example lives at [`config.toml.example`](https://github.com/DesireThings/osu-collect/blob/main/config.toml.example).
+Most settings are also editable live on the config tab, where changes apply and save immediately. The desktop window's **Settings** page edits the mirrors and download options in the same file. A commented example lives at [`config.toml.example`](https://github.com/DesireThings/osu-shelf/blob/main/config.toml.example).
 
 ## `[mirror]`
 
@@ -72,7 +72,7 @@ Managed automatically: last collection, last download directory, osu! client, in
 
 ## Other files
 
-`auth.json` (your osu! API app and its token, saved from the config tab; see [Finding Maps](Finding-Maps#your-osu-api-app)) sits next to `config.toml`, readable by your user only. State files live in a per-user data dir: `~/.local/share/osu-collect` on Linux, `~/Library/Application Support/osu-collect` on macOS, `%APPDATA%\osu-collect` on Windows.
+`auth.json` (your osu! API app and its token, saved from the config tab; see [Finding Maps](Finding-Maps#your-osu-api-app)) sits next to `config.toml`, readable by your user only. State files live in a per-user data dir: `~/.local/share/osu-shelf` on Linux, `~/Library/Application Support/osu-shelf` on macOS, `%APPDATA%\osu-shelf` on Windows.
 
 | File | Holds |
 |---|---|

@@ -22,7 +22,7 @@ fn selective_download_carries_the_skip_imported_toggle() {
     fn update_request(skip_already_imported: bool) -> bool {
         let mut app = App::new(Config::default());
         app.config.skip_already_imported = skip_already_imported;
-        app.home.directory.value = "/tmp/osu-collect-test".to_string();
+        app.home.directory.value = "/tmp/osu-shelf-test".to_string();
         app.home.update.set_collections(vec![LocalCollection {
             name: "alpha - 100".to_string(),
             beatmap_checksums: Box::new([]),
@@ -473,7 +473,7 @@ fn cycling_a_route_neutral_chip_keeps_the_download_button_live() {
 #[test]
 fn a_find_dispatch_cannot_run_on_a_route_the_form_left() {
     let mut app = find_with_nzbasic_results();
-    app.home.directory.value = "/tmp/osu-collect-test".to_string();
+    app.home.directory.value = "/tmp/osu-shelf-test".to_string();
     assert!(
         app.request_find_download().is_some(),
         "precondition: the run dispatches while the route still matches"
@@ -481,7 +481,7 @@ fn a_find_dispatch_cannot_run_on_a_route_the_form_left() {
     let queued = app.downloads.len();
 
     let mut app = find_with_nzbasic_results();
-    app.home.directory.value = "/tmp/osu-collect-test".to_string();
+    app.home.directory.value = "/tmp/osu-shelf-test".to_string();
     app.home.find.cycle_special(false); // back to `none` — the route is osu now
     assert!(
         app.request_find_download().is_none(),

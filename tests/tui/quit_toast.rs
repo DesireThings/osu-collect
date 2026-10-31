@@ -5,7 +5,7 @@
 /// but it does cancel a `q`-armed toast. Any other key while the toast is
 /// visible dismisses it and falls through.
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
-use osu_collect::{
+use osu_shelf::{
     app::{App, AppCommand, HomeField},
     config::Config,
 };

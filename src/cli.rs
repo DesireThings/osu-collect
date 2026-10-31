@@ -52,7 +52,7 @@ pub fn parse_args() -> Result<Option<CliCommand>, String> {
             std::process::exit(0);
         }
         "--version" | "-V" => {
-            println!("osu-collect {}", env!("CARGO_PKG_VERSION"));
+            println!("osu-shelf {}", env!("CARGO_PKG_VERSION"));
             std::process::exit(0);
         }
         other => Err(format!("unknown subcommand: {other}")),
@@ -117,13 +117,13 @@ fn parse_lazer_import(args: &[String]) -> Result<LazerImportArgs, String> {
 
 fn print_help() {
     println!(concat!(
-        "osu-collect ",
+        "osu-shelf ",
         env!("CARGO_PKG_VERSION"),
         "\n\n",
         "usage:\n",
-        "  osu-collect                          launch TUI\n",
-        "  osu-collect update-collections [opts] check and report missing beatmaps\n",
-        "  osu-collect lazer-import [opts]       build one folder lazer imports all downloads from\n\n",
+        "  osu-shelf                          launch TUI\n",
+        "  osu-shelf update-collections [opts] check and report missing beatmaps\n",
+        "  osu-shelf lazer-import [opts]       build one folder lazer imports all downloads from\n\n",
         "update-collections options:\n",
         "  --db <path>    override osu! database path\n",
         "  --stable       use osu! stable database (default)\n",

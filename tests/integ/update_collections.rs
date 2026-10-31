@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use osu_collect::{
+    use osu_shelf::{
         app::{runtime, update_source::extract_collection_id},
         osu_db::OsuClient,
     };
@@ -113,8 +113,7 @@ mod tests {
         println!("collection IDs to check: {:?}", collection_ids);
 
         let local_set_ids: HashSet<u32> = beatmapsets.iter().map(|bs| bs.id).collect();
-        let local_checksums: HashSet<osu_collect::osu_db::Md5> =
-            all_checksums.into_iter().collect();
+        let local_checksums: HashSet<osu_shelf::osu_db::Md5> = all_checksums.into_iter().collect();
 
         let t_fetch = Instant::now();
         let result = runtime::fetch_missing_beatmapsets(

@@ -11,11 +11,11 @@ use tracing::{debug, info, warn};
 
 use sha2::{Digest, Sha256};
 
-use crate::config::constants::{AUTO_UPDATE_TIMEOUT, RELEASES_LIST_URL, RELEASES_URL};
+use crate::config::constants::{AUTO_UPDATE_TIMEOUT, RELEASES_LIST_URL, RELEASES_URL, USER_AGENT};
 
 fn build_client() -> Result<Client, AutoUpdateError> {
     Ok(Client::builder()
-        .user_agent(format!("osu-collect/{}", env!("CARGO_PKG_VERSION")))
+        .user_agent(USER_AGENT)
         .timeout(Duration::from_secs(15))
         .build()?)
 }
@@ -251,7 +251,7 @@ async fn download_asset(
     let temp_path = exe_path
         .parent()
         .ok_or(AutoUpdateError::ExecutablePath)?
-        .join(".osu-collect-update.tmp");
+        .join(".osu-shelf-update.tmp");
 
     let mut hasher = Sha256::new();
     let mut file = fs::File::create(&temp_path).await?;
@@ -418,11 +418,11 @@ fn parse_version(input: &str) -> Option<Version> {
 #[doc(hidden)]
 pub fn target_asset_name() -> Option<&'static str> {
     if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        Some("osu-collect-linux-x64")
+        Some("osu-shelf-linux-x64")
     } else if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
-        Some("osu-collect-windows-x64.exe")
+        Some("osu-shelf-windows-x64.exe")
     } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        Some("osu-collect-macos-arm64")
+        Some("osu-shelf-macos-arm64")
     } else {
         None
     }

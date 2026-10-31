@@ -77,7 +77,7 @@
 <header class="page-head">
   <h1>Update collections</h1>
   <p class="muted">
-    Check the collections you downloaded with osu-collect for maps added on osu!collector since, and
+    Check the collections you downloaded with osu-shelf for maps added on osu!collector since, and
     download only what's new.
   </p>
 </header>
@@ -112,7 +112,7 @@
     <section class="card">
       <h2>No downloaded collections found</h2>
       <p>
-        osu-collect looks for collections whose name ends in their osu!collector number, the way it
+        osu-shelf looks for collections whose name ends in their osu!collector number, the way it
         names every download (for example <code>Tiebreakers-18951</code>). None of the collections in
         your {clientName(report.client)} have one.
       </p>

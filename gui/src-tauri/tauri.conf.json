@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "osu-shelf",
-  "mainBinaryName": "osu-collect-gui",
-  "version": "0.2.0",
+  "mainBinaryName": "osu-shelf-gui",
+  "version": "0.3.0",
   "identifier": "io.github.desirethings.osu-shelf",
   "build": {
     "beforeDevCommand": "pnpm dev",

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# install.sh — installs or updates osu-collect from the latest GitHub release
+# install.sh — installs or updates osu-shelf from the latest GitHub release
 # supports: linux x64, macOS arm64 (Apple Silicon)
 set -euo pipefail
 
 # ── constants ────────────────────────────────────────────────────────────────
 
-readonly REPO="DesireThings/osu-collect"
+readonly REPO="DesireThings/osu-shelf"
 readonly API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 readonly INSTALL_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
-readonly BINARY_NAME="osu-collect"
+readonly BINARY_NAME="osu-shelf"
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,12 +45,12 @@ detect_asset() {
         error "unsupported architecture: $arch (only x64 is supported)"
         exit 1
       fi
-      printf 'osu-collect-linux-x64'
+      printf 'osu-shelf-linux-x64'
       ;;
     Darwin)
       case "$arch" in
         arm64 | aarch64)
-          printf 'osu-collect-macos-arm64'
+          printf 'osu-shelf-macos-arm64'
           ;;
         *)
           error "unsupported macOS architecture: $arch (only Apple Silicon / arm64 is published)"
@@ -217,7 +217,7 @@ main() {
     exit 0
   fi
 
-  info "downloading osu-collect $tag..."
+  info "downloading osu-shelf $tag..."
   curl -fsSL --retry 3 -o "$tmp_bin" "$DOWNLOAD_URL"
 
   info "verifying checksum..."
@@ -233,7 +233,7 @@ main() {
 
   check_path "$INSTALL_DIR"
 
-  info "done — run 'osu-collect' to start"
+  info "done — run 'osu-shelf' to start"
 }
 
 main "$@"

@@ -1,4 +1,4 @@
-#include "osu-collect/src/realm_bridge.rs.h"
+#include "osu-shelf/src/realm_bridge.rs.h"
 #include <realm/db.hpp>
 #include <realm/table.hpp>
 #include <realm/transaction.hpp>

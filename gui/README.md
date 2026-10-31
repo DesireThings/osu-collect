@@ -1,7 +1,7 @@
-# osu-collect GUI
+# osu-shelf GUI
 
-Desktop window for osu-collect: Tauri 2 with a Svelte 5 frontend. The Rust side
-(`src-tauri`) is a thin layer over `osu_collect::engine`, and settings live in the
+Desktop window for osu-shelf: Tauri 2 with a Svelte 5 frontend. The Rust side
+(`src-tauri`) is a thin layer over `osu_shelf::engine`, and settings live in the
 same `config.toml` as the terminal version.
 
 Screens:

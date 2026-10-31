@@ -1694,7 +1694,7 @@ async fn downloads_tell_the_mirror_which_app_is_asking() {
     assert_eq!(
         USER_AGENT,
         format!(
-            "osu-collect/{} (+https://github.com/DesireThings/osu-collect)",
+            "osu-shelf/{} (+https://github.com/DesireThings/osu-shelf)",
             env!("CARGO_PKG_VERSION")
         )
     );

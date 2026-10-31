@@ -1,5 +1,5 @@
-use osu_collect::config::{LogFormat, LogLevel, LoggingConfig};
-use osu_collect::utils::logging::init_logging;
+use osu_shelf::config::{LogFormat, LogLevel, LoggingConfig};
+use osu_shelf::utils::logging::init_logging;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::fs;
@@ -10,7 +10,7 @@ fn unique_dir() -> PathBuf {
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     std::env::temp_dir().join(format!(
-        "osu_collect_logging_test_{}_{}",
+        "osu_shelf_logging_test_{}_{}",
         std::process::id(),
         nanos
     ))

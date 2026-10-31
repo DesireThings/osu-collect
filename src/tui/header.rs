@@ -14,7 +14,7 @@ use crate::osu_db::OsuClient;
 use super::theme::blend;
 use super::{accent, accent_alt, spinner_str, text_dim, warning};
 
-const BRAND: &str = " osu-collect";
+const BRAND: &str = " osu-shelf";
 const VERSION: &str = concat!(" v", env!("CARGO_PKG_VERSION"), " ");
 /// Running version, no leading `v` / padding — the base of the update cue.
 const CUR_VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -50,7 +50,7 @@ fn app_with_failed_maps(
     app.home.collection.value = COLLECTION_ID.to_string();
     // Ensure the form passes build_request: any directory is fine, mirrors
     // already on by default.
-    app.home.directory.value = "/tmp/osu-collect-test".to_string();
+    app.home.directory.value = "/tmp/osu-shelf-test".to_string();
     app.home
         .set_resolved_collection(COLLECTION_ID, COLLECTION_BEATMAPSET_IDS.to_vec());
 
@@ -270,7 +270,7 @@ fn no_intersection_skips_modal_under_ask() {
     let mut app = App::new(Config::default());
     app.config.retry_failed_on_download = RetryFailedOnDownload::Ask;
     app.home.collection.value = COLLECTION_ID.to_string();
-    app.home.directory.value = "/tmp/osu-collect-test".to_string();
+    app.home.directory.value = "/tmp/osu-shelf-test".to_string();
     // resolved ids do not overlap with persisted failures
     app.home
         .set_resolved_collection(COLLECTION_ID, vec![1, 2, 3]);

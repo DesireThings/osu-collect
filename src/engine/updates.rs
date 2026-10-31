@@ -4,7 +4,7 @@
 //! [`scan`] is the one implementation of the scan; the headless
 //! `update-collections` command and the GUI both run it. A collection counts
 //! as downloaded when its name in osu! carries its osu!collector id, as every
-//! osu-collect download names it ("Tiebreakers-18951").
+//! osu-shelf download names it ("Tiebreakers-18951").
 
 use super::{
     Downloads, Settings,

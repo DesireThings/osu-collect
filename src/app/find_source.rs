@@ -1247,7 +1247,7 @@ enum SizeState {
 /// The chip positions of a [`FindSource`] as plain numbers, for a frontend with
 /// its own controls (the desktop app's dropdowns). Each indexes the same label
 /// table the TUI's chip cycles through. Rank and played are left out: they need
-/// an osu!supporter login, which osu-collect doesn't do.
+/// an osu!supporter login, which osu-shelf doesn't do.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FindChoices {
     pub preset: usize,

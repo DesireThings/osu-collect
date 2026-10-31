@@ -21,7 +21,7 @@ fn unique_temp_dir(suffix: &str) -> PathBuf {
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     std::env::temp_dir().join(format!(
-        "osu_collect_update_test_{}_{}_{}",
+        "osu_shelf_update_test_{}_{}_{}",
         std::process::id(),
         suffix,
         nanos
@@ -55,7 +55,7 @@ async fn apply_update_to_replaces_binary_and_cleans_rollback() {
     let dir = unique_temp_dir("apply");
     fs::create_dir_all(&dir).await.unwrap();
 
-    let exe_path = dir.join("osu-collect-test");
+    let exe_path = dir.join("osu-shelf-test");
     fs::write(&exe_path, b"old-binary").await.unwrap();
 
     let download_path = dir.join("downloaded");
@@ -361,14 +361,14 @@ async fn check_for_update_none_when_current() {
 #[test]
 fn cargo_target_paths_are_dev_builds() {
     assert!(is_cargo_target_path(std::path::Path::new(
-        "/home/dev/proj/target/debug/osu-collect"
+        "/home/dev/proj/target/debug/osu-shelf"
     )));
     assert!(is_cargo_target_path(std::path::Path::new(
-        "/home/dev/proj/target/release/osu-collect"
+        "/home/dev/proj/target/release/osu-shelf"
     )));
     // Shared/custom target dir (workspace target one level up) still matches.
     assert!(is_cargo_target_path(std::path::Path::new(
-        "/home/dev/repos/rs/target/debug/osu-collect"
+        "/home/dev/repos/rs/target/debug/osu-shelf"
     )));
 }
 
@@ -376,15 +376,15 @@ fn cargo_target_paths_are_dev_builds() {
 fn installed_paths_are_not_dev_builds() {
     // cargo install lands in ~/.cargo/bin — no profile parent.
     assert!(!is_cargo_target_path(std::path::Path::new(
-        "/home/dev/.cargo/bin/osu-collect"
+        "/home/dev/.cargo/bin/osu-shelf"
     )));
     // A downloaded release on PATH.
     assert!(!is_cargo_target_path(std::path::Path::new(
-        "/usr/local/bin/osu-collect"
+        "/usr/local/bin/osu-shelf"
     )));
     // A `debug`/`release` profile dir NOT under `target` doesn't count.
     assert!(!is_cargo_target_path(std::path::Path::new(
-        "/opt/release/osu-collect"
+        "/opt/release/osu-shelf"
     )));
 }
 
@@ -412,7 +412,7 @@ fn newest_release_picks_highest_semver_including_prereleases() {
 
 fn asset_with_digest(digest: Option<&str>) -> ReleaseAsset {
     ReleaseAsset {
-        name: "osu-collect-linux-x64".into(),
+        name: "osu-shelf-linux-x64".into(),
         browser_download_url: "http://placeholder/asset".into(),
         digest: digest.map(str::to_string),
     }

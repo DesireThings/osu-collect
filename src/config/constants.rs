@@ -50,18 +50,17 @@ pub const CONFIG_ENV_PATH: &str = "OSU_SHELF_CONFIG";
 pub const LEGACY_CONFIG_ENV_PATH: &str = "OSU_COLLECT_CONFIG";
 
 pub const RELEASES_URL: &str =
-    "https://api.github.com/repos/DesireThings/osu-collect/releases/latest";
+    "https://api.github.com/repos/DesireThings/osu-shelf/releases/latest";
 /// Full release list (newest first); used when the prerelease channel is opted
 /// in, since `/releases/latest` excludes prereleases and drafts.
-pub const RELEASES_LIST_URL: &str =
-    "https://api.github.com/repos/DesireThings/osu-collect/releases";
+pub const RELEASES_LIST_URL: &str = "https://api.github.com/repos/DesireThings/osu-shelf/releases";
 /// Sent with map downloads and with requests to the mirrors, osu!Collector,
 /// nzbasic and the osu! API, so whoever runs them can tell which app is asking
 /// and where to find it.
 pub const USER_AGENT: &str = concat!(
-    "osu-collect/",
+    "osu-shelf/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/DesireThings/osu-collect)"
+    " (+https://github.com/DesireThings/osu-shelf)"
 );
 pub const AUTO_UPDATE_TIMEOUT: Duration = Duration::from_secs(60);
 

@@ -2,7 +2,7 @@ use crate::test_env::TempEnvVar;
 
 #[test]
 fn sets_and_restores_previous_value() {
-    let key = "OSU_COLLECT_TEMPENV_TEST_SETS";
+    let key = "OSU_SHELF_TEMPENV_TEST_SETS";
     // Safety: the guard serializes every set_var/remove_var globally.
     unsafe { std::env::set_var(key, "before") };
     {
@@ -19,8 +19,8 @@ fn sets_and_restores_previous_value() {
 /// lock is not reentrant, so the second would deadlock.
 #[test]
 fn set_all_sets_every_key_and_restores_each_independently() {
-    let had_value = "OSU_COLLECT_TEMPENV_TEST_MULTI_A";
-    let was_absent = "OSU_COLLECT_TEMPENV_TEST_MULTI_B";
+    let had_value = "OSU_SHELF_TEMPENV_TEST_MULTI_A";
+    let was_absent = "OSU_SHELF_TEMPENV_TEST_MULTI_B";
     // Safety: the guard serializes every set_var/remove_var globally.
     unsafe { std::env::set_var(had_value, "before") };
     unsafe { std::env::remove_var(was_absent) };
@@ -41,7 +41,7 @@ fn set_all_sets_every_key_and_restores_each_independently() {
 /// the FIRST set: restores run in reverse of capture order.
 #[test]
 fn set_all_restores_a_repeated_key_to_its_pre_guard_value() {
-    let key = "OSU_COLLECT_TEMPENV_TEST_MULTI_REPEAT";
+    let key = "OSU_SHELF_TEMPENV_TEST_MULTI_REPEAT";
     unsafe { std::env::set_var(key, "original") };
     {
         let _env = TempEnvVar::set_all([(key, "first"), (key, "second")]);
@@ -53,7 +53,7 @@ fn set_all_restores_a_repeated_key_to_its_pre_guard_value() {
 
 #[test]
 fn removes_when_no_previous_value() {
-    let key = "OSU_COLLECT_TEMPENV_TEST_REMOVES";
+    let key = "OSU_SHELF_TEMPENV_TEST_REMOVES";
     // Ensure key is absent before we start.
     unsafe { std::env::remove_var(key) };
     {

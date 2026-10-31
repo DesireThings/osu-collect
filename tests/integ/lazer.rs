@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use osu_collect::osu_db::{BeatmapReader, LazerReader};
+    use osu_shelf::osu_db::{BeatmapReader, LazerReader};
     use std::path::PathBuf;
 
     fn testing_db_path() -> Option<PathBuf> {
@@ -77,7 +77,7 @@ mod tests {
             .list_all_checksums()
             .expect("Failed to read all checksums");
 
-        let checksums_from_beatmapsets: std::collections::HashSet<osu_collect::osu_db::Md5> =
+        let checksums_from_beatmapsets: std::collections::HashSet<osu_shelf::osu_db::Md5> =
             beatmapsets
                 .iter()
                 .flat_map(|bs| bs.beatmaps.iter().map(|b| b.checksum))
@@ -117,7 +117,7 @@ mod tests {
             .expect("Failed to read beatmapsets");
 
         // Build checksum set from beatmapsets (old method - what was causing the bug)
-        let checksums_old: std::collections::HashSet<osu_collect::osu_db::Md5> = beatmapsets
+        let checksums_old: std::collections::HashSet<osu_shelf::osu_db::Md5> = beatmapsets
             .iter()
             .flat_map(|bs| bs.beatmaps.iter().map(|b| b.checksum))
             .collect();
@@ -126,7 +126,7 @@ mod tests {
         let all_checksums = reader
             .list_all_checksums()
             .expect("Failed to read all checksums");
-        let checksums_new: std::collections::HashSet<osu_collect::osu_db::Md5> =
+        let checksums_new: std::collections::HashSet<osu_shelf::osu_db::Md5> =
             all_checksums.into_iter().collect();
 
         // The new method should have at least as many checksums as the old method
@@ -188,7 +188,7 @@ mod tests {
         let beatmapsets_individual = reader
             .list_beatmapsets()
             .expect("failed to read beatmapsets");
-        let checksums_individual: std::collections::HashSet<osu_collect::osu_db::Md5> = reader
+        let checksums_individual: std::collections::HashSet<osu_shelf::osu_db::Md5> = reader
             .list_all_checksums()
             .expect("failed to read checksums")
             .into_iter()
@@ -196,7 +196,7 @@ mod tests {
 
         let (collections_all, beatmapsets_all, checksums_all_vec) =
             reader.read_all().expect("read_all failed");
-        let checksums_all: std::collections::HashSet<osu_collect::osu_db::Md5> =
+        let checksums_all: std::collections::HashSet<osu_shelf::osu_db::Md5> =
             checksums_all_vec.into_iter().collect();
 
         assert_eq!(

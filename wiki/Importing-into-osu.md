@@ -21,7 +21,7 @@ Already past first-time setup? **Settings → General → `Run setup wizard`** b
 Instead of repeating the steps above per collection, build one import folder from every download: in the desktop app, **Import into osu! → Prepare import folder** ([Desktop app](Desktop-App#3-import-into-osu)); in the terminal app, press <kbd>l</kbd> on the downloads tab (with the client set to lazer), or run:
 
 ```bash
-osu-collect lazer-import
+osu-shelf lazer-import
 ```
 
 It reads every run folder in your last download directory (`--dir <path>` for another one), unpacks the maps into `<dir>/lazer-import/Songs` and merges every `collection.db` into one (`--out <path>` puts the folder elsewhere). Then, once:

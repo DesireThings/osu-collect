@@ -3,7 +3,7 @@
 /// Verifies that key events produce the expected AppCommand or state change
 /// without running the full runtime.
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
-use osu_collect::{
+use osu_shelf::{
     app::{App, AppCommand},
     config::Config,
 };
@@ -75,7 +75,7 @@ fn ctrl_backspace_as_ctrl_h_deletes_word_not_types_h() {
 
 #[test]
 fn right_arrow_moves_to_next_tab() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = make_app();
     app.home.focus = HomeField::Video; // non-text so ←/→ switch screens
     assert_eq!(app.active_tab(), Tab::Home);
@@ -85,7 +85,7 @@ fn right_arrow_moves_to_next_tab() {
 
 #[test]
 fn left_arrow_wraps_to_last_tab() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = make_app();
     app.home.focus = HomeField::Video;
     app.handle_key(press(KeyCode::Left));
@@ -95,7 +95,7 @@ fn left_arrow_wraps_to_last_tab() {
 
 #[test]
 fn tab_and_backtab_switch_screens() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = make_app();
     app.home.focus = HomeField::Video;
     assert_eq!(app.active_tab(), Tab::Home);
@@ -115,7 +115,7 @@ fn tab_and_backtab_switch_screens() {
 
 #[test]
 fn tab_completes_directory_while_editing_it() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = make_app();
     // Editing the directory field: tab completes the path, never switches tabs.
     app.home.focus = HomeField::Directory;
@@ -130,7 +130,7 @@ fn tab_completes_directory_while_editing_it() {
 
 #[test]
 fn s_falls_back_to_download_button_when_no_button_is_enabled() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     // Default focus is the collection text field, selected-not-editing. A fresh
     // collection form has no resolved collection and no picked subset, so `view N
@@ -147,7 +147,7 @@ fn s_falls_back_to_download_button_when_no_button_is_enabled() {
 
 #[test]
 fn s_jumps_to_last_enabled_button_per_source() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     // `s` lands on the furthest-along *enabled* button. On a fresh form that is
     // the primary CTA: find lands on `find`, update on `scan` (both enabled while
     // idle); their `view N maps` and `download` buttons are still disabled.
@@ -168,7 +168,7 @@ fn s_jumps_to_last_enabled_button_per_source() {
 
 #[test]
 fn s_cycles_the_other_enabled_buttons_when_already_on_one() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
     // Non-empty collection + default mirrors → download enabled; a resolved
@@ -202,7 +202,7 @@ fn s_types_literally_while_editing() {
 
 #[test]
 fn q_on_home_tab_shows_toast_first() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     // q only quits off a text field; the default focus is the collection input
     app.home.focus = HomeField::Video;
@@ -213,7 +213,7 @@ fn q_on_home_tab_shows_toast_first() {
 
 #[test]
 fn q_twice_on_home_tab_quits() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Video;
     app.handle_key(press(KeyCode::Char('q')));
@@ -256,7 +256,7 @@ fn esc_twice_on_home_tab_never_quits() {
 
 #[test]
 fn esc_cancels_a_q_armed_quit_prompt() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Video; // non-text so `q` is a hotkey
     app.handle_key(press(KeyCode::Char('q')));
@@ -274,7 +274,7 @@ fn esc_cancels_a_q_armed_quit_prompt() {
 
 #[test]
 fn down_moves_field_focus() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     assert_eq!(app.home.focus, HomeField::Collection);
     app.handle_key(press(KeyCode::Down));
@@ -283,7 +283,7 @@ fn down_moves_field_focus() {
 
 #[test]
 fn up_from_first_field_wraps_to_last() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     // The source strip is the first focusable row; Up from it wraps to the last
     // collection field (the download button, tail of the shared download section).
@@ -294,7 +294,7 @@ fn up_from_first_field_wraps_to_last() {
 
 #[test]
 fn up_from_collection_focuses_source_strip() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     // Default focus is the collection field; the strip sits directly above it.
     assert_eq!(app.home.focus, HomeField::Collection);
@@ -304,7 +304,7 @@ fn up_from_collection_focuses_source_strip() {
 
 #[test]
 fn space_and_enter_cycle_source_when_strip_focused() {
-    use osu_collect::app::{GetMapsSource, HomeField, Tab};
+    use osu_shelf::app::{GetMapsSource, HomeField, Tab};
     let mut app = make_app();
     app.home.focus = HomeField::Source;
     assert_eq!(app.home.source, GetMapsSource::Collection);
@@ -319,7 +319,7 @@ fn space_and_enter_cycle_source_when_strip_focused() {
 
 #[test]
 fn arrows_switch_tab_from_the_strip() {
-    use osu_collect::app::{GetMapsSource, HomeField, Tab};
+    use osu_shelf::app::{GetMapsSource, HomeField, Tab};
     let mut app = make_app();
     // On the strip, ←/→ switch tabs (they no longer cycle the source).
     app.home.focus = HomeField::Source;
@@ -334,7 +334,7 @@ fn arrows_switch_tab_from_the_strip() {
 
 #[test]
 fn arrows_switch_tab_off_the_strip() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = make_app();
     // Off the strip (collection field, not editing), ←/→ still switch tabs.
     app.home.focus = HomeField::Collection;
@@ -344,7 +344,7 @@ fn arrows_switch_tab_off_the_strip() {
 
 #[test]
 fn find_source_down_focuses_first_field() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::Source;
@@ -358,7 +358,7 @@ fn find_source_down_focuses_first_field() {
 
 #[test]
 fn switching_source_preserves_collection_input() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.collection.set_value("12345");
     // Cycle all the way around with space; keep-both keeps the input alive.
@@ -372,7 +372,7 @@ fn switching_source_preserves_collection_input() {
 
 #[test]
 fn digit_jumps_to_indexed_source() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.focus = HomeField::Collection;
     // `1` selects the first strip source, `2` the second; each returns focus to
@@ -386,7 +386,7 @@ fn digit_jumps_to_indexed_source() {
 
 #[test]
 fn digit_does_not_jump_while_editing() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     // Editing the collection field: a digit types in, it never jumps the source.
     app.editing = true;
@@ -397,7 +397,7 @@ fn digit_does_not_jump_while_editing() {
 
 #[test]
 fn source_strip_cycles_three_sources() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.focus = HomeField::Source;
     // Three sources now (find / collection / update); space visits each and wraps.
@@ -472,8 +472,8 @@ fn paste_outside_edit_mode_is_inert() {
 
 #[test]
 fn enter_on_home_mirrors_summary_jumps_to_config_mirrors() {
-    use osu_collect::app::Tab;
-    use osu_collect::app::{ConfigField, HomeField};
+    use osu_shelf::app::Tab;
+    use osu_shelf::app::{ConfigField, HomeField};
     let mut app = make_app();
     app.home.focus = HomeField::Mirrors;
 
@@ -490,13 +490,13 @@ fn enter_on_home_mirrors_summary_jumps_to_config_mirrors() {
 
 #[test]
 fn config_mirror_toggle_syncs_home_count() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
+    use osu_shelf::app::ConfigField;
+    use osu_shelf::app::Tab;
     // Sandbox the config path so the toggle's auto-save never touches the real
     // user config.
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("config.toml");
-    let _env = osu_collect::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
+    let _env = osu_shelf::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
 
     let mut app = make_app();
     let before = app.home.mirror_count(app.osu_official_unlocked());
@@ -515,7 +515,7 @@ fn config_mirror_toggle_syncs_home_count() {
 
 #[test]
 fn space_on_download_button_does_not_start_download() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.collection.value = "123".to_string();
     app.home.focus = HomeField::Download;
@@ -530,14 +530,14 @@ fn space_on_download_button_does_not_start_download() {
 
 #[test]
 fn space_in_update_browse_toggles_highlighted_collection() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     // seed one collection with an update (so it's selectable) and descend
     app.home
         .update
-        .set_collections(vec![osu_collect::osu_db::LocalCollection {
+        .set_collections(vec![osu_shelf::osu_db::LocalCollection {
             name: "test - 1234".to_string(),
             beatmap_checksums: Vec::new().into(),
         }]);
@@ -568,7 +568,7 @@ fn space_in_update_browse_toggles_highlighted_collection() {
 
 #[test]
 fn recheck_failed_key_dispatches_on_update_source() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home.update.set_failed_beatmapset_count(2);
@@ -580,7 +580,7 @@ fn recheck_failed_key_dispatches_on_update_source() {
 
 #[test]
 fn recheck_failed_key_ignored_without_failed_maps() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
 
@@ -591,7 +591,7 @@ fn recheck_failed_key_ignored_without_failed_maps() {
 
 #[test]
 fn enter_on_download_button_without_collection_input_produces_error() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     // clear any default value
     app.home.collection.value.clear();
@@ -621,7 +621,7 @@ fn enter_on_collection_field_does_not_start_download() {
 
 #[test]
 fn question_mark_opens_help_overlay() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     // ? types into a text field; move focus off the default collection input
     app.home.focus = HomeField::Video;
@@ -668,7 +668,7 @@ fn q_closes_help_overlay_without_quitting() {
 
 #[test]
 fn question_mark_returns_no_command() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Video;
     let cmd = app.handle_key(press(KeyCode::Char('?')));
@@ -717,7 +717,7 @@ fn keys_are_inert_while_help_open() {
 
 #[test]
 fn opening_help_resets_scroll() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Video;
     app.help_scroll.set(7);
@@ -733,7 +733,7 @@ fn opening_help_resets_scroll() {
 // ── vim keymap (opt-in, off by default) ───────────────────────────────────────
 
 fn config_app_vim(on: bool) -> App {
-    use osu_collect::app::Tab;
+    use osu_shelf::app::Tab;
     let mut app = make_app();
     app.active_tab = Tab::Config;
     app.config.vim_keys = on;
@@ -742,7 +742,7 @@ fn config_app_vim(on: bool) -> App {
 
 #[test]
 fn vim_off_letters_do_not_navigate() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_vim(false);
     app.config.focus = ConfigField::Theme;
     app.handle_key(press(KeyCode::Char('j')));
@@ -755,7 +755,7 @@ fn vim_off_letters_do_not_navigate() {
 
 #[test]
 fn vim_jk_move_field_focus() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_vim(true);
     app.config.focus = ConfigField::Theme;
     app.handle_key(press(KeyCode::Char('j')));
@@ -770,7 +770,7 @@ fn vim_jk_move_field_focus() {
 
 #[test]
 fn vim_hl_switch_tabs() {
-    use osu_collect::app::Tab;
+    use osu_shelf::app::Tab;
     let mut app = config_app_vim(true);
     app.handle_key(press(KeyCode::Char('h')));
     assert_eq!(
@@ -784,7 +784,7 @@ fn vim_hl_switch_tabs() {
 
 #[test]
 fn vim_gg_and_capital_g_jump_to_ends() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_vim(true);
     app.config.focus = ConfigField::DownloadVideo;
     // A lone `g` latches and is swallowed; the second `g` forms `gg`.
@@ -805,7 +805,7 @@ fn vim_gg_and_capital_g_jump_to_ends() {
 
 #[test]
 fn vim_lone_g_then_motion_does_not_jump() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_vim(true);
     app.config.focus = ConfigField::Theme;
     // `g` then `j`: the latch clears and `j` is a normal one-field move.
@@ -816,7 +816,7 @@ fn vim_lone_g_then_motion_does_not_jump() {
 
 #[test]
 fn vim_i_enters_edit_mode_then_typing_is_literal() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_vim(true);
     app.config.focus = ConfigField::MirrorCustomUrl(0);
     app.handle_key(press(KeyCode::Char('i')));
@@ -838,13 +838,13 @@ fn vim_i_enters_edit_mode_then_typing_is_literal() {
 
 #[test]
 fn enter_on_collection_toggles_and_stays_in_browse() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home
         .update
-        .set_collections(vec![osu_collect::osu_db::LocalCollection {
+        .set_collections(vec![osu_shelf::osu_db::LocalCollection {
             name: "test - 1234".to_string(),
             beatmap_checksums: Vec::new().into(),
         }]);
@@ -878,15 +878,15 @@ fn enter_on_collection_toggles_and_stays_in_browse() {
 
 #[test]
 fn enter_on_update_download_button_dispatches_selective() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::HomeField;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::HomeField;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home
         .update
-        .set_collections(vec![osu_collect::osu_db::LocalCollection {
+        .set_collections(vec![osu_shelf::osu_db::LocalCollection {
             name: "test - 1234".to_string(),
             beatmap_checksums: Vec::new().into(),
         }]);
@@ -920,15 +920,15 @@ fn enter_on_update_download_button_dispatches_selective() {
 
 #[test]
 fn shift_arrow_reorders_config_mirror_and_syncs_pipeline() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
     use osu_downloader::MirrorKind;
+    use osu_shelf::app::ConfigField;
+    use osu_shelf::app::Tab;
 
     // Sandbox the config path so the reorder's auto-save never touches the real
     // user config.
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("config.toml");
-    let _env = osu_collect::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
+    let _env = osu_shelf::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
 
     let mut app = make_app();
     app.active_tab = Tab::Config;
@@ -960,8 +960,8 @@ fn shift_arrow_reorders_config_mirror_and_syncs_pipeline() {
 
 #[test]
 fn shift_arrow_off_mirror_row_falls_through_to_focus_move() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
+    use osu_shelf::app::ConfigField;
+    use osu_shelf::app::Tab;
 
     let mut app = make_app();
     app.active_tab = Tab::Config;
@@ -979,7 +979,7 @@ fn shift_arrow_off_mirror_row_falls_through_to_focus_move() {
 
 #[test]
 fn c_switches_client_and_clears_scan_without_auto_scanning() {
-    use osu_collect::app::Tab;
+    use osu_shelf::app::Tab;
 
     let mut app = make_app();
     app.active_tab = Tab::Home;
@@ -1003,8 +1003,8 @@ fn c_switches_client_and_clears_scan_without_auto_scanning() {
 
 #[test]
 fn c_types_literal_char_while_editing() {
-    use osu_collect::app::HomeField;
-    use osu_collect::app::Tab;
+    use osu_shelf::app::HomeField;
+    use osu_shelf::app::Tab;
 
     let mut app = make_app();
     app.active_tab = Tab::Home;
@@ -1022,7 +1022,7 @@ fn c_types_literal_char_while_editing() {
 
 #[test]
 fn typing_into_updates_path_field_routes_to_library() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
 
     // The osu! path field lives on the app-global library state now, but it is
     // still edited through the update source form. Typing must land on `library`.
@@ -1045,7 +1045,7 @@ fn typing_into_updates_path_field_routes_to_library() {
 
 #[test]
 fn request_find_download_osu_route_uses_query_label_and_ids() {
-    use osu_collect::app::{BrowseRow, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, GetMapsSource};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.find.query.set_value("tekno");
@@ -1072,7 +1072,7 @@ fn request_find_download_osu_route_uses_query_label_and_ids() {
 #[test]
 fn search_view_button_reopens_results_without_re_searching() {
     use crossterm::event::KeyCode;
-    use osu_collect::app::{BrowseRow, FindStatusMsg, GetMapsSource, HomeField};
+    use osu_shelf::app::{BrowseRow, FindStatusMsg, GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
@@ -1111,7 +1111,7 @@ fn search_view_button_reopens_results_without_re_searching() {
 #[test]
 fn search_view_button_is_inert_once_the_query_diverges() {
     use crossterm::event::KeyCode;
-    use osu_collect::app::{BrowseRow, FindStatusMsg, GetMapsSource, HomeField};
+    use osu_shelf::app::{BrowseRow, FindStatusMsg, GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
@@ -1141,7 +1141,7 @@ fn search_view_button_is_inert_once_the_query_diverges() {
 #[test]
 fn search_view_button_is_inert_until_results_load() {
     use crossterm::event::KeyCode;
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
 
     // Idle (no results): the view button renders disabled, so focus can land on
     // it — Enter must be a no-op, never opening an empty browse.
@@ -1159,7 +1159,7 @@ fn search_view_button_is_inert_until_results_load() {
 #[test]
 fn update_view_button_is_inert_until_a_scan_finds_updates() {
     use crossterm::event::KeyCode;
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
 
     // No scan yet: the view button renders disabled; Enter is a no-op.
     let mut app = make_app();
@@ -1176,14 +1176,14 @@ fn update_view_button_is_inert_until_a_scan_finds_updates() {
 #[test]
 fn update_view_button_rekicks_enrichment_only_when_unfetched() {
     use crossterm::event::KeyCode;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::app::{EnrichSink, EnrichTarget, GetMapsSource, HomeField};
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::{EnrichSink, EnrichTarget, GetMapsSource, HomeField};
 
-    let seed = |app: &mut osu_collect::app::App| {
+    let seed = |app: &mut osu_shelf::app::App| {
         app.home.source = GetMapsSource::Update;
         app.home
             .update
-            .set_collections(vec![osu_collect::osu_db::LocalCollection {
+            .set_collections(vec![osu_shelf::osu_db::LocalCollection {
                 name: "test - 100".to_string(),
                 beatmap_checksums: Vec::new().into(),
             }]);
@@ -1239,7 +1239,7 @@ fn update_view_button_rekicks_enrichment_only_when_unfetched() {
 /// collection the form has stopped showing.
 #[test]
 fn collection_pick_download_uses_snapshotted_id_not_late_resolve() {
-    use osu_collect::app::{BrowseRow, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, GetMapsSource};
 
     fn browsing_111(resolved: u32) -> App {
         let mut app = make_app();
@@ -1284,7 +1284,7 @@ fn collection_pick_download_uses_snapshotted_id_not_late_resolve() {
 /// either position reds one of them.
 #[test]
 fn collection_pick_download_carries_the_skip_imported_toggle() {
-    use osu_collect::app::{BrowseRow, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, GetMapsSource};
 
     fn picked_request(skip_already_imported: bool) -> bool {
         let mut app = make_app();
@@ -1313,7 +1313,7 @@ fn collection_pick_download_carries_the_skip_imported_toggle() {
 
 #[test]
 fn reopening_collection_browse_preserves_picks() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
     app.home.collection.set_value("7");
@@ -1345,7 +1345,7 @@ fn reopening_collection_browse_preserves_picks() {
 /// driven entirely through the key handler so the browse id and the picks are
 /// whatever the real descend/toggle/ascend path writes.
 fn collection_42_picked_through_the_keys() -> App {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
     app.home.collection.set_value("42");
@@ -1370,7 +1370,7 @@ fn collection_42_picked_through_the_keys() -> App {
 /// so the entry point every picked-subset run converges on refuses on its own.
 #[test]
 fn a_retyped_collection_id_cannot_dispatch_the_old_collections_picks() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = collection_42_picked_through_the_keys();
     assert_eq!(app.home.collection_browse_id, Some(42));
@@ -1417,7 +1417,7 @@ fn a_retyped_collection_id_cannot_dispatch_the_old_collections_picks() {
 /// that goes straight to it.
 #[test]
 fn the_picked_subset_dispatch_settles_before_it_reads_the_browse_id() {
-    use osu_collect::app::{BrowseRow, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, GetMapsSource};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
@@ -1486,7 +1486,7 @@ fn the_picked_subset_dispatch_settles_before_it_reads_the_browse_id() {
 /// picks rests on this behaving the way it is argued to.
 #[test]
 fn reopening_after_the_field_moves_rebinds_the_browse_and_reselects_all() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = collection_42_picked_through_the_keys();
     assert_eq!(app.home.collection_browse.selected_count(), 1);
@@ -1539,7 +1539,7 @@ fn reopening_after_the_field_moves_rebinds_the_browse_and_reselects_all() {
 /// both of which need crate-private access this integration crate does not have.
 #[test]
 fn backspacing_a_mistyped_digit_restores_the_picked_subset() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = collection_42_picked_through_the_keys();
     let picked = app.home.collection_browse.selected_ids();
@@ -1573,7 +1573,7 @@ fn backspacing_a_mistyped_digit_restores_the_picked_subset() {
 
 #[test]
 fn filter_cta_emits_run_filter_and_rejects_bad_ranges() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::FindRun;
@@ -1595,7 +1595,7 @@ fn filter_cta_emits_run_filter_and_rejects_bad_ranges() {
 
 #[test]
 fn filter_chips_cycle_on_space_and_presets_seed_fields() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
 
@@ -1616,7 +1616,7 @@ fn filter_chips_cycle_on_space_and_presets_seed_fields() {
 
 #[test]
 fn m_in_filter_browse_loads_more_enrichment() {
-    use osu_collect::app::{BrowseRow, EnrichSink, EnrichTarget, FindBackend, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, EnrichSink, EnrichTarget, FindBackend, GetMapsSource};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     // `m` routes by the backend that produced the results, so mark it nzbasic.
@@ -1652,8 +1652,8 @@ fn m_in_filter_browse_loads_more_enrichment() {
 
 #[test]
 fn m_in_update_browse_loads_more_missing_set_enrichment() {
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::app::{EnrichTarget, GetMapsSource};
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::{EnrichTarget, GetMapsSource};
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home.update.set_missing_beatmaps(
@@ -1690,9 +1690,9 @@ fn m_in_update_browse_loads_more_missing_set_enrichment() {
 /// silently does nothing and the held-back sets are stranded.
 #[test]
 fn enter_opens_the_update_browse_when_every_missing_set_is_held_back() {
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::app::{GetMapsSource, HomeField};
-    use osu_collect::osu_db::LocalCollection;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::{GetMapsSource, HomeField};
+    use osu_shelf::osu_db::LocalCollection;
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
@@ -1728,9 +1728,9 @@ fn enter_opens_the_update_browse_when_every_missing_set_is_held_back() {
 /// documented alias, so it is driven through the same path.
 #[test]
 fn enter_and_space_re_include_a_held_back_set_in_the_update_browse() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::osu_db::LocalCollection;
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::osu_db::LocalCollection;
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
@@ -1781,9 +1781,9 @@ fn enter_and_space_re_include_a_held_back_set_in_the_update_browse() {
 /// binding must not have retargeted it.
 #[test]
 fn enter_on_the_update_collections_pane_still_toggles_the_checkbox() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::osu_db::LocalCollection;
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::osu_db::LocalCollection;
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
@@ -1817,13 +1817,13 @@ fn enter_on_the_update_collections_pane_still_toggles_the_checkbox() {
 
 #[test]
 fn request_find_download_nzbasic_route_uses_label_tag_and_ids() {
-    use osu_collect::app::{BrowseRow, GetMapsSource};
-    use osu_collect::download::IdsRunSource;
+    use osu_shelf::app::{BrowseRow, GetMapsSource};
+    use osu_shelf::download::IdsRunSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     // Seed the farm preset so the label + folder tag read "farm" — the preset is
     // a nzbasic-forcer, so the download routes to the filter subdir prefix.
-    app.home.focus = osu_collect::app::HomeField::FindPreset;
+    app.home.focus = osu_shelf::app::HomeField::FindPreset;
     for _ in 0..3 {
         app.handle_key(press(KeyCode::Char(' ')));
     }
@@ -1852,7 +1852,7 @@ fn request_find_download_nzbasic_route_uses_label_tag_and_ids() {
 /// list that drifts from the eyebrows reds one of the two.
 #[test]
 fn find_form_tab_order_matches_the_rendered_order() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::Source;
@@ -1886,7 +1886,7 @@ fn find_form_tab_order_matches_the_rendered_order() {
 /// five gated facets that would otherwise open the section are absent.
 #[test]
 fn find_form_expanded_tab_order_runs_the_ranges_after_the_disclosure() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.config.set_logged_out();
@@ -1908,8 +1908,8 @@ fn find_form_expanded_tab_order_runs_the_ranges_after_the_disclosure() {
 
 // ── multi-select chip rows (extra / rank) ─────────────────────────────────────
 
-fn find_app_on(field: osu_collect::app::HomeField) -> App {
-    use osu_collect::app::GetMapsSource;
+fn find_app_on(field: osu_shelf::app::HomeField) -> App {
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.config.set_login_complete(true);
@@ -1923,7 +1923,7 @@ fn find_app_on(field: osu_collect::app::HomeField) -> App {
 /// out. Break this and the sub-cursor has eaten a global key.
 #[test]
 fn plain_arrows_still_switch_tabs_on_a_multi_select_row() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = find_app_on(HomeField::FindRank);
     assert_eq!(app.active_tab(), Tab::Home);
 
@@ -1943,7 +1943,7 @@ fn plain_arrows_still_switch_tabs_on_a_multi_select_row() {
 
 #[test]
 fn arrows_walk_the_chip_cursor_while_the_row_is_descended() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = find_app_on(HomeField::FindRank);
     app.handle_key(press(KeyCode::Enter));
 
@@ -1964,7 +1964,7 @@ fn arrows_walk_the_chip_cursor_while_the_row_is_descended() {
 /// state-control key the row would otherwise carry.
 #[test]
 fn enter_and_space_both_descend_into_the_row() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     for open in [KeyCode::Enter, KeyCode::Char(' ')] {
         let mut app = find_app_on(HomeField::FindExtra);
         app.handle_key(press(open));
@@ -1988,7 +1988,7 @@ fn enter_and_space_both_descend_into_the_row() {
 /// row with it, so focus never lands elsewhere with the mode still down.
 #[test]
 fn every_exit_from_a_descended_row_puts_the_mode_back() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     for exit in [KeyCode::Enter, KeyCode::Esc] {
         let mut app = find_app_on(HomeField::FindRank);
         app.handle_key(press(KeyCode::Enter));
@@ -2001,7 +2001,7 @@ fn every_exit_from_a_descended_row_puts_the_mode_back() {
         );
         // And the arrows are global again.
         app.handle_key(press(KeyCode::Right));
-        assert_ne!(app.active_tab(), osu_collect::app::Tab::Home);
+        assert_ne!(app.active_tab(), osu_shelf::app::Tab::Home);
     }
     for (exit, landing) in [
         (KeyCode::Down, HomeField::FindPlayed),
@@ -2025,7 +2025,7 @@ fn every_exit_from_a_descended_row_puts_the_mode_back() {
 /// render already dropped — and pin nothing that ships.
 #[test]
 fn the_supporter_gate_closing_takes_the_descended_row_with_it() {
-    use osu_collect::app::{HomeField, Tab};
+    use osu_shelf::app::{HomeField, Tab};
     let mut app = find_app_on(HomeField::FindRank);
     // The row is live and descended first, so the fall-through below is a change
     // and not the starting state.

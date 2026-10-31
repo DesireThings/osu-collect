@@ -1,18 +1,18 @@
 //! RAM measurement harness for the autonomous memory-optimisation loop.
 //!
-//! Placement: in the `osu-collect` package (not `osu-downloader`) because it exercises
+//! Placement: in the `osu-shelf` package (not `osu-downloader`) because it exercises
 //! `src/app/runtime::read_local_database` and the Updates-tab state structs that live in the
 //! binary crate's lib surface. The `osu-downloader` package has no access to those.
 //!
 //! Build: `cargo build --release --example ram_harness`
 //! Run:   `./target/release/examples/ram_harness <cold|updates|download|idle>`
 
-use osu_collect::{app::update_source::UpdateSource, osu_db::OsuClient};
 use osu_db::{
     Mode,
     collection::{Collection as DbCollection, CollectionList},
     listing::{Beatmap, Grade, Listing, RankedStatus, TimingPoint},
 };
+use osu_shelf::{app::update_source::UpdateSource, osu_db::OsuClient};
 use std::time::Duration;
 use tempfile::TempDir;
 
@@ -221,7 +221,7 @@ fn main() {
 
     // Read through the same blocking code path the TUI uses.
     let (collections, beatmapsets, all_checksums) =
-        osu_collect::app::runtime::read_local_database(OsuClient::Stable, tmp.path().to_path_buf())
+        osu_shelf::app::runtime::read_local_database(OsuClient::Stable, tmp.path().to_path_buf())
             .expect("read_local_database failed");
 
     println!(

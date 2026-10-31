@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    osu_collect_gui::run();
+    osu_shelf_gui::run();
 }

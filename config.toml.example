@@ -1,5 +1,5 @@
-# put this in ~/.config/osu-collect/config.toml (Linux/macOS)
-# or %APPDATA%\osu-collect\config.toml (Windows)
+# put this in ~/.config/osu-shelf/config.toml (Linux/macOS)
+# or %APPDATA%\osu-shelf\config.toml (Windows)
 # every key is optional — missing keys fall back to the defaults shown here
 
 [mirror]
@@ -74,7 +74,7 @@ level = "info"
 format = "compact"
 
 # optional directory for rolled JSON log files
-# file_dir = "/home/user/.local/share/osu-collect/logs"
+# file_dir = "/home/user/.local/share/osu-shelf/logs"
 
 [update]
 # check for a newer release on launch. true (default) downloads and installs it
