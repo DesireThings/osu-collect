@@ -217,6 +217,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # The publish step links an announcement discussion; every scope not
+      # named here is none.
+      discussions: write
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
