@@ -41,14 +41,14 @@ rule='==========================================================================
 # itself has to travel with every copy too, not only the dependencies'.
 {
     if $desktop; then
-        printf 'THIRD-PARTY LICENCES FOR THE OSU-COLLECT DESKTOP APP\n'
+        printf 'THIRD-PARTY LICENCES FOR THE OSU-SHELF DESKTOP APP\n'
         printf '=====================================================\n\n'
         printf 'This file lists the licences of everything built into the osu-shelf\n'
         printf 'desktop app: osu-shelf itself, the Rust crates, the JavaScript packages\n'
         printf 'in its window, and realm-core, the C++ database library it links to read\n'
         printf "osu!lazer's library.\n\n"
     else
-        printf 'THIRD-PARTY LICENCES FOR OSU-COLLECT\n'
+        printf 'THIRD-PARTY LICENCES FOR OSU-SHELF\n'
         printf '====================================\n\n'
         printf 'This file lists the licences of everything built into osu-shelf:\n'
         printf 'osu-shelf itself, the Rust crates, and realm-core, the C++ database\n'
