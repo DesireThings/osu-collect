@@ -113,7 +113,7 @@ fn unreadable(db_path: &Path, error: impl std::fmt::Display) -> String {
         .unwrap_or_default();
     format!(
         "Couldn't read {file} at {} ({error}). It may come from a newer osu! version \
-         than osu-collect can read yet.",
+         than osu-shelf can read yet.",
         db_path.display()
     )
 }

@@ -113,7 +113,7 @@ mod tests;
 pub fn spawn_input_thread(tx: mpsc::UnboundedSender<InputEvent>) -> Option<thread::JoinHandle<()>> {
     let tick_rate = Duration::from_millis(50);
     thread::Builder::new()
-        .name("osu-collect-input".into())
+        .name("osu-shelf-input".into())
         .spawn(move || {
             loop {
                 if event::poll(tick_rate).unwrap_or(false) {

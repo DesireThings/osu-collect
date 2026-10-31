@@ -24,7 +24,7 @@ bash tests/api-scripts/test_osucollector.sh
 | script | endpoint | rust source | model validated |
 |--------|----------|-------------|-----------------|
 | `test_osucollector.sh` | `GET https://osucollector.com/api/collections/{id}` | `src/core/collection/api_client.rs` | `Collection { id, name, uploader: { id, username }, beatmapsets: [{ id, beatmaps: [{ id, checksum }] }] }` |
-| `test_github_releases.sh` | `GET https://api.github.com/repos/DesireThings/osu-collect/releases/latest` | `src/auto_update.rs` | `ReleaseResponse { name, tag_name, assets: [{ name, browser_download_url }] }` |
+| `test_github_releases.sh` | `GET https://api.github.com/repos/DesireThings/osu-shelf/releases/latest` | `src/auto_update.rs` | `ReleaseResponse { name, tag_name, assets: [{ name, browser_download_url }] }` |
 | `test_nekoha_size.sh` | `GET https://mirror.nekoha.moe/api/beatmapset/{id}` | `osu-downloader/src/size.rs` | `BeatmapsetResponse { file_size: Option<u64> }` (handles string or number) |
 | `test_mirrors_download.sh` | all anon mirror download URLs | `osu-downloader/src/mirrors/mod.rs`, `src/config/constants.rs` | ZIP magic bytes (PK\x03\x04) in first 4 bytes |
 | `test_osu_official.sh` | `POST https://osu.ppy.sh/oauth/token`, `GET /api/v2/beatmapsets/{id}[/download]` | `src/auth/mod.rs`, `osu-downloader/src/mirrors/mod.rs` (`OsuApi`) | token shape `{ access_token, expires_in, token_type }`; download gated (401/403) for client_credentials |

@@ -3,10 +3,10 @@
 /// These verify that the focused row follows the viewport at small terminal
 /// sizes — the `ListState` scroll target is decoupled from the highlight, so the
 /// focused row scrolls into view even when it styles itself (CTA / auth chip).
-use osu_collect::app::update_source::CollectionEntry;
-use osu_collect::app::{App, GetMapsSource};
-use osu_collect::config::Config;
-use osu_collect::tui::draw;
+use osu_shelf::app::update_source::CollectionEntry;
+use osu_shelf::app::{App, GetMapsSource};
+use osu_shelf::config::Config;
+use osu_shelf::tui::draw;
 use ratatui::{Terminal, backend::TestBackend};
 
 fn make_app() -> App {

@@ -593,7 +593,7 @@ async fn size_target_ids_keeps_an_owned_id_precheck_already_verified() {
 /// `reconcile_failed_maps` → `failed_maps::reconcile`) once it returns, and
 /// `initial_satisfied` here is non-empty (the owned fold), so that early return
 /// does not apply — the run must never be allowed to touch the real
-/// `~/.local/share/osu-collect/failed-beatmapsets.json`, hence the second env
+/// `~/.local/share/osu-shelf/failed-beatmapsets.json`, hence the second env
 /// override below (matching `selective_run_pre_skips_owned_and_then_persists_its_snapshot`)
 /// and the `!failed_maps.exists()` assertion pinning that it never ran.
 ///
@@ -748,7 +748,7 @@ async fn snapshot_gate_clears_once_every_target_is_in_hand() {
 /// a real osu! database: `owned_ids_cached_with` serves a hit purely on the db
 /// file's path + mtime matching the cached entry, so a stub `osu!.db` plus a
 /// matching `library-cache.json` is enough. Returns the install dir to hand the
-/// request and the cache path to point `OSU_COLLECT_LIBRARY_CACHE` at.
+/// request and the cache path to point `OSU_SHELF_LIBRARY_CACHE` at.
 fn seed_owned_library(base: &Path, owned: &[u32]) -> (PathBuf, PathBuf) {
     let install_dir = base.join("osu-install");
     std::fs::create_dir_all(&install_dir).expect("install dir");
@@ -1694,7 +1694,7 @@ async fn downloads_tell_the_mirror_which_app_is_asking() {
     assert_eq!(
         USER_AGENT,
         format!(
-            "osu-collect/{} (+https://github.com/DesireThings/osu-collect)",
+            "osu-shelf/{} (+https://github.com/DesireThings/osu-shelf)",
             env!("CARGO_PKG_VERSION")
         )
     );

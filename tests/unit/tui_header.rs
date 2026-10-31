@@ -48,11 +48,11 @@ fn buffer_text(buf: &ratatui::buffer::Buffer) -> String {
 }
 
 #[test]
-fn brand_renders_osu_bang_collect() {
+fn brand_renders_osu_shelf() {
     let buf = header_buffer_with_active(0);
     assert!(
-        buffer_text(&buf).contains("osu-collect"),
-        "header must render the osu-collect wordmark"
+        buffer_text(&buf).contains("osu-shelf"),
+        "header must render the osu-shelf wordmark"
     );
 }
 
@@ -113,8 +113,8 @@ fn brand_text_is_identical_idle_and_downloading() {
     // The animation only recolors the wordmark; the glyphs never change.
     let idle = buffer_text(&header_buffer(0, false));
     let busy = buffer_text(&header_buffer(0, true));
-    assert!(idle.contains("osu-collect"));
-    assert!(busy.contains("osu-collect"));
+    assert!(idle.contains("osu-shelf"));
+    assert!(busy.contains("osu-shelf"));
 }
 
 #[test]

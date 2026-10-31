@@ -2,7 +2,7 @@
 ///
 /// These verify that each view renders without panic and produces
 /// non-empty output at standard terminal sizes.
-use osu_collect::{app::App, config::Config, tui::draw};
+use osu_shelf::{app::App, config::Config, tui::draw};
 use ratatui::{Terminal, backend::TestBackend};
 
 fn make_app() -> App {
@@ -70,7 +70,7 @@ fn cursor_pos(app: &App, width: u16, height: u16) -> (u16, u16) {
 #[test]
 fn caret_advances_as_collection_field_is_typed() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Collection;
     app.editing = true; // edit mode: caret shows and keys type
@@ -95,7 +95,7 @@ fn caret_advances_as_collection_field_is_typed() {
 #[test]
 fn caret_follows_left_arrow_then_home_and_end() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Collection;
     app.editing = true; // edit mode: caret shows and keys type
@@ -132,7 +132,7 @@ fn caret_follows_left_arrow_then_home_and_end() {
 
 #[test]
 fn no_caret_on_toggle_field() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Video;
     assert_eq!(
@@ -144,7 +144,7 @@ fn no_caret_on_toggle_field() {
 
 #[test]
 fn no_caret_while_help_overlay_open() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = make_app();
     app.home.focus = HomeField::Collection;
     app.help_open = true;
@@ -161,7 +161,7 @@ fn no_caret_while_help_overlay_open() {
 fn home_renders_without_panic_standard() {
     let app = make_app();
     let content = render_content(&app, 120, 40);
-    assert!(content.contains("osu-collect"));
+    assert!(content.contains("osu-shelf"));
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn home_renders_mirrors_section() {
 
 #[test]
 fn home_cta_scrolls_into_view_on_short_terminal() {
-    use osu_collect::app::{BrowseRow, HomeField};
+    use osu_shelf::app::{BrowseRow, HomeField};
 
     // 18 rows overflows the home form (~17 rows) but stays out of compact mode
     // (>= COMPACT_HEIGHT). The CTA is the last, unhighlighted row; before the
@@ -224,7 +224,7 @@ fn collection_form_cta_reads_download_all() {
 
 #[test]
 fn search_view_maps_button_shows_when_results_loaded() {
-    use osu_collect::app::{BrowseRow, GetMapsSource, HomeField};
+    use osu_shelf::app::{BrowseRow, GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.find.browse.set_rows(
@@ -247,7 +247,7 @@ fn search_view_maps_button_shows_when_results_loaded() {
 
 #[test]
 fn update_view_maps_button_is_disabled_until_a_scan_finds_updates() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     let content = render_content(&app, 80, 22);
@@ -261,7 +261,7 @@ fn update_view_maps_button_is_disabled_until_a_scan_finds_updates() {
 
 #[test]
 fn collection_view_maps_button_shows_when_resolved() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
     app.home.collection.set_value("7");
@@ -275,7 +275,7 @@ fn collection_view_maps_button_shows_when_resolved() {
 
 #[test]
 fn collection_view_maps_button_renders_above_download_section() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
     app.home.collection.set_value("7");
@@ -302,7 +302,7 @@ fn collection_view_maps_button_renders_above_download_section() {
 #[test]
 fn retyping_the_collection_id_leaves_no_count_or_folder_from_the_old_one() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
 
     fn key(code: KeyCode) -> KeyEvent {
         KeyEvent::new(code, KeyModifiers::empty())
@@ -360,7 +360,7 @@ fn retyping_the_collection_id_leaves_no_count_or_folder_from_the_old_one() {
 #[test]
 fn collection_browse_shows_focus_caret_and_uppercase_title() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
@@ -390,7 +390,7 @@ fn collection_browse_shows_focus_caret_and_uppercase_title() {
 
 #[test]
 fn search_cta_shows_inline_spinner_while_loading() {
-    use osu_collect::app::{FindStatusMsg, GetMapsSource, HomeField};
+    use osu_shelf::app::{FindStatusMsg, GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.find.status_msg = FindStatusMsg::Loading;
@@ -408,7 +408,7 @@ fn search_cta_shows_inline_spinner_while_loading() {
 
 #[test]
 fn find_form_shows_resolved_backend_indicator() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     // Focus the CTA so the indicator (rendered directly above it) is in view.
@@ -423,7 +423,7 @@ fn find_form_shows_resolved_backend_indicator() {
 
 #[test]
 fn find_form_shows_conflict_in_indicator() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::FindRun;
@@ -440,7 +440,7 @@ fn find_form_shows_conflict_in_indicator() {
 
 #[test]
 fn range_field_hint_reads_the_parsed_value() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     // A focused range field shows a live plain-english reading of its value; the
@@ -479,7 +479,7 @@ fn range_field_hint_reads_the_parsed_value() {
 
 #[test]
 fn ranked_and_limit_hints_swap_to_the_parse_error_when_invalid() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
 
@@ -526,7 +526,7 @@ fn ranked_and_limit_hints_swap_to_the_parse_error_when_invalid() {
 
 #[test]
 fn empty_range_field_shows_no_hint() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     // A focused-but-blank range field shows no tooltip at all (no example legend).
@@ -543,7 +543,7 @@ fn empty_range_field_shows_no_hint() {
 
 #[test]
 fn range_field_hint_shows_parse_error() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::FindStars;
@@ -575,7 +575,7 @@ fn help_overlay_shows_filter_syntax_on_home() {
 
 #[test]
 fn update_source_shows_recheck_failed_control() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home.update.set_failed_beatmapset_count(2);
@@ -594,8 +594,8 @@ fn update_source_shows_recheck_failed_control() {
 
 #[test]
 fn update_browse_collection_row_follows_viewport_on_short_terminal() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::CollectionEntry;
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::CollectionEntry;
 
     // A long collections list with the cursor on the last entry: the `ListState`
     // scroll target must follow the cursor down so the bottom row is visible and
@@ -631,7 +631,7 @@ fn update_browse_collection_row_follows_viewport_on_short_terminal() {
 
 #[test]
 fn update_source_shows_client_toggle() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     let content = render_content(&app, 120, 40);
@@ -641,7 +641,7 @@ fn update_source_shows_client_toggle() {
 
 // ── config view ──────────────────────────────────────────────────────────────
 
-/// Render the config tab with `OSU_COLLECT_AUTH` pointed at a temp dir, so the
+/// Render the config tab with `OSU_SHELF_AUTH` pointed at a temp dir, so the
 /// chip reflects `auth_json` and not whatever login the machine running the
 /// test happens to have stored.
 fn config_tab_with_stored_auth(auth_json: Option<&str>) -> String {
@@ -650,8 +650,8 @@ fn config_tab_with_stored_auth(auth_json: Option<&str>) -> String {
     if let Some(json) = auth_json {
         std::fs::write(&path, json).unwrap();
     }
-    let _env = osu_collect::test_env::TempEnvVar::set(
-        osu_collect::auth::AUTH_ENV_PATH,
+    let _env = osu_shelf::test_env::TempEnvVar::set(
+        osu_shelf::auth::AUTH_ENV_PATH,
         path.to_str().unwrap(),
     );
 
@@ -665,7 +665,7 @@ fn config_tab_with_stored_auth(auth_json: Option<&str>) -> String {
 /// Built through `StoredAuth` rather than a JSON literal so a field rename is a
 /// compile error instead of a silently ignored file.
 fn lazer_login_json() -> String {
-    let auth = osu_collect::auth::StoredAuth {
+    let auth = osu_shelf::auth::StoredAuth {
         client_id: "5".to_string(),
         client_secret: "secret".to_string(),
         redirect_uri: String::new(),
@@ -701,7 +701,7 @@ fn config_tab_has_no_account_row_or_official_mirror() {
 
 /// An API-app token: no refresh token, so no user behind it.
 fn api_app_json() -> String {
-    let auth = osu_collect::auth::StoredAuth {
+    let auth = osu_shelf::auth::StoredAuth {
         client_id: "12345".to_string(),
         client_secret: "secret".to_string(),
         redirect_uri: String::new(),
@@ -735,10 +735,10 @@ fn config_tab_offers_the_api_app_until_one_is_saved() {
 
 /// A config-tab app with nothing stored, so the API section is the unset one.
 fn config_app_without_auth() -> App {
-    use osu_collect::app::Tab;
+    use osu_shelf::app::Tab;
     let dir = tempfile::tempdir().unwrap();
-    let _env = osu_collect::test_env::TempEnvVar::set(
-        osu_collect::auth::AUTH_ENV_PATH,
+    let _env = osu_shelf::test_env::TempEnvVar::set(
+        osu_shelf::auth::AUTH_ENV_PATH,
         dir.path().join("auth.json").to_str().unwrap(),
     );
     let mut app = make_app();
@@ -748,7 +748,7 @@ fn config_app_without_auth() -> App {
 
 #[test]
 fn the_client_secret_is_drawn_masked() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_without_auth();
     app.config.api_client_secret.set_value("hunter2-secret");
     app.config.focus = ConfigField::ApiClientSecret;
@@ -766,7 +766,7 @@ fn the_client_secret_is_drawn_masked() {
 
 #[test]
 fn the_api_app_values_and_carets_share_one_column() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_without_auth();
     app.config.api_client_id.set_value("123");
     app.config.api_client_secret.set_value("abc");
@@ -788,7 +788,7 @@ fn the_api_app_values_and_carets_share_one_column() {
 
 #[test]
 fn config_footer_names_the_api_buttons() {
-    use osu_collect::app::ConfigField;
+    use osu_shelf::app::ConfigField;
     let mut app = config_app_without_auth();
     app.config.focus = ConfigField::ApiAppSave;
     assert!(render_footer_row(&app, 200, 24).contains("↵ check & save"));
@@ -809,7 +809,7 @@ fn footer_shows_hint_line() {
 
 #[test]
 fn home_footer_hides_toggle_hint_on_text_input_focus() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = make_app();
     app.home.focus = HomeField::Collection;
@@ -822,7 +822,7 @@ fn home_footer_hides_toggle_hint_on_text_input_focus() {
 
 #[test]
 fn home_footer_shows_enter_toggle_on_toggle_focus() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = make_app();
     app.home.focus = HomeField::AutoOverwrite;
@@ -832,7 +832,7 @@ fn home_footer_shows_enter_toggle_on_toggle_focus() {
 
 #[test]
 fn home_footer_shows_enter_download_on_button_focus() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = make_app();
     app.home.focus = HomeField::Download;
@@ -842,7 +842,7 @@ fn home_footer_shows_enter_download_on_button_focus() {
 
 #[test]
 fn update_source_footer_hides_recheck_without_failed_maps() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     let content = render_content(&app, 120, 24);
@@ -851,7 +851,7 @@ fn update_source_footer_hides_recheck_without_failed_maps() {
 
 #[test]
 fn update_source_footer_shows_recheck_with_failed_maps() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     // scan_status defaults to Idle (a "ready" state) so can_recheck is true.
@@ -865,12 +865,12 @@ fn update_source_footer_shows_recheck_with_failed_maps() {
 
 #[test]
 fn update_browse_footer_shows_scroll_and_select_hints() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home
         .update
-        .set_collections(vec![osu_collect::osu_db::LocalCollection {
+        .set_collections(vec![osu_shelf::osu_db::LocalCollection {
             name: "coll - 1234".to_string(),
             beatmap_checksums: Vec::new().into(),
         }]);
@@ -897,8 +897,8 @@ fn update_browse_footer_shows_scroll_and_select_hints() {
 
 #[test]
 fn config_footer_omits_space_on_text_input() {
-    use osu_collect::app::Tab;
-    use osu_collect::app::{ConfigField, HomeField};
+    use osu_shelf::app::Tab;
+    use osu_shelf::app::{ConfigField, HomeField};
 
     let mut app = make_app();
     // Focus a non-text field so Right switches tabs rather than moving the caret.
@@ -940,7 +940,7 @@ fn hint_count(footer: &str) -> usize {
 
 #[test]
 fn home_footer_toggle_focus_ends_with_help_then_quit() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = make_app();
     app.home.focus = HomeField::AutoOverwrite;
@@ -968,7 +968,7 @@ fn home_footer_toggle_focus_ends_with_help_then_quit() {
 
 #[test]
 fn home_footer_button_focus_shows_enter_download() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = make_app();
     app.home.focus = HomeField::Download;
@@ -991,7 +991,7 @@ fn home_footer_button_focus_shows_enter_download() {
 
 #[test]
 fn home_footer_text_input_focus_has_four_hints_with_edit_and_quit() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
 
     let mut app = make_app();
     app.home.focus = HomeField::Collection;
@@ -1017,7 +1017,7 @@ fn home_footer_text_input_focus_has_four_hints_with_edit_and_quit() {
 
 #[test]
 fn update_source_form_footer_lists_source_jump() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home.focus = HomeField::UpdateScan;
@@ -1043,12 +1043,12 @@ fn update_source_form_footer_lists_source_jump() {
 
 #[test]
 fn update_browse_footer_lists_the_browse_keys() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
     app.home
         .update
-        .set_collections(vec![osu_collect::osu_db::LocalCollection {
+        .set_collections(vec![osu_shelf::osu_db::LocalCollection {
             name: "coll - 1234".to_string(),
             beatmap_checksums: Vec::new().into(),
         }]);
@@ -1072,8 +1072,8 @@ fn update_browse_footer_lists_the_browse_keys() {
 
 #[test]
 fn config_footer_non_text_has_four_hints_with_help() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
+    use osu_shelf::app::ConfigField;
+    use osu_shelf::app::Tab;
 
     let mut app = make_app();
     app.active_tab = Tab::Config;
@@ -1095,8 +1095,8 @@ fn config_footer_non_text_has_four_hints_with_help() {
 
 #[test]
 fn config_footer_text_input_shows_edit_not_toggle() {
-    use osu_collect::app::ConfigField;
-    use osu_collect::app::Tab;
+    use osu_shelf::app::ConfigField;
+    use osu_shelf::app::Tab;
 
     let mut app = make_app();
     app.active_tab = Tab::Config;
@@ -1133,7 +1133,7 @@ fn config_footer_text_input_shows_edit_not_toggle() {
 
 #[test]
 fn download_tab_footer_shows_help_hint() {
-    use osu_collect::app::{CollectionPage, Tab};
+    use osu_shelf::app::{CollectionPage, Tab};
 
     let mut app = make_app();
     let page = CollectionPage::new(1, "test".to_string(), 1);
@@ -1152,7 +1152,7 @@ fn download_tab_footer_shows_help_hint() {
 
 #[test]
 fn gauge_label_shows_avg_when_verified() {
-    use osu_collect::app::CollectionPage;
+    use osu_shelf::app::CollectionPage;
 
     let mut page = CollectionPage::new(1, "test".to_string(), 1);
     page.total_maps = 10;
@@ -1167,8 +1167,8 @@ fn gauge_label_shows_avg_when_verified() {
 
 #[test]
 fn gauge_bottom_row_shows_tally_left_and_verified_right() {
-    use osu_collect::app::{CollectionPage, Tab};
-    use osu_collect::download::DownloadStage;
+    use osu_shelf::app::{CollectionPage, Tab};
+    use osu_shelf::download::DownloadStage;
 
     let mut app = make_app();
     let mut page = CollectionPage::new(1, "ranked maps".to_string(), 4);
@@ -1213,8 +1213,8 @@ fn gauge_bottom_row_shows_tally_left_and_verified_right() {
 
 #[test]
 fn gauge_drops_verified_count_when_too_narrow_for_tally() {
-    use osu_collect::app::{CollectionPage, Tab};
-    use osu_collect::download::DownloadStage;
+    use osu_shelf::app::{CollectionPage, Tab};
+    use osu_shelf::download::DownloadStage;
 
     let mut app = make_app();
     let mut page = CollectionPage::new(1, "ranked maps".to_string(), 4);
@@ -1244,7 +1244,7 @@ fn gauge_drops_verified_count_when_too_narrow_for_tally() {
 
 #[test]
 fn gauge_label_none_when_no_verified() {
-    use osu_collect::app::CollectionPage;
+    use osu_shelf::app::CollectionPage;
 
     let page = CollectionPage::new(1, "test".to_string(), 1);
     assert_eq!(page.avg_verify_us(), None);
@@ -1252,7 +1252,7 @@ fn gauge_label_none_when_no_verified() {
 
 #[test]
 fn gauge_label_none_when_avg_rounds_to_zero() {
-    use osu_collect::app::CollectionPage;
+    use osu_shelf::app::CollectionPage;
 
     let mut page = CollectionPage::new(1, "test".to_string(), 1);
     page.stats.verify_total_count = 5;
@@ -1324,7 +1324,7 @@ fn config_tab_shows_mirrors_section_before_download() {
 #[test]
 fn collection_browse_opens_id_only_immediately_on_enter() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Collection;
@@ -1352,8 +1352,8 @@ fn collection_browse_opens_id_only_immediately_on_enter() {
 
 #[test]
 fn update_view_button_trails_loading_titles_cue_while_enriching() {
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::app::{EnrichSink, GetMapsSource, HomeField};
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::{EnrichSink, GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
@@ -1390,7 +1390,7 @@ fn update_view_button_trails_loading_titles_cue_while_enriching() {
 
 #[test]
 fn find_view_button_trails_loading_titles_cue_while_enriching() {
-    use osu_collect::app::{BrowseRow, EnrichSink, GetMapsSource, HomeField};
+    use osu_shelf::app::{BrowseRow, EnrichSink, GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
@@ -1424,7 +1424,7 @@ fn find_view_button_trails_loading_titles_cue_while_enriching() {
 
 #[test]
 fn find_results_list_pane_appends_loading_titles_cue_to_the_ratio() {
-    use osu_collect::app::{BrowseRow, EnrichSink, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, EnrichSink, GetMapsSource};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
@@ -1454,7 +1454,7 @@ fn find_results_list_pane_appends_loading_titles_cue_to_the_ratio() {
 
 #[test]
 fn find_results_row_stays_bare_id_with_no_per_row_spinner_while_enriching() {
-    use osu_collect::app::{BrowseRow, EnrichSink, GetMapsSource};
+    use osu_shelf::app::{BrowseRow, EnrichSink, GetMapsSource};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
@@ -1489,9 +1489,9 @@ fn find_results_row_stays_bare_id_with_no_per_row_spinner_while_enriching() {
 
 #[test]
 fn update_preview_pane_appends_loading_titles_cue_without_dropping_counts() {
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::app::{EnrichSink, GetMapsSource};
-    use osu_collect::osu_db::LocalCollection;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::app::{EnrichSink, GetMapsSource};
+    use osu_shelf::osu_db::LocalCollection;
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
@@ -1530,7 +1530,7 @@ fn update_preview_pane_appends_loading_titles_cue_without_dropping_counts() {
 
 #[test]
 fn find_download_button_shows_approx_size_for_checked_osu_results() {
-    use osu_collect::app::{BrowseRow, FindBackend, GetMapsSource, HomeField};
+    use osu_shelf::app::{BrowseRow, FindBackend, GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.find.browse.set_rows(
@@ -1563,7 +1563,7 @@ fn find_download_button_shows_approx_size_for_checked_osu_results() {
 #[test]
 fn clearing_the_forcing_chip_leaves_no_count_beside_the_new_route() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::{BrowseRow, FindBackend, GetMapsSource, HomeField};
+    use osu_shelf::app::{BrowseRow, FindBackend, GetMapsSource, HomeField};
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
@@ -1608,7 +1608,7 @@ fn clearing_the_forcing_chip_leaves_no_count_beside_the_new_route() {
 
 #[test]
 fn find_query_renders_as_a_bordered_search_box() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::FindQuery;
@@ -1645,7 +1645,7 @@ fn find_query_renders_as_a_bordered_search_box() {
 #[test]
 fn find_query_caret_parks_on_the_boxs_text_row() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::FindQuery;
@@ -1666,7 +1666,7 @@ fn find_query_caret_parks_on_the_boxs_text_row() {
 
 #[test]
 fn find_form_groups_its_rows_under_section_eyebrows() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     let rows = render_rows(&app, 100, 34);
@@ -1695,7 +1695,7 @@ fn find_form_groups_its_rows_under_section_eyebrows() {
 
 #[test]
 fn find_form_drops_eyebrows_in_compact_chrome() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     // Focus scrolls the categories row into the short viewport, so the FILTERS
@@ -1714,7 +1714,7 @@ fn find_form_drops_eyebrows_in_compact_chrome() {
 /// line indented to the value column, with every chip whole.
 #[test]
 fn a_focused_categories_row_wraps_instead_of_clipping_at_100_columns() {
-    use osu_collect::app::{GetMapsSource, HomeField};
+    use osu_shelf::app::{GetMapsSource, HomeField};
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.home.focus = HomeField::FindStatus;
@@ -1754,7 +1754,7 @@ fn a_focused_categories_row_wraps_instead_of_clipping_at_100_columns() {
 
 #[test]
 fn find_form_speaks_osu_vocabulary() {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     let rows = render_rows(&app, 120, 34);
@@ -1776,7 +1776,7 @@ fn find_form_speaks_osu_vocabulary() {
 /// live behind it. `supporter` is the gate under test, so each caller sets it —
 /// a fixture that fixed it either way would test nothing.
 fn find_app(supporter: bool) -> App {
-    use osu_collect::app::GetMapsSource;
+    use osu_shelf::app::GetMapsSource;
     let mut app = make_app();
     app.home.source = GetMapsSource::Find;
     app.config.set_login_complete(supporter);
@@ -1843,7 +1843,7 @@ fn supporter_facets_render_with_their_chips_for_a_supporter() {
 /// is not a cycle.
 #[test]
 fn multi_select_row_carets_the_cursor_and_marks_the_picks() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     let mut app = find_app(true);
@@ -1891,7 +1891,7 @@ fn multi_select_row_carets_the_cursor_and_marks_the_picks() {
     );
 
     // The picked chip is the accented one; the cursor chip is not.
-    let accent = osu_collect::tui::theme().accent;
+    let accent = osu_shelf::tui::theme().accent;
     let picked_at = column_of(row, "video");
     let y = rows.iter().position(|line| line == row).expect("row index") as u16;
     assert_eq!(
@@ -1911,7 +1911,7 @@ fn multi_select_row_carets_the_cursor_and_marks_the_picks() {
 /// losing focus, or the user can no longer see what the query will carry.
 #[test]
 fn a_blurred_multi_select_row_keeps_its_mark_and_accent() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     let mut app = find_app(true);
@@ -1942,7 +1942,7 @@ fn a_blurred_multi_select_row_keeps_its_mark_and_accent() {
     let y = rows.iter().position(|line| line == row).expect("row index") as u16;
     assert_eq!(
         buf[(column_of(row, "video"), y)].style().fg,
-        Some(osu_collect::tui::theme().accent),
+        Some(osu_shelf::tui::theme().accent),
         "the pick's accent is gated on focus: {row}"
     );
 }
@@ -1995,7 +1995,7 @@ fn rank_row(rows: &[String]) -> String {
 /// only thing saying which chips were on.
 #[test]
 fn every_multi_select_chip_state_reads_without_colour() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     let mut app = find_app(true);
@@ -2032,7 +2032,7 @@ fn every_multi_select_chip_state_reads_without_colour() {
 /// of what keeps the two families apart.
 #[test]
 fn a_cycle_row_carries_no_pick_mark() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     let mut app = find_app(true);
     app.home.focus = HomeField::FindGenre;
     let rows = render_rows(&app, 120, 60);
@@ -2052,7 +2052,7 @@ fn a_cycle_row_carries_no_pick_mark() {
 /// once the row is down.
 #[test]
 fn a_multi_select_row_advertises_both_of_its_stages() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     let mut app = find_app(true);
@@ -2094,7 +2094,7 @@ fn a_multi_select_row_advertises_both_of_its_stages() {
 /// painted gutter can catch the wiring.
 #[test]
 fn the_multi_select_gutter_tracks_focus_and_the_descend() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     let mut app = find_app(true);
@@ -2129,7 +2129,7 @@ fn the_multi_select_gutter_tracks_focus_and_the_descend() {
 /// it ascends and never arms the quit prompt. The bar has to say which.
 #[test]
 fn the_back_key_label_follows_what_q_does_on_a_descended_row() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     let mut app = find_app(true);
@@ -2159,7 +2159,7 @@ fn the_back_key_label_follows_what_q_does_on_a_descended_row() {
 /// one row; that is the cost of the hint tracking focus.
 #[test]
 fn the_multi_select_hint_tracks_the_focused_row_of_the_pair() {
-    use osu_collect::app::HomeField;
+    use osu_shelf::app::HomeField;
     const HINT: &str = "↵ edit (multiselect)";
 
     let mut app = find_app(true);
@@ -2195,9 +2195,9 @@ fn the_multi_select_hint_tracks_the_focused_row_of_the_pair() {
 /// run will fetch.
 #[test]
 fn update_preview_row_shows_its_hold_back_state_and_the_footer_names_the_key() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus};
-    use osu_collect::osu_db::LocalCollection;
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus};
+    use osu_shelf::osu_db::LocalCollection;
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;
@@ -2258,9 +2258,9 @@ fn update_preview_row_shows_its_hold_back_state_and_the_footer_names_the_key() {
 /// nothing pointing at the browse rows that can restore it.
 #[test]
 fn update_form_names_the_held_back_count() {
-    use osu_collect::app::GetMapsSource;
-    use osu_collect::app::update_source::{MissingBeatmapset, MissingStatus, ScanStatus};
-    use osu_collect::osu_db::LocalCollection;
+    use osu_shelf::app::GetMapsSource;
+    use osu_shelf::app::update_source::{MissingBeatmapset, MissingStatus, ScanStatus};
+    use osu_shelf::osu_db::LocalCollection;
 
     let mut app = make_app();
     app.home.source = GetMapsSource::Update;

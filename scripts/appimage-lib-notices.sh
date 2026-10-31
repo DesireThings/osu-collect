@@ -10,7 +10,7 @@
 # the package's copyright file. Licence texts that copyright files only
 # reference (/usr/share/common-licenses/...) are appended once at the end.
 #
-# usage: scripts/appimage-lib-notices.sh <osu-collect.AppDir>
+# usage: scripts/appimage-lib-notices.sh <osu-shelf.AppDir>
 # Run on the Ubuntu machine that built the AppImage (needs dpkg).
 set -euo pipefail
 

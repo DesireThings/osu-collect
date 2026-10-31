@@ -105,7 +105,7 @@ fn home_directory_tooltip_shows_resolved_path_only_when_focused() {
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
 
     // Before a collection resolves, the tooltip shows the base dir plus a
     // per-collection folder placeholder.
@@ -114,7 +114,7 @@ fn home_directory_tooltip_shows_resolved_path_only_when_focused() {
     // ENDS in `<collection>`, so a bare substring cannot tell the collection
     // source's placeholder from the update source's.
     assert!(
-        output.contains("downloads to") && output.contains("osu-collect-tooltip-test/<collection>"),
+        output.contains("downloads to") && output.contains("osu-shelf-tooltip-test/<collection>"),
         "unresolved tooltip must show the base path with a per-collection placeholder: {output}"
     );
 
@@ -210,7 +210,7 @@ fn home_directory_tooltip_tracks_the_per_source_run_folder() {
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
 
     // find, osu route: the run lands in `search-<folder_tag>`. Checked results,
     // or the button is dead and the hint names no folder at all (below).
@@ -266,7 +266,7 @@ fn find_directory_hint_names_no_folder_until_a_pick_makes_it_live() {
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
     app.home.source = GetMapsSource::Find;
     app.home.find.query.set_value("tekno");
 
@@ -344,7 +344,7 @@ fn update_directory_hint_names_no_folder_until_a_collection_has_something_to_fet
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
     app.home.source = GetMapsSource::Update;
 
     // The scan's first half: collections listed and checked by default, their
@@ -416,7 +416,7 @@ fn collection_directory_hint_names_no_folder_with_no_mirror_to_serve_it() {
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
     app.home.collection.set_value("42");
     app.home.set_resolved_collection(42, vec![10, 20]);
     app.home.resolved_folder_name = Some("Farm-42".to_string());
@@ -467,7 +467,7 @@ fn collection_directory_hint_names_no_folder_with_no_mirror_to_serve_it() {
     // `<collection>`, so a bare substring cannot tell this source's placeholder
     // from the update source's.
     assert!(
-        output.contains("osu-collect-tooltip-test/<collection>") && !output.contains("Farm-42"),
+        output.contains("osu-shelf-tooltip-test/<collection>") && !output.contains("Farm-42"),
         "a collection no mirror can serve must name no run folder: {output}"
     );
 }
@@ -479,7 +479,7 @@ fn home_directory_tooltip_drops_a_resolve_the_field_moved_off() {
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
 
     // A landed resolve for 1234.
     app.home.collection.set_value("1234");
@@ -510,7 +510,7 @@ fn home_directory_tooltip_drops_a_resolve_the_field_moved_off() {
     );
     let output = render_app(&app, 80, 24);
     assert!(
-        output.contains("osu-collect-tooltip-test/<collection>") && !output.contains("Farm-1234"),
+        output.contains("osu-shelf-tooltip-test/<collection>") && !output.contains("Farm-1234"),
         "a resolve the field has moved off must not name the destination: {output}"
     );
 
@@ -552,7 +552,7 @@ fn home_directory_tooltip_names_a_multi_collection_update_run() {
 
     let mut app = App::new(Config::default());
     app.home.focus = HomeField::Directory;
-    app.home.directory.set_value("~/osu-collect-tooltip-test");
+    app.home.directory.set_value("~/osu-shelf-tooltip-test");
     app.home.source = GetMapsSource::Update;
 
     // Nothing checked yet: the id is unknown, but the `update-` shape is not.
@@ -2100,10 +2100,7 @@ fn header_renders_brand_tabs_and_version_regions() {
     let app = App::new(Config::default());
     let output = render_app(&app, 120, 24);
 
-    assert!(
-        output.contains("osu-collect"),
-        "brand must render in header"
-    );
+    assert!(output.contains("osu-shelf"), "brand must render in header");
     assert!(output.contains("get maps"), "tabs must render in header");
     let version = concat!("v", env!("CARGO_PKG_VERSION"));
     assert!(

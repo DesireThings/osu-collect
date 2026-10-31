@@ -70,7 +70,7 @@ fn adjacent_field<T: Copy + PartialEq>(fields: &[T], current: T, offset: usize) 
     fields[(idx + offset) % fields.len()]
 }
 
-/// Per-user data dir for osu-collect's state files (`ignored-beatmapsets.json`,
+/// Per-user data dir for osu-shelf's state files (`ignored-beatmapsets.json`,
 /// `download_history.json`, …). Windows keeps roaming data; elsewhere local.
 #[cfg(windows)]
 fn platform_data_dir() -> Option<std::path::PathBuf> {

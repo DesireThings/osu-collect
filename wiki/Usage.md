@@ -1,6 +1,6 @@
 # Usage
 
-Run `osu-collect` in a terminal. The app opens on the **get maps** tab with the collection field focused: paste an osu!collector link, pick a folder, activate the download button. Press <kbd>?</kbd> anywhere for the key reference ([Keybindings](Keybindings)).
+Run `osu-shelf` in a terminal. The app opens on the **get maps** tab with the collection field focused: paste an osu!collector link, pick a folder, activate the download button. Press <kbd>?</kbd> anywhere for the key reference ([Keybindings](Keybindings)).
 
 ## Sources on the get maps tab
 

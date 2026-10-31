@@ -1,20 +1,17 @@
-use super::{migrator, model::Config};
+use super::{env_override, migrator, model::Config};
 use crate::utils::{AppError, Result};
 use std::{
-    env, fs,
+    fs,
     io::Write,
     path::{Path, PathBuf},
 };
 use tracing::warn;
 
-use super::constants::{CONFIG_ENV_PATH, CONFIG_FILE, CONFIG_SUBDIR};
+use super::constants::{CONFIG_ENV_PATH, CONFIG_FILE, CONFIG_SUBDIR, LEGACY_CONFIG_ENV_PATH};
 
 pub fn config_path() -> Option<PathBuf> {
-    if let Ok(custom_path) = env::var(CONFIG_ENV_PATH) {
-        let trimmed = custom_path.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(CONFIG_ENV_PATH, LEGACY_CONFIG_ENV_PATH) {
+        return Some(path);
     }
 
     dirs::config_dir().map(|dir| dir.join(CONFIG_SUBDIR).join(CONFIG_FILE))

@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in osu-collect doesn't work the way it should
+description: Something in osu-shelf doesn't work the way it should
 labels: [bug]
 body:
   - type: markdown
@@ -24,7 +24,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: "Desktop app: Settings, then About. Terminal app: run `osu-collect --version`."
+      description: "Desktop app: Settings, then About. Terminal app: run `osu-shelf --version`."
       placeholder: "0.2.0"
     validations:
       required: true

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests: GitHub releases API - GET /repos/DesireThings/osu-collect/releases/latest
+# tests: GitHub releases API - GET /repos/DesireThings/osu-shelf/releases/latest
 # rust source: src/auto_update.rs, src/config/constants.rs (RELEASES_URL)
 # model: ReleaseResponse { name, tag_name, assets: [{ name, browser_download_url }] }
 
@@ -7,12 +7,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-URL="https://api.github.com/repos/DesireThings/osu-collect/releases/latest"
+URL="https://api.github.com/repos/DesireThings/osu-shelf/releases/latest"
 
 echo "=== GitHub releases API: GET $URL ==="
 
 resp=$(curl -s -w "\n%{http_code}" \
-    -H "User-Agent: osu-collect/test" \
+    -H "User-Agent: osu-shelf/test" \
     -H "Accept: application/vnd.github+json" \
     "$URL")
 status=$(echo "$resp" | tail -1)

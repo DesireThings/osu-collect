@@ -42,5 +42,5 @@ fn lock_file_is_not_created_in_output_directory() {
     let registry = ActiveDownloadRegistry::new();
     let _guard = DownloadLockGuard::acquire(dir.path(), &registry).unwrap();
 
-    assert!(!dir.path().join(".osu-collect.lock").exists());
+    assert!(!dir.path().join(".osu-shelf.lock").exists());
 }

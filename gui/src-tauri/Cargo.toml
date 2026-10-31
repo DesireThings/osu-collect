@@ -1,21 +1,21 @@
 [package]
-name = "osu-collect-gui"
-version = "0.2.0"
+name = "osu-shelf-gui"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.90"
-description = "Desktop GUI for osu-collect"
+description = "Desktop GUI for osu-shelf"
 license = "MIT OR Apache-2.0"
 publish = false
 
 [lib]
-name = "osu_collect_gui"
+name = "osu_shelf_gui"
 crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "=2.7.2", features = [] }
 
 [dependencies]
-osu-collect = { path = "../.." }
+osu-shelf = { path = "../.." }
 tauri = { version = "=2.12.3", features = [] }
 tauri-plugin-dialog = "=2.8.2"
 tauri-plugin-opener = "=2.7.1"

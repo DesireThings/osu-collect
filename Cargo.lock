@@ -3231,8 +3231,42 @@ dependencies = [
 ]
 
 [[package]]
-name = "osu-collect"
-version = "0.2.0"
+name = "osu-db"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3933f1e5d65779a2e9eef370c596cf3f30617e1896739d985664c49d442eb07f"
+dependencies = [
+ "chrono",
+ "nom",
+ "xz2",
+]
+
+[[package]]
+name = "osu-downloader"
+version = "0.22.0"
+dependencies = [
+ "bytes",
+ "criterion",
+ "dashmap",
+ "futures-util",
+ "httpdate",
+ "md-5",
+ "memchr",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "tokio-test",
+ "tracing",
+ "urlencoding",
+]
+
+[[package]]
+name = "osu-shelf"
+version = "0.3.0"
 dependencies = [
  "bytes",
  "chrono",
@@ -3274,50 +3308,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "osu-collect-gui"
-version = "0.2.0"
+name = "osu-shelf-gui"
+version = "0.3.0"
 dependencies = [
- "osu-collect",
+ "osu-shelf",
  "serde",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "tokio",
-]
-
-[[package]]
-name = "osu-db"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3933f1e5d65779a2e9eef370c596cf3f30617e1896739d985664c49d442eb07f"
-dependencies = [
- "chrono",
- "nom",
- "xz2",
-]
-
-[[package]]
-name = "osu-downloader"
-version = "0.22.0"
-dependencies = [
- "bytes",
- "criterion",
- "dashmap",
- "futures-util",
- "httpdate",
- "md-5",
- "memchr",
- "reqwest",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "tokio-test",
- "tracing",
- "urlencoding",
 ]
 
 [[package]]

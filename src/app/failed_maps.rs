@@ -1,14 +1,16 @@
+use crate::config::{constants::APP_SUBDIR, env_override};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
 use tracing::{debug, warn};
 
 pub const FAILED_MAPS_FILE: &str = "failed-beatmapsets.json";
-pub const FAILED_MAPS_ENV_PATH: &str = "OSU_COLLECT_FAILED_MAPS";
+pub const FAILED_MAPS_ENV_PATH: &str = "OSU_SHELF_FAILED_MAPS";
+const LEGACY_FAILED_MAPS_ENV_PATH: &str = "OSU_COLLECT_FAILED_MAPS";
 const SCHEMA_VERSION: u32 = 1;
 static SAVE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
@@ -35,18 +37,15 @@ impl FailedMapsFile {
 }
 
 pub fn failed_maps_path() -> Option<PathBuf> {
-    if let Ok(custom) = env::var(FAILED_MAPS_ENV_PATH) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(FAILED_MAPS_ENV_PATH, LEGACY_FAILED_MAPS_ENV_PATH) {
+        return Some(path);
     }
 
     platform_data_dir().map(failed_maps_path_in)
 }
 
 pub fn failed_maps_path_in(base: PathBuf) -> PathBuf {
-    base.join("osu-collect").join(FAILED_MAPS_FILE)
+    base.join(APP_SUBDIR).join(FAILED_MAPS_FILE)
 }
 
 #[cfg(windows)]

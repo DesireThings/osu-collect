@@ -39,23 +39,28 @@ pub const HIGH_THREAD_WARN_THRESHOLD: u8 = 50;
 /// carrying a transient `Error` (e.g. `Error::Network`).
 pub const NETWORK_RETRY_CAP: u32 = 1000;
 
-pub const CONFIG_SUBDIR: &str = "osu-collect";
+/// Folder name under the per-user config and data roots.
+pub const APP_SUBDIR: &str = "osu-shelf";
+/// Folder name used before the rename; only the migration reads it.
+pub const LEGACY_APP_SUBDIR: &str = "osu-collect";
+pub const CONFIG_SUBDIR: &str = APP_SUBDIR;
 pub const CONFIG_FILE: &str = "config.toml";
-pub const CONFIG_ENV_PATH: &str = "OSU_COLLECT_CONFIG";
+pub const CONFIG_ENV_PATH: &str = "OSU_SHELF_CONFIG";
+/// Pre-rename override, still read for the bridge release.
+pub const LEGACY_CONFIG_ENV_PATH: &str = "OSU_COLLECT_CONFIG";
 
 pub const RELEASES_URL: &str =
-    "https://api.github.com/repos/DesireThings/osu-collect/releases/latest";
+    "https://api.github.com/repos/DesireThings/osu-shelf/releases/latest";
 /// Full release list (newest first); used when the prerelease channel is opted
 /// in, since `/releases/latest` excludes prereleases and drafts.
-pub const RELEASES_LIST_URL: &str =
-    "https://api.github.com/repos/DesireThings/osu-collect/releases";
+pub const RELEASES_LIST_URL: &str = "https://api.github.com/repos/DesireThings/osu-shelf/releases";
 /// Sent with map downloads and with requests to the mirrors, osu!Collector,
 /// nzbasic and the osu! API, so whoever runs them can tell which app is asking
 /// and where to find it.
 pub const USER_AGENT: &str = concat!(
-    "osu-collect/",
+    "osu-shelf/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/DesireThings/osu-collect)"
+    " (+https://github.com/DesireThings/osu-shelf)"
 );
 pub const AUTO_UPDATE_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -106,6 +111,6 @@ pub const DISK_DANGER_BYTES: u64 = 100 * 1024 * 1024;
 /// Alias kept for any code that references the old name.
 pub const LOW_SPACE_THRESHOLD_BYTES: u64 = DISK_WARN_BYTES;
 
-pub const DIRECTORY_LOCK_FILE: &str = ".osu-collect.lock";
+pub const DIRECTORY_LOCK_FILE: &str = ".osu-shelf.lock";
 
 pub const API_MAX_RETRIES: u8 = 3;

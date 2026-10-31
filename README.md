@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>osu-collect</h1>
+<h1>osu-shelf</h1>
 
 <p><b>Download osu!collector collections and get them into osu!, from a desktop app or your terminal</b></p>
 
@@ -8,12 +8,12 @@
 
 </div>
 
-osu-collect downloads every map in an [osu!collector](https://osucollector.com) collection from public beatmap mirrors, switching mirrors when one is busy or down. It also writes a `collection.db`, so the collection itself shows up in osu!, not just the maps. You can check a collection again later and fetch only what's new.
+osu-shelf downloads every map in an [osu!collector](https://osucollector.com) collection from public beatmap mirrors, switching mirrors when one is busy or down. It also writes a `collection.db`, so the collection itself shows up in osu!, not just the maps. You can check a collection again later and fetch only what's new.
 
 > [!NOTE]
 > **This is a personal fork** of [uwuclxdy/osu-collect](https://github.com/uwuclxdy/osu-collect), maintained by DesireThings. It adds a desktop app and a one-step osu!lazer import for any number of collections, and it never asks for your osu! login. Upstream isn't responsible for anything here.
 >
-> osu-collect is an unofficial community tool. It isn't made, endorsed or supported by ppy (the makers of osu!) or by osu!Collector; their names are used only to say what it works with.
+> osu-shelf is an unofficial community tool. It isn't made, endorsed or supported by ppy (the makers of osu!) or by osu!Collector; their names are used only to say what it works with.
 
 <div align="center">
 
@@ -27,17 +27,17 @@ osu-collect downloads every map in an [osu!collector](https://osucollector.com) 
 - **Desktop app:** three steps (set up, add collections, import), plus finding maps by stars, mapper and more, and updating the collections you downloaded, with buttons and text boxes and plain-language messages. See [Desktop app](#desktop-app).
 - **Every collection into osu!lazer in one go:** however many collections you download, lazer imports them all, maps and collections, in a single pass of its setup wizard.
 - **No account needed:** paste a collection link and go.
-- **Nine mirrors with failover:** when a mirror rate-limits, the map waits and retries while the rest keep downloading. You can also skip the stuck ones and fetch them later. See [Mirrors](https://github.com/DesireThings/osu-collect/wiki/Mirrors).
+- **Nine mirrors with failover:** when a mirror rate-limits, the map waits and retries while the rest keep downloading. You can also skip the stuck ones and fetch them later. See [Mirrors](https://github.com/DesireThings/osu-shelf/wiki/Mirrors).
 - **A real collection:** a verified `collection.db` next to the maps.
 - **Keep collections up to date:** check a downloaded collection again and fetch only new or missing maps.
-- **Find maps without a collection:** search by per-difficulty criteria through the osu! API or nzbasic's community database. See [Finding maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps).
+- **Find maps without a collection:** search by per-difficulty criteria through the osu! API or nzbasic's community database. See [Finding maps](https://github.com/DesireThings/osu-shelf/wiki/Finding-Maps).
 
 ## Installation
 
 > [!NOTE]
-> osu-collect is in early access (version 0.x). The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet; please [open an issue](https://github.com/DesireThings/osu-collect/issues/new) if one doesn't work.
+> osu-shelf is in early access (version 0.x). The Windows and macOS desktop installers are built and checked automatically but haven't been run on a real Windows PC or Mac yet; please [open an issue](https://github.com/DesireThings/osu-shelf/issues/new) if one doesn't work.
 
-**Desktop app:** download the file for your system from the [latest release](https://github.com/DesireThings/osu-collect/releases/latest):
+**Desktop app:** download the file for your system from the [latest release](https://github.com/DesireThings/osu-shelf/releases/latest):
 
 | System | File |
 |---|---|
@@ -52,16 +52,16 @@ The apps aren't signed with a paid certificate, so the first start shows a warni
 Linux x64 / macOS Apple Silicon:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DesireThings/osu-shelf/main/install.sh | bash
 ```
 
 Windows x64 (PowerShell):
 
 ```powershell
-iwr https://raw.githubusercontent.com/DesireThings/osu-collect/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"; Remove-Item "$env:TEMP\osu-install.bat"
+iwr https://raw.githubusercontent.com/DesireThings/osu-shelf/main/install.bat -OutFile "$env:TEMP\osu-install.bat"; & "$env:TEMP\osu-install.bat"; Remove-Item "$env:TEMP\osu-install.bat"
 ```
 
-Or download `osu-collect-linux-x64`, `osu-collect-windows-x64.exe` or `osu-collect-macos-arm64` from the release. Building from source, uninstalling and more: [Installation](https://github.com/DesireThings/osu-collect/wiki/Installation).
+Or download `osu-shelf-linux-x64`, `osu-shelf-windows-x64.exe` or `osu-shelf-macos-arm64` from the release. Building from source, uninstalling and more: [Installation](https://github.com/DesireThings/osu-shelf/wiki/Installation).
 
 ## Desktop app
 
@@ -73,22 +73,22 @@ Or download `osu-collect-linux-x64`, `osu-collect-windows-x64.exe` or `osu-colle
 
 **Update collections** checks the collections you downloaded for maps added on osu!collector since and downloads only those; map sets you deleted from osu! stay left out unless you pick them again.
 
-**Settings** covers mirrors (on/off, order, your own mirror links), download options and your own osu! API app. Full guide: [Desktop app](https://github.com/DesireThings/osu-collect/wiki/Desktop-App).
+**Settings** covers mirrors (on/off, order, your own mirror links), download options and your own osu! API app. Full guide: [Desktop app](https://github.com/DesireThings/osu-shelf/wiki/Desktop-App).
 
 ## Terminal app
 
 ```bash
-osu-collect
+osu-shelf
 ```
 
-Paste a collection link, pick a folder, press <kbd>↵</kbd>. The get maps tab has two more sources: **find** searches maps by criteria, with no collection needed; **update** checks collections you downloaded and fetches only what's missing. Press <kbd>?</kbd> in the app for every key. Guides: [Usage](https://github.com/DesireThings/osu-collect/wiki/Usage), [Finding maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps), [Updating collections](https://github.com/DesireThings/osu-collect/wiki/Updating-Collections), [Keybindings](https://github.com/DesireThings/osu-collect/wiki/Keybindings).
+Paste a collection link, pick a folder, press <kbd>↵</kbd>. The get maps tab has two more sources: **find** searches maps by criteria, with no collection needed; **update** checks collections you downloaded and fetches only what's missing. Press <kbd>?</kbd> in the app for every key. Guides: [Usage](https://github.com/DesireThings/osu-shelf/wiki/Usage), [Finding maps](https://github.com/DesireThings/osu-shelf/wiki/Finding-Maps), [Updating collections](https://github.com/DesireThings/osu-shelf/wiki/Updating-Collections), [Keybindings](https://github.com/DesireThings/osu-shelf/wiki/Keybindings).
 
 ## Importing into osu!
 
 <details open>
 <summary><b>osu!lazer</b> (also Torii and other lazer builds)</summary>
 
-Build one import folder from every collection you've downloaded: **Import into osu! → Prepare import folder** in the desktop app, <kbd>l</kbd> on the terminal app's downloads tab, or `osu-collect lazer-import`. Then:
+Build one import folder from every collection you've downloaded: **Import into osu! → Prepare import folder** in the desktop app, <kbd>l</kbd> on the terminal app's downloads tab, or `osu-shelf lazer-import`. Then:
 
 1. In osu!lazer, **Settings → General → Run setup wizard**, and **Next** until the **Import** screen.
 2. Set **previous osu! install** to the import folder.
@@ -105,7 +105,7 @@ Drag the downloaded `.osz` files into osu!, then merge each folder's `collection
 
 </details>
 
-More detail: [Importing into osu!](https://github.com/DesireThings/osu-collect/wiki/Importing-into-osu).
+More detail: [Importing into osu!](https://github.com/DesireThings/osu-shelf/wiki/Importing-into-osu).
 
 ## Configuration
 
@@ -113,16 +113,16 @@ Both apps share one optional config file. The desktop app's Settings page and th
 
 | OS | Path |
 |---|---|
-| Linux | `~/.config/osu-collect/config.toml` |
-| macOS | `~/Library/Application Support/osu-collect/config.toml` |
-| Windows | `%APPDATA%\osu-collect\config.toml` |
+| Linux | `~/.config/osu-shelf/config.toml` |
+| macOS | `~/Library/Application Support/osu-shelf/config.toml` |
+| Windows | `%APPDATA%\osu-shelf\config.toml` |
 
-See [config.toml.example](config.toml.example) and [Configuration](https://github.com/DesireThings/osu-collect/wiki/Configuration).
+See [config.toml.example](config.toml.example) and [Configuration](https://github.com/DesireThings/osu-shelf/wiki/Configuration).
 
 ## FAQ
 
 **Do I need an osu! account?**
-Not to download collections: osu-collect never asks for your osu! login. Only the terminal app's find, when it searches through the osu! API, needs an API app of your own, which you make on your osu! account page; see [Finding maps](https://github.com/DesireThings/osu-collect/wiki/Finding-Maps#your-osu-api-app).
+Not to download collections: osu-shelf never asks for your osu! login. Only the terminal app's find, when it searches through the osu! API, needs an API app of your own, which you make on your osu! account page; see [Finding maps](https://github.com/DesireThings/osu-shelf/wiki/Finding-Maps#your-osu-api-app).
 
 **Where do the maps come from?**
 The collection's details come from osu!Collector; the maps come from public beatmap mirrors, not from osu!'s servers. Which mirrors, and in what order, is up to you in the settings.
@@ -131,14 +131,14 @@ The collection's details come from osu!Collector; the maps come from public beat
 No. Every mirror that has those maps is rate-limiting, so they're retried once a mirror frees up, usually within minutes. In the desktop app you can **Skip these for now** and get them later with **Check again**.
 
 **I also use uwuclxdy's osu-collect. Can I keep both?**
-Yes, but they share one settings folder. This version deletes a saved osu!lazer login from the original, because it no longer signs in through osu!lazer's client. The original keeps updating from its own releases.
+Yes. Since 0.3.0 the two keep separate settings: osu-shelf reads its own `osu-shelf` folder and copies the old `osu-collect` one once on first start, leaving the original's files alone. An existing `~/Downloads/osu-collect` folder keeps being used for downloads, so rename it or pick another folder if you want them apart. A saved osu!lazer login is dropped from the copy, because osu-shelf no longer signs in through osu!lazer's client. The original keeps updating from its own releases.
 
 **Does osu!Collector have its own app?**
-Yes, the [osu!Collector desktop client](https://osucollector.com/app). Its subscription pays for the site that hosts every collection osu-collect reads. If you use osu!Collector a lot, consider supporting it.
+Yes, the [osu!Collector desktop client](https://osucollector.com/app). Its subscription pays for the site that hosts every collection osu-shelf reads. If you use osu!Collector a lot, consider supporting it.
 
 ## Documentation
 
-The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-collect/wiki). Its pages live in [`wiki/`](wiki/) in this repository and are copied to the GitHub wiki automatically, so if a wiki link doesn't work yet, read the same page in [`wiki/`](wiki/Home.md).
+The full guide is the [osu-shelf wiki](https://github.com/DesireThings/osu-shelf/wiki). Its pages live in [`wiki/`](wiki/) in this repository and are copied to the GitHub wiki automatically, so if a wiki link doesn't work yet, read the same page in [`wiki/`](wiki/Home.md).
 
 ## Help and community
 
@@ -168,7 +168,7 @@ The full guide is the [osu-collect wiki](https://github.com/DesireThings/osu-col
 | [Batch Beatmap Downloader](https://github.com/nzbasic/batch-beatmap-downloader) | Downloads maps matching filters and tags (farm, stream) rather than osu!collector collections. |
 | [osu-collector-dl](https://github.com/roogue/osu-collector-dl) | Windows command-line downloader for osu!collector; can write a `.osdb` for Collection Manager. |
 | [OsuCollectionDownloader](https://github.com/waylaa/OsuCollectionDownloader) | Command-line downloader that extracts into your Songs folder and can write a `.osdb`. |
-| [Collection Manager](https://github.com/Piotrekol/CollectionManager) | Edits, merges and exports osu! collections, and downloads missing maps from osu! with your account. Pairs well with osu-collect for stable. |
+| [Collection Manager](https://github.com/Piotrekol/CollectionManager) | Edits, merges and exports osu! collections, and downloads missing maps from osu! with your account. Pairs well with osu-shelf for stable. |
 
 ## Acknowledgments
 

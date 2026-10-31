@@ -17,7 +17,7 @@ fn empty_query_builds_bare_envelope() {
                 "id": "root",
                 "group": { "connector": { "type": "AND", "not": [] }, "children": [] }
             },
-            "clientId": "osu-collect",
+            "clientId": "osu-shelf",
         })
     );
 }
@@ -48,7 +48,7 @@ fn full_query_encodes_every_rule_in_canonical_order() {
         ..FilterQuery::default()
     };
     let body = build_request(&query);
-    assert_eq!(body["clientId"], "osu-collect");
+    assert_eq!(body["clientId"], "osu-shelf");
     assert_eq!(body["limit"], 500);
     assert_eq!(body["by"], "stars");
     assert_eq!(body["direction"], "desc");

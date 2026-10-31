@@ -1,7 +1,7 @@
-//! Tauri backend: each command is a thin call into `osu_collect::engine`,
+//! Tauri backend: each command is a thin call into `osu_shelf::engine`,
 //! with errors flattened to strings the frontend can show as-is.
 
-use osu_collect::engine::{
+use osu_shelf::engine::{
     self, CollectionPreview, DownloadOptions, DownloadStatus, Downloads, FindCheck, FindCriteria,
     FindOptions, FindPage, FindPick, ImportFolderReport, Installs, Owned, ScanProgress, Settings,
     UpdatePick, UpdateReport, Updates,
@@ -205,6 +205,7 @@ async fn build_lazer_import(download_dir: PathBuf) -> Result<LazerImportResult, 
 }
 
 pub fn run() {
+    osu_shelf::config::migrate_legacy_dirs();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -242,5 +243,5 @@ pub fn run() {
             third_party_licences,
         ])
         .run(tauri::generate_context!())
-        .expect("failed to start the osu-collect window");
+        .expect("failed to start the osu-shelf window");
 }

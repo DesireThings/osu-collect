@@ -1,7 +1,7 @@
 @echo off
 setlocal enableextensions disabledelayedexpansion
 
-:: install.bat -- installs or updates osu-collect from the latest GitHub release
+:: install.bat -- installs or updates osu-shelf from the latest GitHub release
 :: requires: Windows 10+ (PowerShell 5.1+ and curl.exe built-in, both preinstalled)
 ::
 :: Delayed expansion stays off: with it on, cmd drops every "!" from a line, so a
@@ -10,12 +10,12 @@ setlocal enableextensions disabledelayedexpansion
 :: quote in a folder name cannot break a command. Paths in messages printed
 :: inside ( ) blocks are quoted, so a ")" in a folder name cannot end the block.
 
-set "REPO=DesireThings/osu-collect"
+set "REPO=DesireThings/osu-shelf"
 set "API_URL=https://api.github.com/repos/%REPO%/releases/latest"
-set "ASSET_NAME=osu-collect-windows-x64.exe"
-set "INSTALL_DIR=%LOCALAPPDATA%\Programs\osu-collect"
-set "INSTALL_BIN=%INSTALL_DIR%\osu-collect.exe"
-set "TMPDIR=%TEMP%\osu-collect-install-%RANDOM%"
+set "ASSET_NAME=osu-shelf-windows-x64.exe"
+set "INSTALL_DIR=%LOCALAPPDATA%\Programs\osu-shelf"
+set "INSTALL_BIN=%INSTALL_DIR%\osu-shelf.exe"
+set "TMPDIR=%TEMP%\osu-shelf-install-%RANDOM%"
 
 :: -- fetch release metadata (one request, with retry) ------------------------
 
@@ -23,8 +23,8 @@ echo ==^> fetching latest release info...
 
 :: fetch once and parse locally -- curl --retry rides out the transient 5xx /
 :: timeout the GitHub API occasionally returns; three separate live calls did not
-set "RELJSON=%TEMP%\osu-collect-release-%RANDOM%.json"
-curl.exe -fsSL --retry 5 -A "osu-collect-installer" -o "%RELJSON%" "%API_URL%"
+set "RELJSON=%TEMP%\osu-shelf-release-%RANDOM%.json"
+curl.exe -fsSL --retry 5 -A "osu-shelf-installer" -o "%RELJSON%" "%API_URL%"
 if errorlevel 1 (
   echo error: could not reach the GitHub API ^(try again in a minute^)
   del /f /q "%RELJSON%" 2>nul
@@ -100,7 +100,7 @@ if "%CURRENT_HASH%"=="%REMOTE_HASH%" (
 
 :: -- download binary ----------------------------------------------------------
 
-echo ==^> downloading osu-collect %LATEST_TAG%...
+echo ==^> downloading osu-shelf %LATEST_TAG%...
 curl.exe -fsSL --retry 3 -o "%TMP_BIN%" "%DOWNLOAD_URL%"
 if errorlevel 1 (
   echo error: download failed
@@ -166,8 +166,8 @@ powershell -NoProfile -Command ^
   "  $kind = [Microsoft.Win32.RegistryValueKind]::ExpandString; " ^
   "  if ($key.GetValueNames() -contains 'Path') { $kind = $key.GetValueKind('Path') } " ^
   "  $key.SetValue('Path', (($parts + $dir) -join ';'), $kind); " ^
-  "  [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', '1', 'User'); " ^
-  "  [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', $null, 'User'); " ^
+  "  [Environment]::SetEnvironmentVariable('OSU_SHELF_PATH_REFRESH', '1', 'User'); " ^
+  "  [Environment]::SetEnvironmentVariable('OSU_SHELF_PATH_REFRESH', $null, 'User'); " ^
   "} catch { exit 1 }"
 if errorlevel 2 (
   echo ==^> "%INSTALL_DIR%" already in user PATH
@@ -188,7 +188,7 @@ powershell -NoProfile -Command ^
   "$ws = New-Object -ComObject WScript.Shell; " ^
   "$q = [char]34; " ^
   "$bang = [char]33; " ^
-  "$name = 'osu-collect (terminal).lnk'; " ^
+  "$name = 'osu-shelf (terminal).lnk'; " ^
   "$wt = [System.IO.Path]::Combine($env:LOCALAPPDATA, 'Microsoft\WindowsApps\wt.exe'); " ^
   "$useWt = Test-Path $wt; " ^
   "$icon = ''; " ^
@@ -209,7 +209,7 @@ powershell -NoProfile -Command ^
   "  } " ^
   "  if ($icon) { $lnk.IconLocation = $icon; } " ^
   "  $lnk.WorkingDirectory = $env:USERPROFILE; " ^
-  "  $lnk.Description = 'osu-collect terminal app'; " ^
+  "  $lnk.Description = 'osu-shelf terminal app'; " ^
   "  $lnk.Save() " ^
   "}"
 if errorlevel 1 (
@@ -241,23 +241,23 @@ if not exist "%INSTALL_DIR%\uninstall.ps1" (
 
 :: 2. register under HKCU with reg.exe (native, reliable). The key and the
 ::    shortcut names say "terminal": the desktop app's installer registers
-::    "osu-collect" and makes osu-collect.lnk, and the two must not overwrite
+::    "osu-shelf" and makes osu-shelf.lnk, and the two must not overwrite
 ::    or uninstall each other.
-set "UNKEY=HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal"
+set "UNKEY=HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-shelf-terminal"
 set "UNVER=%LATEST_TAG%"
 if "%UNVER:~0,1%"=="v" set "UNVER=%UNVER:~1%"
-reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu-collect (terminal app)" /f >nul
+reg add "%UNKEY%" /v DisplayName          /t REG_SZ   /d "osu-shelf (terminal app)" /f >nul
 reg add "%UNKEY%" /v DisplayVersion        /t REG_SZ   /d "%UNVER%" /f >nul
 reg add "%UNKEY%" /v DisplayIcon           /t REG_SZ   /d "%INSTALL_BIN%" /f >nul
 reg add "%UNKEY%" /v Publisher             /t REG_SZ   /d "DesireThings" /f >nul
 reg add "%UNKEY%" /v InstallLocation       /t REG_SZ   /d "%INSTALL_DIR%" /f >nul
-reg add "%UNKEY%" /v URLInfoAbout          /t REG_SZ   /d "https://github.com/DesireThings/osu-collect" /f >nul
+reg add "%UNKEY%" /v URLInfoAbout          /t REG_SZ   /d "https://github.com/DesireThings/osu-shelf" /f >nul
 reg add "%UNKEY%" /v UninstallString       /t REG_SZ   /d "powershell -NoProfile -ExecutionPolicy Bypass -File \"%INSTALL_DIR%\uninstall.ps1\"" /f >nul
 reg add "%UNKEY%" /v QuietUninstallString  /t REG_SZ   /d "powershell -NoProfile -ExecutionPolicy Bypass -File \"%INSTALL_DIR%\uninstall.ps1\"" /f >nul
 reg add "%UNKEY%" /v NoModify              /t REG_DWORD /d 1 /f >nul
 reg add "%UNKEY%" /v NoRepair              /t REG_DWORD /d 1 /f >nul
 
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal" /v UninstallString >nul 2>&1
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-shelf-terminal" /v UninstallString >nul 2>&1
 if errorlevel 1 (
   echo warning: could not register uninstaller in the Installed apps list
 ) else (
@@ -269,7 +269,7 @@ if errorlevel 1 (
 :: -- cleanup ------------------------------------------------------------------
 
 rmdir /s /q "%TMPDIR%" 2>nul
-echo ==^> done -- open a new terminal and run 'osu-collect' to start
+echo ==^> done -- open a new terminal and run 'osu-shelf' to start
 endlocal
 exit /b 0
 
@@ -279,14 +279,14 @@ exit /b 0
 # ::OSU-COLLECT-UNINSTALLER::
 $ErrorActionPreference = 'SilentlyContinue'
 Write-Host ''
-Write-Host 'Uninstalling osu-collect ...'
-$installDir = Join-Path $env:LOCALAPPDATA 'Programs\osu-collect'
+Write-Host 'Uninstalling osu-shelf ...'
+$installDir = Join-Path $env:LOCALAPPDATA 'Programs\osu-shelf'
 $desktop    = [Environment]::GetFolderPath('Desktop')
 $startMenu  = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
-# only the terminal app's own shortcuts: osu-collect.lnk is the desktop app's
+# only the terminal app's own shortcuts: osu-shelf.lnk is the desktop app's
 $shortcuts  = @(
-    Join-Path $desktop   'osu-collect (terminal).lnk'
-    Join-Path $startMenu 'osu-collect (terminal).lnk'
+    Join-Path $desktop   'osu-shelf (terminal).lnk'
+    Join-Path $startMenu 'osu-shelf (terminal).lnk'
 )
 foreach ($lnk in $shortcuts) { Remove-Item -LiteralPath $lnk -Force }
 
@@ -298,14 +298,14 @@ if ($envKey -and ($envKey.GetValueNames() -contains 'Path')) {
     $kept = @($userPath -split ';' | Where-Object { $_ -and ([Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ne $installDir) })
     $envKey.SetValue('Path', ($kept -join ';'), $envKey.GetValueKind('Path'))
     # setting and clearing a throwaway variable tells running programs about the change
-    [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', '1', 'User')
-    [Environment]::SetEnvironmentVariable('OSU_COLLECT_PATH_REFRESH', $null, 'User')
+    [Environment]::SetEnvironmentVariable('OSU_SHELF_PATH_REFRESH', '1', 'User')
+    [Environment]::SetEnvironmentVariable('OSU_SHELF_PATH_REFRESH', $null, 'User')
 }
 
 # drop the "Installed apps" registry entry
-Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-collect-terminal' -Recurse -Force
+Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\osu-shelf-terminal' -Recurse -Force
 
-Write-Host 'osu-collect has been uninstalled.'
+Write-Host 'osu-shelf has been uninstalled.'
 Start-Sleep -Seconds 2
 
 # remove the install dir (incl. this script) from a detached process so the file

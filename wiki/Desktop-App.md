@@ -2,7 +2,7 @@
 
 The desktop app is a window with buttons and text boxes instead of keyboard shortcuts. It uses the same download engine, mirrors and `config.toml` as the terminal app, so settings changed in one show up in the other.
 
-Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-collect/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections, finding maps without a collection, updating the collections you downloaded, and getting them into osu!lazer.
+Installers for Windows, macOS (Apple Silicon) and Linux are on the [latest release](https://github.com/DesireThings/osu-shelf/releases/latest); see [Installation](Installation#desktop-app). It covers downloading collections, finding maps without a collection, updating the collections you downloaded, and getting them into osu!lazer.
 
 The sidebar has three steps, then **Find maps**, **Update collections** and Settings. You can go back to any of them at any time.
 
@@ -34,7 +34,7 @@ Downloads keep running while you look at other steps.
 3. Click **previous osu! install** and choose the folder the app shows (**Copy** and **Show folder** help here).
 4. Leave only **Beatmaps** and **Collections** ticked, then click **Import content from previous version**.
 
-Running **Prepare import folder** again after more downloads only adds what's new. Delete the folder once osu! says the import finished. This is the same folder `osu-collect lazer-import` builds; see [Importing into osu!](Importing-into-osu#several-collections-at-once).
+Running **Prepare import folder** again after more downloads only adds what's new. Delete the folder once osu! says the import finished. This is the same folder `osu-shelf lazer-import` builds; see [Importing into osu!](Importing-into-osu#several-collections-at-once).
 
 **osu! stable**: not automatic yet. Drag the downloaded `.osz` files into osu!, then merge each folder's `collection.db` with [Collection Manager](https://github.com/Piotrekol/CollectionManager).
 
@@ -51,9 +51,9 @@ A preset (all ranked, loved, farm, stream, 7★+) resets the form and fills in i
 
 ## Update collections
 
-Checks the collections you downloaded with osu-collect for maps added on osu!collector since, and downloads only those. It reads the osu! install from **Set up**.
+Checks the collections you downloaded with osu-shelf for maps added on osu!collector since, and downloads only those. It reads the osu! install from **Set up**.
 
-1. **Check for new maps** reads your osu! library, finds the collections osu-collect downloaded (their names end in the osu!collector number, like `Tiebreakers-18951`), and looks each one up on osu!collector.
+1. **Check for new maps** reads your osu! library, finds the collections osu-shelf downloaded (their names end in the osu!collector number, like `Tiebreakers-18951`), and looks each one up on osu!collector.
 2. Every collection with something new is ticked. Its card shows how many maps are new, how many it holds in osu!, and how many osu!collector removed. **Show maps** lists the missing map sets; each one opens its osu! page.
 3. **Download N map sets** fetches the new maps of the ticked collections, each map set once even if several collections miss it. The download shows the same progress, waiting and skip controls as a collection.
 4. Then import as usual (step 3) and **Check again**.

@@ -814,7 +814,7 @@ fn logging_dir_field(logging: &LoggingConfig) -> InputField {
     InputField::new(
         "Logs directory",
         logging.file_dir.as_deref().unwrap_or(""),
-        "~/.local/share/osu-collect/logs",
+        "~/.local/share/osu-shelf/logs",
     )
 }
 

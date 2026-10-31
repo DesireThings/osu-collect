@@ -1,15 +1,17 @@
+use crate::config::{constants::APP_SUBDIR, env_override};
 use crate::osu_db::{LocalBeatmapset, LocalCollection, Md5, OsuClient, checksum};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     sync::{LazyLock, Mutex},
 };
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use tracing::{debug, warn};
 
-pub const SNAPSHOT_ENV_DIR: &str = "OSU_COLLECT_SNAPSHOT_DIR";
+pub const SNAPSHOT_ENV_DIR: &str = "OSU_SHELF_SNAPSHOT_DIR";
+const LEGACY_SNAPSHOT_ENV_DIR: &str = "OSU_COLLECT_SNAPSHOT_DIR";
 const SNAPSHOT_VERSION: u32 = 1;
 static SAVE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
@@ -61,18 +63,15 @@ impl CollectionSnapshotFile {
 }
 
 pub fn snapshots_dir() -> Option<PathBuf> {
-    if let Ok(custom) = env::var(SNAPSHOT_ENV_DIR) {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return Some(PathBuf::from(trimmed));
-        }
+    if let Some(path) = env_override(SNAPSHOT_ENV_DIR, LEGACY_SNAPSHOT_ENV_DIR) {
+        return Some(path);
     }
 
     platform_data_dir().map(snapshot_dir_in)
 }
 
 pub fn snapshot_dir_in(base: PathBuf) -> PathBuf {
-    base.join("osu-collect").join("snapshots")
+    base.join(APP_SUBDIR).join("snapshots")
 }
 
 #[cfg(windows)]

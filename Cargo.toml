@@ -1,16 +1,16 @@
 [package]
-name = "osu-collect"
-version = "0.2.0"
+name = "osu-shelf"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.90"
 authors = ["uwuclxdy", "DesireThings"]
 description = "Download osu!collector collections and import them into osu! (desktop and terminal app)"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/DesireThings/osu-collect"
+repository = "https://github.com/DesireThings/osu-shelf"
 autotests = false
 
 [[bin]]
-name = "osu-collect"
+name = "osu-shelf"
 path = "src/main.rs"
 test = false
 doctest = false

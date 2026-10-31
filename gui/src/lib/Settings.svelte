@@ -161,7 +161,7 @@
 
 <header class="page-head">
   <h1>Settings</h1>
-  <p class="muted">These apply to the next download. The terminal version of osu-collect uses the same settings.</p>
+  <p class="muted">These apply to the next download. The terminal version of osu-shelf uses the same settings.</p>
 </header>
 
 <section class="card">
@@ -216,7 +216,7 @@
       />
     </div>
     <p class="muted small">
-      osu-collect asks osu! whether these work and only keeps them if they do. They're stored
+      osu-shelf asks osu! whether these work and only keeps them if they do. They're stored
       on this computer, readable only by you.
     </p>
     <div class="actions left">
@@ -419,10 +419,10 @@
 
 <section class="card">
   <h2>About</h2>
-  <p>osu-collect {version}</p>
+  <p>osu-shelf {version}</p>
   <p class="muted small">
     Unofficial tool, not made by ppy (osu!) or osu!Collector. Free software under MIT OR
-    Apache-2.0; source code at github.com/DesireThings/osu-collect.
+    Apache-2.0; source code at github.com/DesireThings/osu-shelf.
   </p>
   <button class="secondary" onclick={toggleLicences}>
     {showLicences ? "Hide" : "Show"} third-party licences

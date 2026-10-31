@@ -1,5 +1,5 @@
 use super::{AppError, Result};
-use crate::config::{LogFormat, LogLevel, LoggingConfig};
+use crate::config::{LogFormat, LogLevel, LoggingConfig, constants::APP_SUBDIR};
 use std::path::PathBuf;
 use tracing::level_filters::LevelFilter;
 use tracing_appender::{non_blocking, rolling};
@@ -80,7 +80,7 @@ fn build_file_writer(
     config: &LoggingConfig,
 ) -> Result<(non_blocking::NonBlocking, non_blocking::WorkerGuard)> {
     let dir = resolve_log_dir(config)?;
-    let file_appender = rolling::daily(dir, "osu-collect.log");
+    let file_appender = rolling::daily(dir, "osu-shelf.log");
     Ok(non_blocking(file_appender))
 }
 
@@ -97,7 +97,7 @@ fn resolve_log_dir(config: &LoggingConfig) -> Result<PathBuf> {
     let path = if let Some(dir) = explicit {
         dir
     } else if let Some(base) = dirs::data_local_dir() {
-        base.join("osu-collect").join("logs")
+        base.join(APP_SUBDIR).join("logs")
     } else {
         return Err(AppError::other(
             "logging.file_dir is not set and a data directory could not be determined",

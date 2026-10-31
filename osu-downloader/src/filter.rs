@@ -26,7 +26,7 @@ const NZBASIC_BASE: &str = "https://v2.nzbasic.com";
 
 /// Static client identifier sent with every filter request. BBD uses it for
 /// anonymous metrics; no per-install id is generated.
-const CLIENT_ID: &str = "osu-collect";
+const CLIENT_ID: &str = "osu-shelf";
 
 /// Game mode filter (the `Mode` column).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -30,7 +30,7 @@ fn press(code: KeyCode) -> KeyEvent {
 /// the app at it via `failed_maps_path_override`.
 ///
 /// The tempdir also hosts the config file, and a `TempEnvVar` guard redirects
-/// `OSU_COLLECT_CONFIG` at it for the helper's lifetime. `request_download`
+/// `OSU_SHELF_CONFIG` at it for the helper's lifetime. `request_download`
 /// persists recent inputs by calling `save_config`, which resolves that env var
 /// — without the guard, a parallel `config_theme` test can see its own temp
 /// config overwritten. Returned alongside `(App, TempDir)` so the caller binds
@@ -41,7 +41,7 @@ fn app_with_failed_maps(
     let dir = tempfile::tempdir().expect("tempdir");
     let config_path = dir.path().join("config.toml");
     let env = crate::test_env::TempEnvVar::set(
-        "OSU_COLLECT_CONFIG",
+        "OSU_SHELF_CONFIG",
         config_path.to_str().expect("config path is utf-8"),
     );
 
@@ -50,7 +50,7 @@ fn app_with_failed_maps(
     app.home.collection.value = COLLECTION_ID.to_string();
     // Ensure the form passes build_request: any directory is fine, mirrors
     // already on by default.
-    app.home.directory.value = "/tmp/osu-collect-test".to_string();
+    app.home.directory.value = "/tmp/osu-shelf-test".to_string();
     app.home
         .set_resolved_collection(COLLECTION_ID, COLLECTION_BEATMAPSET_IDS.to_vec());
 
@@ -263,14 +263,14 @@ fn no_intersection_skips_modal_under_ask() {
     let dir = tempfile::tempdir().expect("tempdir");
     let config_path = dir.path().join("config.toml");
     let _env = crate::test_env::TempEnvVar::set(
-        "OSU_COLLECT_CONFIG",
+        "OSU_SHELF_CONFIG",
         config_path.to_str().expect("config path is utf-8"),
     );
 
     let mut app = App::new(Config::default());
     app.config.retry_failed_on_download = RetryFailedOnDownload::Ask;
     app.home.collection.value = COLLECTION_ID.to_string();
-    app.home.directory.value = "/tmp/osu-collect-test".to_string();
+    app.home.directory.value = "/tmp/osu-shelf-test".to_string();
     // resolved ids do not overlap with persisted failures
     app.home
         .set_resolved_collection(COLLECTION_ID, vec![1, 2, 3]);

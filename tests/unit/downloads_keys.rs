@@ -546,7 +546,7 @@ fn deleting_a_settled_page_leaves_no_history_trace() {
 fn dont_ask_again_suppresses_and_persists() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("config.toml");
-    let _env = crate::test_env::TempEnvVar::set("OSU_COLLECT_CONFIG", path.to_str().unwrap());
+    let _env = crate::test_env::TempEnvVar::set("OSU_SHELF_CONFIG", path.to_str().unwrap());
 
     let mut app = make_app();
     make_record(&mut app, 1);

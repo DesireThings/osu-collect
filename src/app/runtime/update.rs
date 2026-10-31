@@ -99,7 +99,7 @@ pub(super) fn handle_update_event(event: UpdateEvent, app: &mut App) {
             app.toasts.replace_tagged(
                 ToastTag::Update,
                 Toast::success("update installed")
-                    .with_detail("restart osu-collect to finish update")
+                    .with_detail("restart osu-shelf to finish update")
                     .until_dismissed(),
             );
         }

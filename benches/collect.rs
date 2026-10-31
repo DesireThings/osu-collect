@@ -729,8 +729,8 @@ fn bench_emit_status_retrying(c: &mut Criterion) {
 fn make_local_beatmapsets(
     n: usize,
     per_set: usize,
-) -> std::collections::HashMap<u32, osu_collect::osu_db::LocalBeatmapset> {
-    use osu_collect::osu_db::{LocalBeatmap, LocalBeatmapset, Md5};
+) -> std::collections::HashMap<u32, osu_shelf::osu_db::LocalBeatmapset> {
+    use osu_shelf::osu_db::{LocalBeatmap, LocalBeatmapset, Md5};
     (0..n as u32)
         .map(|id| {
             let beatmapset = LocalBeatmapset {
@@ -750,7 +750,7 @@ fn make_local_beatmapsets(
 }
 
 fn bench_current_snapshots_beatmapset_clone(c: &mut Criterion) {
-    use osu_collect::osu_db::LocalBeatmapset;
+    use osu_shelf::osu_db::LocalBeatmapset;
 
     let configs: &[(&str, usize, usize)] = &[
         ("500x5", 500, 5),
@@ -784,7 +784,7 @@ fn bench_current_snapshots_beatmapset_clone(c: &mut Criterion) {
             &map,
             |b, map| {
                 b.iter(|| {
-                    use osu_collect::osu_db::{Md5, checksum};
+                    use osu_shelf::osu_db::{Md5, checksum};
                     let mut index: std::collections::HashMap<Md5, u32> =
                         std::collections::HashMap::new();
                     for beatmapset in black_box(map).values() {
@@ -1684,7 +1684,7 @@ fn bench_header_render_version_alloc(c: &mut Criterion) {
     let pkg_version = black_box("1.4.2");
     // The static candidate — no runtime work at all.
     const VERSION_STATIC: &str = concat!(" v", env!("CARGO_PKG_VERSION"), " ");
-    const BRAND: &str = " osu-collect ";
+    const BRAND: &str = " osu-shelf ";
 
     let mut group = c.benchmark_group("header_render_version_alloc");
 

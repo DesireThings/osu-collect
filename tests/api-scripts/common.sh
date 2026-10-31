@@ -3,7 +3,7 @@
 
 BEATMAPSET_ID=705655
 BEATMAP_ID=1510355
-UA="osu-collect-api-test/0.1"
+UA="osu-shelf-api-test/0.1"
 
 pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1"; FAILURES=$((FAILURES + 1)); }
