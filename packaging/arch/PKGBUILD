@@ -83,10 +83,13 @@ build() {
   # Terminal app; the root package is the workspace's only default member.
   cargo build --release --locked
 
-  # Desktop app: tauri-build embeds gui/dist at compile time, so build the
-  # Svelte frontend first, then the Tauri shell crate.
-  pnpm -C gui build
-  cargo build --release --locked -p osu-shelf-gui
+  # Desktop app: go through the Tauri CLI as the release workflow does. The
+  # CLI enables the `custom-protocol` feature, which is what embeds gui/dist
+  # into the binary; a bare `cargo build` compiles a dev binary that loads the
+  # Vite dev server at localhost:1420 instead. The CLI also runs `pnpm build`
+  # via beforeBuildCommand. --no-bundle builds only the binary; pacman does the
+  # packaging below.
+  pnpm -C gui tauri build --no-bundle
 }
 
 package() {
